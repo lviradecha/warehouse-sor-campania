@@ -3,64 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Warehouse SOR Campania - Gestione Magazzino</title>
+    <title>Sistema Magazzino - SOR Campania</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <!-- Login Page -->
-    <div id="loginPage" class="page active">
+    <div id="loginPage" class="login-page">
         <div class="login-container">
-            <div class="login-box">
-                <div class="logo">
-                    <h1>🏛️ SOR CAMPANIA</h1>
-                    <p>Sistema Gestione Magazzino Emergenze</p>
+            <img src="logo-sor.jpg" alt="Logo SOR Campania" class="login-logo">
+            
+            <div class="login-header">
+                <h1>CROCE ROSSA ITALIANA</h1>
+                <h2>Sistema Gestione Magazzino</h2>
+                <p>Sala Operativa Regionale Campania</p>
+            </div>
+
+            <div id="loginError" class="error-message" style="display: none;"></div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">👤 Username</label>
+                    <input type="text" id="username" name="username" required autocomplete="username" placeholder="Inserisci username">
                 </div>
-                <form id="loginForm">
-                    <div class="form-group">
-                        <label for="username">Username</label>
-                        <input type="text" id="username" name="username" required autocomplete="username">
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <input type="password" id="password" name="password" required autocomplete="current-password">
-                    </div>
-                    <button type="submit" class="btn btn-primary btn-block">Accedi</button>
-                    <div id="loginError" class="error-message" style="display: none;"></div>
-                </form>
+
+                <div class="form-group">
+                    <label for="password">🔒 Password</label>
+                    <input type="password" id="password" name="password" required autocomplete="current-password" placeholder="Inserisci password">
+                </div>
+
+                <button type="submit" class="btn-login">
+                    Accedi al Sistema
+                </button>
+            </form>
+
+            <div class="login-footer">
+                <p>Per assistenza contattare: sor.campania@cri.it</p>
+                <p style="margin-top: 10px;">© 2025 Croce Rossa Italiana - Campania</p>
             </div>
         </div>
     </div>
 
     <!-- Main App -->
-    <div id="mainApp" class="page">
-        <!-- Header -->
-        <header class="header">
-            <div class="header-content">
-                <div class="header-left">
-                    <h1>🏛️ Warehouse SOR Campania</h1>
-                    <span id="userInfo" class="user-info"></span>
+    <div id="mainApp" style="display: none;">
+        <!-- Banner con Logo -->
+        <header class="banner">
+            <div class="banner-content">
+                <div class="banner-logo">
+                    <img src="logo-sor.jpg" alt="Logo SOR Campania">
                 </div>
-                <div class="header-right">
-                    <button id="logoutBtn" class="btn btn-secondary">Esci</button>
+                <div class="banner-text">
+                    <h1 class="banner-title">CROCE ROSSA ITALIANA</h1>
+                    <p class="banner-subtitle">Sala Operativa Regionale - Campania | Sistema Gestione Magazzino</p>
                 </div>
+                <div class="banner-user" id="userInfo"></div>
+                <button id="logoutBtn" class="btn-logout">🚪 Esci</button>
+                <div class="banner-version">v1.0</div>
             </div>
         </header>
 
-        <!-- Navigation -->
-        <nav class="nav">
-            <button class="nav-btn active" data-section="materials">📦 Materiali</button>
-            <button class="nav-btn" data-section="assignments">🔄 Assegnazioni</button>
-            <button class="nav-btn" data-section="volunteers">👥 Volontari</button>
-            <button class="nav-btn" data-section="maintenance">🔧 Manutenzioni</button>
-            <button class="nav-btn admin-only" data-section="users">👤 Utenti</button>
+        <!-- Navigation Menu -->
+        <nav class="nav-menu">
+            <div class="nav-content">
+                <a href="#" class="nav-link active" data-section="materials">📦 Materiali</a>
+                <a href="#" class="nav-link" data-section="assignments">🔄 Assegnazioni</a>
+                <a href="#" class="nav-link" data-section="volunteers">👥 Volontari</a>
+                <a href="#" class="nav-link" data-section="maintenance">🔧 Manutenzioni</a>
+                <a href="#" class="nav-link admin-only" data-section="users" style="display: none;">👤 Utenti</a>
+            </div>
         </nav>
 
         <!-- Main Content -->
-        <main class="main-content">
+        <main class="container">
             <!-- Materials Section -->
             <section id="materialsSection" class="section active">
-                <div class="section-header">
-                    <h2>Gestione Materiali</h2>
+                <div class="card">
+                    <h2>📦 Gestione Materiali</h2>
+                    
+                    <div class="info-box">
+                        <p><strong>ℹ️ Informazioni:</strong> Gestisci l'inventario completo dei materiali del magazzino emergenze. Ogni materiale ha un codice a barre univoco per tracciabilità.</p>
+                    </div>
+
                     <div class="section-actions">
                         <input type="text" id="materialsSearch" placeholder="🔍 Cerca materiale..." class="search-input">
                         <select id="materialsStatusFilter" class="filter-select">
@@ -79,33 +101,39 @@
                             <option value="Attrezzatura">Attrezzatura</option>
                             <option value="Altro">Altro</option>
                         </select>
-                        <button id="addMaterialBtn" class="btn btn-primary">➕ Nuovo Materiale</button>
+                        <button id="addMaterialBtn" class="btn-primary">➕ Nuovo Materiale</button>
                     </div>
-                </div>
-                <div class="table-container">
-                    <table id="materialsTable" class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Codice</th>
-                                <th>Nome</th>
-                                <th>Categoria</th>
-                                <th>Stato</th>
-                                <th>Data Acquisto</th>
-                                <th>Prezzo</th>
-                                <th>Azioni</th>
-                            </tr>
-                        </thead>
-                        <tbody id="materialsTableBody">
-                            <!-- Populated by JS -->
-                        </tbody>
-                    </table>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Codice</th>
+                                    <th>Nome</th>
+                                    <th>Categoria</th>
+                                    <th>Stato</th>
+                                    <th>Data Acquisto</th>
+                                    <th>Prezzo</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="materialsTableBody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
 
             <!-- Assignments Section -->
-            <section id="assignmentsSection" class="section">
-                <div class="section-header">
-                    <h2>Gestione Assegnazioni</h2>
+            <section id="assignmentsSection" class="section" style="display: none;">
+                <div class="card">
+                    <h2>🔄 Gestione Assegnazioni</h2>
+                    
+                    <div class="info-box">
+                        <p><strong>ℹ️ Informazioni:</strong> Assegna materiali ai volontari per eventi specifici. Traccia le date di uscita e rientro previsto.</p>
+                    </div>
+
                     <div class="section-actions">
                         <select id="assignmentsStatusFilter" class="filter-select">
                             <option value="">Tutti</option>
@@ -113,33 +141,39 @@
                             <option value="rientrato">Rientrato</option>
                             <option value="danneggiato">Danneggiato</option>
                         </select>
-                        <button id="addAssignmentBtn" class="btn btn-primary">➕ Nuova Assegnazione</button>
+                        <button id="addAssignmentBtn" class="btn-primary">➕ Nuova Assegnazione</button>
                     </div>
-                </div>
-                <div class="table-container">
-                    <table id="assignmentsTable" class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Data</th>
-                                <th>Materiale</th>
-                                <th>Volontario</th>
-                                <th>Evento</th>
-                                <th>Rientro Previsto</th>
-                                <th>Stato</th>
-                                <th>Azioni</th>
-                            </tr>
-                        </thead>
-                        <tbody id="assignmentsTableBody">
-                            <!-- Populated by JS -->
-                        </tbody>
-                    </table>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Materiale</th>
+                                    <th>Volontario</th>
+                                    <th>Evento</th>
+                                    <th>Rientro Previsto</th>
+                                    <th>Stato</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="assignmentsTableBody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
 
             <!-- Volunteers Section -->
-            <section id="volunteersSection" class="section">
-                <div class="section-header">
-                    <h2>Gestione Volontari</h2>
+            <section id="volunteersSection" class="section" style="display: none;">
+                <div class="card">
+                    <h2>👥 Gestione Volontari</h2>
+                    
+                    <div class="info-box">
+                        <p><strong>ℹ️ Informazioni:</strong> Anagrafica completa dei volontari autorizzati a prelevare materiali. Ogni volontario ha un codice univoco.</p>
+                    </div>
+
                     <div class="section-actions">
                         <input type="text" id="volunteersSearch" placeholder="🔍 Cerca volontario..." class="search-input">
                         <select id="volunteersActiveFilter" class="filter-select">
@@ -147,32 +181,38 @@
                             <option value="true">Attivi</option>
                             <option value="false">Non attivi</option>
                         </select>
-                        <button id="addVolunteerBtn" class="btn btn-primary">➕ Nuovo Volontario</button>
+                        <button id="addVolunteerBtn" class="btn-primary">➕ Nuovo Volontario</button>
                     </div>
-                </div>
-                <div class="table-container">
-                    <table id="volunteersTable" class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Codice</th>
-                                <th>Nome Completo</th>
-                                <th>Telefono</th>
-                                <th>Email</th>
-                                <th>Stato</th>
-                                <th>Azioni</th>
-                            </tr>
-                        </thead>
-                        <tbody id="volunteersTableBody">
-                            <!-- Populated by JS -->
-                        </tbody>
-                    </table>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Codice</th>
+                                    <th>Nome Completo</th>
+                                    <th>Telefono</th>
+                                    <th>Email</th>
+                                    <th>Stato</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="volunteersTableBody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
 
             <!-- Maintenance Section -->
-            <section id="maintenanceSection" class="section">
-                <div class="section-header">
-                    <h2>Storico Manutenzioni</h2>
+            <section id="maintenanceSection" class="section" style="display: none;">
+                <div class="card">
+                    <h2>🔧 Storico Manutenzioni</h2>
+                    
+                    <div class="info-box">
+                        <p><strong>ℹ️ Informazioni:</strong> Registro completo degli interventi di manutenzione e riparazione sui materiali. Traccia costi e esiti.</p>
+                    </div>
+
                     <div class="section-actions">
                         <select id="maintenanceOutcomeFilter" class="filter-select">
                             <option value="">Tutti gli esiti</option>
@@ -180,55 +220,69 @@
                             <option value="da_dismettere">Da dismettere</option>
                             <option value="in_attesa">In attesa</option>
                         </select>
-                        <button id="addMaintenanceBtn" class="btn btn-primary">➕ Nuova Manutenzione</button>
+                        <button id="addMaintenanceBtn" class="btn-primary">➕ Nuova Manutenzione</button>
                     </div>
-                </div>
-                <div class="table-container">
-                    <table id="maintenanceTable" class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Data</th>
-                                <th>Materiale</th>
-                                <th>Tipo</th>
-                                <th>Descrizione</th>
-                                <th>Costo</th>
-                                <th>Esito</th>
-                                <th>Azioni</th>
-                            </tr>
-                        </thead>
-                        <tbody id="maintenanceTableBody">
-                            <!-- Populated by JS -->
-                        </tbody>
-                    </table>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Materiale</th>
+                                    <th>Tipo</th>
+                                    <th>Descrizione</th>
+                                    <th>Costo</th>
+                                    <th>Esito</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="maintenanceTableBody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
 
             <!-- Users Section (Admin Only) -->
-            <section id="usersSection" class="section admin-only">
-                <div class="section-header">
-                    <h2>Gestione Utenti</h2>
-                    <div class="section-actions">
-                        <button id="addUserBtn" class="btn btn-primary">➕ Nuovo Utente</button>
+            <section id="usersSection" class="section admin-only" style="display: none;">
+                <div class="card">
+                    <h2>👤 Gestione Utenti</h2>
+                    
+                    <div class="info-box">
+                        <p><strong>ℹ️ Informazioni:</strong> Gestisci gli utenti che possono accedere al sistema. Solo amministratori possono modificare gli utenti.</p>
                     </div>
-                </div>
-                <div class="table-container">
-                    <table id="usersTable" class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Username</th>
-                                <th>Nome Completo</th>
-                                <th>Ruolo</th>
-                                <th>Data Creazione</th>
-                                <th>Azioni</th>
-                            </tr>
-                        </thead>
-                        <tbody id="usersTableBody">
-                            <!-- Populated by JS -->
-                        </tbody>
-                    </table>
+
+                    <div class="section-actions">
+                        <button id="addUserBtn" class="btn-primary">➕ Nuovo Utente</button>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Nome Completo</th>
+                                    <th>Ruolo</th>
+                                    <th>Data Creazione</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
         </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>📞 sor.campania@cri.it | +39 081 7810011 (selezione 2)</p>
+            <p class="footer-small">© 2025 Croce Rossa Italiana - Comitato Regionale Campania</p>
+            <p class="footer-small">Sistema Gestione Magazzino Emergenze - Versione 1.0</p>
+        </footer>
     </div>
 
     <!-- Modal Container -->

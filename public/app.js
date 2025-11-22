@@ -103,8 +103,8 @@ function logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     
-    document.getElementById('loginPage').classList.add('active');
-    document.getElementById('mainApp').classList.remove('active');
+    document.getElementById('loginPage').style.display = 'flex';
+    document.getElementById('mainApp').style.display = 'none';
     document.getElementById('loginForm').reset();
 }
 
@@ -131,13 +131,13 @@ function initApp() {
 }
 
 function showLoginPage() {
-    document.getElementById('loginPage').classList.add('active');
-    document.getElementById('mainApp').classList.remove('active');
+    document.getElementById('loginPage').style.display = 'flex';
+    document.getElementById('mainApp').style.display = 'none';
 }
 
 function showMainApp() {
-    document.getElementById('loginPage').classList.remove('active');
-    document.getElementById('mainApp').classList.add('active');
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'flex';
     
     // Update UI based on role
     document.getElementById('userInfo').textContent = 
@@ -1057,19 +1057,19 @@ function closeModal() {
 function switchSection(sectionName) {
     // Hide all sections
     document.querySelectorAll('.section').forEach(section => {
-        section.classList.remove('active');
+        section.style.display = 'none';
     });
     
     // Remove active class from all nav buttons
     document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.classList.remove('active');
+        btn.style.display = 'none';
     });
     
     // Show selected section
-    document.getElementById(`${sectionName}Section`).classList.add('active');
+    document.getElementById(`${sectionName}Section`).style.display = 'flex';
     
     // Add active class to clicked button
-    document.querySelector(`[data-section="${sectionName}"]`).classList.add('active');
+    document.querySelector(`[data-section="${sectionName}"]`).style.display = 'flex';
 }
 
 // Event Listeners

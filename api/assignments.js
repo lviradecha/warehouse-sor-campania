@@ -13,9 +13,9 @@ export default async function handler(req, res) {
   const sql = neon(process.env.DATABASE_URL);
 
   try {
-    // GET - Lista assegnazioni con join
+    // GET - Lista assignments con join
     if (req.method === 'GET') {
-      const { stato, volontario_id, materiale_id } = req.query;
+      const { stato, volunteerso_id, material_id } = req.query;
       
       let query = `
         SELECT 
@@ -23,12 +23,12 @@ export default async function handler(req, res) {
           m.codice as materiale_codice,
           m.nome as materiale_nome,
           m.categoria as materiale_categoria,
-          v.codice_volontario,
-          v.nome as volontario_nome,
-          v.cognome as volontario_cognome
-        FROM assegnazioni a
-        LEFT JOIN materiali m ON a.materiale_id = m.id
-        LEFT JOIN volontari v ON a.volontario_id = v.id
+          v.codice_volunteerso,
+          v.nome as volunteerso_nome,
+          v.cognome as volunteerso_cognome
+        FROM assignments a
+        LEFT JOIN materials m ON a.material_id = m.id
+        LEFT JOIN volunteers v ON a.volunteerso_id = v.id
         WHERE 1=1
       `;
       const params = [];
@@ -38,38 +38,38 @@ export default async function handler(req, res) {
         query += ` AND a.stato = $${params.length}`;
       }
 
-      if (volontario_id) {
-        params.push(volontario_id);
-        query += ` AND a.volontario_id = $${params.length}`;
+      if (volunteerso_id) {
+        params.push(volunteerso_id);
+        query += ` AND a.volunteerso_id = $${params.length}`;
       }
 
-      if (materiale_id) {
-        params.push(materiale_id);
-        query += ` AND a.materiale_id = $${params.length}`;
+      if (material_id) {
+        params.push(material_id);
+        query += ` AND a.material_id = $${params.length}`;
       }
 
       query += ' ORDER BY a.data_assegnazione DESC';
 
-      const assegnazioni = params.length > 0 
+      const assignments = params.length > 0 
         ? await sql(query, params)
         : await sql(query);
 
-      return res.status(200).json(assegnazioni);
+      return res.status(200).json(assignments);
     }
 
     // POST - Crea nuova assegnazione
     if (req.method === 'POST') {
-      const { materiale_id, volontario_id, note } = req.body;
+      const { material_id, volunteerso_id, note } = req.body;
 
-      if (!materiale_id || !volontario_id) {
+      if (!material_id || !volunteerso_id) {
         return res.status(400).json({ 
-          error: 'ID materiale e volontario sono obbligatori' 
+          error: 'ID materiale e volunteerso sono obbligatori' 
         });
       }
 
       // Verifica che il materiale sia disponibile
       const materiale = await sql`
-        SELECT stato FROM materiali WHERE id = ${materiale_id}
+        SELECT stato FROM materials WHERE id = ${material_id}
       `;
       
       if (materiale.length === 0) {
@@ -82,27 +82,27 @@ export default async function handler(req, res) {
         });
       }
 
-      // Verifica che il volontario esista
-      const volontario = await sql`
-        SELECT id FROM volontari WHERE id = ${volontario_id}
+      // Verifica che il volunteerso esista
+      const volunteerso = await sql`
+        SELECT id FROM volunteers WHERE id = ${volunteerso_id}
       `;
       
-      if (volontario.length === 0) {
+      if (volunteerso.length === 0) {
         return res.status(404).json({ error: 'Volontario non trovato' });
       }
 
       // Crea assegnazione
       const assegnazione = await sql`
-        INSERT INTO assegnazioni (materiale_id, volontario_id, stato, note) 
-        VALUES (${materiale_id}, ${volontario_id}, 'assegnato', ${note || null})
+        INSERT INTO assignments (material_id, volunteerso_id, stato, note) 
+        VALUES (${material_id}, ${volunteerso_id}, 'assegnato', ${note || null})
         RETURNING *
       `;
 
       // Aggiorna stato materiale
       await sql`
-        UPDATE materiali 
+        UPDATE materials 
         SET stato = 'assegnato' 
-        WHERE id = ${materiale_id}
+        WHERE id = ${material_id}
       `;
 
       return res.status(201).json(assegnazione[0]);
@@ -118,7 +118,7 @@ export default async function handler(req, res) {
 
       // Ottieni info assegnazione
       const assegnazione = await sql`
-        SELECT materiale_id FROM assegnazioni WHERE id = ${id}
+        SELECT material_id FROM assignments WHERE id = ${id}
       `;
 
       if (assegnazione.length === 0) {
@@ -127,7 +127,7 @@ export default async function handler(req, res) {
 
       // Aggiorna assegnazione
       const result = await sql`
-        UPDATE assegnazioni 
+        UPDATE assignments 
         SET stato = 'rientrato',
             data_rientro = CURRENT_TIMESTAMP,
             condizioni_rientro = ${condizioni_rientro || null},
@@ -143,9 +143,9 @@ export default async function handler(req, res) {
       }
 
       await sql`
-        UPDATE materiali 
+        UPDATE materials 
         SET stato = ${nuovoStato}
-        WHERE id = ${assegnazione[0].materiale_id}
+        WHERE id = ${assegnazione[0].material_id}
       `;
 
       return res.status(200).json(result[0]);
@@ -154,7 +154,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Metodo non consentito' });
 
   } catch (error) {
-    console.error('Errore API assegnazioni:', error);
+    console.error('Errore API assignments:', error);
     return res.status(500).json({ 
       error: 'Errore del server', 
       details: error.message 

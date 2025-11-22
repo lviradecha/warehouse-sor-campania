@@ -14,11 +14,11 @@ export default async function handler(req, res) {
   const sql = neon(process.env.DATABASE_URL);
 
   try {
-    // GET - Lista materiali con filtri opzionali
+    // GET - Lista materials con filtri opzionali
     if (req.method === 'GET') {
       const { stato, categoria, ricerca } = req.query;
       
-      let query = 'SELECT * FROM materiali WHERE 1=1';
+      let query = 'SELECT * FROM materials WHERE 1=1';
       const params = [];
 
       if (stato) {
@@ -38,11 +38,11 @@ export default async function handler(req, res) {
 
       query += ' ORDER BY codice ASC';
 
-      const materiali = params.length > 0 
+      const materials = params.length > 0 
         ? await sql(query, params)
-        : await sql`SELECT * FROM materiali ORDER BY codice ASC`;
+        : await sql`SELECT * FROM materials ORDER BY codice ASC`;
 
-      return res.status(200).json(materiali);
+      return res.status(200).json(materials);
     }
 
     // POST - Crea nuovo materiale
@@ -54,13 +54,13 @@ export default async function handler(req, res) {
       }
 
       // Verifica che il codice sia univoco
-      const existing = await sql`SELECT id FROM materiali WHERE codice = ${codice}`;
+      const existing = await sql`SELECT id FROM materials WHERE codice = ${codice}`;
       if (existing.length > 0) {
         return res.status(400).json({ error: 'Codice già esistente' });
       }
 
       const result = await sql`
-        INSERT INTO materiali (codice, nome, categoria, stato, data_acquisto, prezzo, note) 
+        INSERT INTO materials (codice, nome, categoria, stato, data_acquisto, prezzo, note) 
         VALUES (${codice}, ${nome}, ${categoria}, ${stato || 'disponibile'}, ${data_acquisto || null}, ${prezzo || null}, ${note || null})
         RETURNING *
       `;
@@ -77,7 +77,7 @@ export default async function handler(req, res) {
       }
 
       const result = await sql`
-        UPDATE materiali 
+        UPDATE materials 
         SET nome = ${nome}, 
             categoria = ${categoria}, 
             stato = ${stato}, 
@@ -104,19 +104,19 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'ID materiale richiesto' });
       }
 
-      // Verifica che non ci siano assegnazioni attive
-      const assegnazioni = await sql`
-        SELECT id FROM assegnazioni 
+      // Verifica che non ci siano assignments attive
+      const assignments = await sql`
+        SELECT id FROM assignments 
         WHERE materiale_id = ${id} AND stato = 'assegnato'
       `;
 
-      if (assegnazioni.length > 0) {
+      if (assignments.length > 0) {
         return res.status(400).json({ 
           error: 'Impossibile eliminare: materiale attualmente assegnato' 
         });
       }
 
-      await sql`DELETE FROM materiali WHERE id = ${id}`;
+      await sql`DELETE FROM materials WHERE id = ${id}`;
 
       return res.status(200).json({ success: true, message: 'Materiale eliminato' });
     }
@@ -124,7 +124,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Metodo non consentito' });
 
   } catch (error) {
-    console.error('Errore API materiali:', error);
+    console.error('Errore API materials:', error);
     return res.status(500).json({ 
       error: 'Errore del server', 
       details: error.message 

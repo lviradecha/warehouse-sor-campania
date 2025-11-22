@@ -13,66 +13,66 @@ export default async function handler(req, res) {
   const sql = neon(process.env.DATABASE_URL);
 
   try {
-    // GET - Lista volontari
+    // GET - Lista volunteers
     if (req.method === 'GET') {
       const { ricerca } = req.query;
       
-      let volontari;
+      let volunteers;
       if (ricerca) {
-        volontari = await sql`
-          SELECT * FROM volontari 
+        volunteers = await sql`
+          SELECT * FROM volunteers 
           WHERE nome ILIKE ${'%' + ricerca + '%'} 
              OR cognome ILIKE ${'%' + ricerca + '%'}
-             OR codice_volontario ILIKE ${'%' + ricerca + '%'}
+             OR codice_volunteerso ILIKE ${'%' + ricerca + '%'}
           ORDER BY cognome, nome
         `;
       } else {
-        volontari = await sql`
-          SELECT * FROM volontari 
+        volunteers = await sql`
+          SELECT * FROM volunteers 
           ORDER BY cognome, nome
         `;
       }
 
-      return res.status(200).json(volontari);
+      return res.status(200).json(volunteers);
     }
 
-    // POST - Crea nuovo volontario
+    // POST - Crea nuovo volunteerso
     if (req.method === 'POST') {
-      const { codice_volontario, nome, cognome, email, telefono } = req.body;
+      const { codice_volunteerso, nome, cognome, email, telefono } = req.body;
 
-      if (!codice_volontario || !nome || !cognome) {
+      if (!codice_volunteerso || !nome || !cognome) {
         return res.status(400).json({ 
-          error: 'Codice volontario, nome e cognome sono obbligatori' 
+          error: 'Codice volunteerso, nome e cognome sono obbligatori' 
         });
       }
 
       // Verifica che il codice sia univoco
       const existing = await sql`
-        SELECT id FROM volontari WHERE codice_volontario = ${codice_volontario}
+        SELECT id FROM volunteers WHERE codice_volunteerso = ${codice_volunteerso}
       `;
       if (existing.length > 0) {
-        return res.status(400).json({ error: 'Codice volontario già esistente' });
+        return res.status(400).json({ error: 'Codice volunteerso già esistente' });
       }
 
       const result = await sql`
-        INSERT INTO volontari (codice_volontario, nome, cognome, email, telefono) 
-        VALUES (${codice_volontario}, ${nome}, ${cognome}, ${email || null}, ${telefono || null})
+        INSERT INTO volunteers (codice_volunteerso, nome, cognome, email, telefono) 
+        VALUES (${codice_volunteerso}, ${nome}, ${cognome}, ${email || null}, ${telefono || null})
         RETURNING *
       `;
 
       return res.status(201).json(result[0]);
     }
 
-    // PUT - Aggiorna volontario
+    // PUT - Aggiorna volunteerso
     if (req.method === 'PUT') {
       const { id, nome, cognome, email, telefono } = req.body;
 
       if (!id) {
-        return res.status(400).json({ error: 'ID volontario richiesto' });
+        return res.status(400).json({ error: 'ID volunteerso richiesto' });
       }
 
       const result = await sql`
-        UPDATE volontari 
+        UPDATE volunteers 
         SET nome = ${nome}, 
             cognome = ${cognome}, 
             email = ${email || null}, 
@@ -89,27 +89,27 @@ export default async function handler(req, res) {
       return res.status(200).json(result[0]);
     }
 
-    // DELETE - Elimina volontario
+    // DELETE - Elimina volunteerso
     if (req.method === 'DELETE') {
       const { id } = req.query;
 
       if (!id) {
-        return res.status(400).json({ error: 'ID volontario richiesto' });
+        return res.status(400).json({ error: 'ID volunteerso richiesto' });
       }
 
       // Verifica che non ci siano assegnazioni attive
       const assegnazioni = await sql`
         SELECT id FROM assegnazioni 
-        WHERE volontario_id = ${id} AND stato = 'assegnato'
+        WHERE volunteerso_id = ${id} AND stato = 'assegnato'
       `;
 
       if (assegnazioni.length > 0) {
         return res.status(400).json({ 
-          error: 'Impossibile eliminare: volontario ha assegnazioni attive' 
+          error: 'Impossibile eliminare: volunteerso ha assegnazioni attive' 
         });
       }
 
-      await sql`DELETE FROM volontari WHERE id = ${id}`;
+      await sql`DELETE FROM volunteers WHERE id = ${id}`;
 
       return res.status(200).json({ success: true, message: 'Volontario eliminato' });
     }
@@ -117,7 +117,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Metodo non consentito' });
 
   } catch (error) {
-    console.error('Errore API volontari:', error);
+    console.error('Errore API volunteers:', error);
     return res.status(500).json({ 
       error: 'Errore del server', 
       details: error.message 

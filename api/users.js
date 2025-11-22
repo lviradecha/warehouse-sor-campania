@@ -14,15 +14,15 @@ export default async function handler(req, res) {
   const sql = neon(process.env.DATABASE_URL);
 
   try {
-    // GET - Lista utenti (senza password)
+    // GET - Lista users (senza password)
     if (req.method === 'GET') {
-      const utenti = await sql`
+      const users = await sql`
         SELECT id, username, role, nome, cognome, email, enabled, created_at, last_login
-        FROM utenti 
+        FROM users 
         ORDER BY cognome, nome
       `;
 
-      return res.status(200).json(utenti);
+      return res.status(200).json(users);
     }
 
     // POST - Crea nuovo utente
@@ -37,7 +37,7 @@ export default async function handler(req, res) {
 
       // Verifica che username sia univoco
       const existing = await sql`
-        SELECT id FROM utenti WHERE username = ${username}
+        SELECT id FROM users WHERE username = ${username}
       `;
       
       if (existing.length > 0) {
@@ -49,7 +49,7 @@ export default async function handler(req, res) {
 
       // Crea utente
       const result = await sql`
-        INSERT INTO utenti (username, password_hash, role, nome, cognome, email, enabled) 
+        INSERT INTO users (username, password_hash, role, nome, cognome, email, enabled) 
         VALUES (${username}, ${password_hash}, ${role}, ${nome}, ${cognome}, ${email || null}, true)
         RETURNING id, username, role, nome, cognome, email, enabled, created_at
       `;
@@ -70,7 +70,7 @@ export default async function handler(req, res) {
         const password_hash = await bcrypt.hash(new_password, 10);
         
         const result = await sql`
-          UPDATE utenti 
+          UPDATE users 
           SET role = ${role},
               nome = ${nome},
               cognome = ${cognome},
@@ -90,7 +90,7 @@ export default async function handler(req, res) {
       } else {
         // Aggiorna senza cambiare password
         const result = await sql`
-          UPDATE utenti 
+          UPDATE users 
           SET role = ${role},
               nome = ${nome},
               cognome = ${cognome},
@@ -118,10 +118,10 @@ export default async function handler(req, res) {
       }
 
       // Non permettere eliminazione se è l'unico admin
-      const user = await sql`SELECT role FROM utenti WHERE id = ${id}`;
+      const user = await sql`SELECT role FROM users WHERE id = ${id}`;
       
       if (user.length > 0 && user[0].role === 'admin') {
-        const adminCount = await sql`SELECT COUNT(*) as count FROM utenti WHERE role = 'admin' AND enabled = true`;
+        const adminCount = await sql`SELECT COUNT(*) as count FROM users WHERE role = 'admin' AND enabled = true`;
         
         if (adminCount[0].count <= 1) {
           return res.status(400).json({ 
@@ -130,7 +130,7 @@ export default async function handler(req, res) {
         }
       }
 
-      await sql`DELETE FROM utenti WHERE id = ${id}`;
+      await sql`DELETE FROM users WHERE id = ${id}`;
 
       return res.status(200).json({ success: true, message: 'Utente eliminato' });
     }
@@ -138,7 +138,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Metodo non consentito' });
 
   } catch (error) {
-    console.error('Errore API utenti:', error);
+    console.error('Errore API users:', error);
     return res.status(500).json({ 
       error: 'Errore del server', 
       details: error.message 

@@ -24,7 +24,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Username e password richiesti' });
     }
 
-    // Cerca utente
+    // Cerca utente nella tabella users
     const users = await sql`
       SELECT id, username, password_hash, role, nome, cognome, email, enabled
       FROM users 
@@ -49,11 +49,15 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'Credenziali non valide' });
     }
 
-    // Log accesso
-    await sql`
-      INSERT INTO activity_log (user_id, action, entity_type, details) 
-      VALUES (${user.id}, 'login', 'auth', 'Login effettuato')
-    `;
+    // Log accesso (opzionale, ignora errore se tabella non esiste)
+    try {
+      await sql`
+        INSERT INTO activity_log (user_id, action, entity_type, details) 
+        VALUES (${user.id}, 'login', 'auth', 'Login effettuato')
+      `;
+    } catch (logError) {
+      console.log('Activity log non salvato');
+    }
 
     // Aggiorna ultimo accesso
     await sql`
@@ -62,14 +66,21 @@ export default async function handler(req, res) {
       WHERE id = ${user.id}
     `;
 
-    // Restituisci dati utente (senza password)
+    // Genera token semplice (per compatibilità frontend)
+    // In produzione, usa JWT
+    const token = `${user.id}-${Date.now()}-${Math.random().toString(36)}`;
+
+    // Restituisci dati nel formato atteso dal frontend
     return res.status(200).json({
-      id: user.id,
-      username: user.username,
-      role: user.role,
-      nome: user.nome,
-      cognome: user.cognome,
-      email: user.email
+      user: {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        nome: user.nome,
+        cognome: user.cognome,
+        email: user.email
+      },
+      token: token
     });
 
   } catch (error) {

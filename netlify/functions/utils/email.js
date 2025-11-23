@@ -56,45 +56,117 @@ async function sendNewUserCredentials(email, nome, cognome, username, tempPasswo
         <head>
             <meta charset="UTF-8">
             <style>
-                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                .header { background: #d32f2f; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
-                .content { background: #f9f9f9; padding: 30px; border: 1px solid #ddd; border-radius: 0 0 5px 5px; }
-                .credentials { background: white; padding: 20px; margin: 20px 0; border-left: 4px solid #d32f2f; }
-                .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
-                .button { display: inline-block; background: #d32f2f; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin-top: 20px; }
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+                .header { 
+                    background: #d32f2f; 
+                    color: white; 
+                    padding: 30px 20px; 
+                    text-align: center; 
+                    border-radius: 5px 5px 0 0; 
+                }
+                .logo-circle {
+                    width: 80px;
+                    height: 80px;
+                    background: white;
+                    border-radius: 50%;
+                    margin: 0 auto 15px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                }
+                .logo-circle img {
+                    width: 60px;
+                    height: 60px;
+                }
+                .header h1 { margin: 10px 0 5px; font-size: 24px; }
+                .header p { margin: 0; font-size: 14px; opacity: 0.9; }
+                .content { background: white; padding: 30px; border: 1px solid #ddd; }
+                .credentials { 
+                    background: #f9f9f9; 
+                    padding: 20px; 
+                    margin: 20px 0; 
+                    border-left: 4px solid #d32f2f; 
+                    border-radius: 4px;
+                }
+                .credentials p { margin: 10px 0; }
+                .credentials code { 
+                    background: white; 
+                    padding: 5px 10px; 
+                    border-radius: 3px; 
+                    font-size: 16px;
+                    color: #d32f2f;
+                    font-weight: bold;
+                }
+                .button { 
+                    display: inline-block; 
+                    background: #d32f2f; 
+                    color: white !important; 
+                    padding: 15px 40px; 
+                    text-decoration: none; 
+                    border-radius: 5px; 
+                    margin-top: 20px;
+                    font-weight: bold;
+                }
+                .button:hover { background: #b71c1c; }
+                .warning { 
+                    background: #fff3cd; 
+                    padding: 15px; 
+                    border-left: 4px solid #ffc107; 
+                    margin: 20px 0;
+                    border-radius: 4px;
+                }
+                .warning strong { color: #856404; }
+                .footer { 
+                    text-align: center; 
+                    margin-top: 20px; 
+                    padding-top: 20px;
+                    border-top: 1px solid #ddd;
+                    font-size: 12px; 
+                    color: #666; 
+                }
             </style>
         </head>
         <body>
             <div class="container">
                 <div class="header">
+                    <div class="logo-circle">
+                        <img src="https://warehouse-sor-campania.netlify.app/assets/logo-sor.png" alt="SOR Logo" onerror="this.style.display='none'">
+                    </div>
                     <h1>🏥 Croce Rossa Italiana</h1>
                     <p>Sala Operativa Regionale - Campania</p>
+                    <p style="font-size: 16px; margin-top: 10px;">Sistema Gestione Magazzino</p>
                 </div>
                 <div class="content">
-                    <h2>Benvenuto ${nome} ${cognome}!</h2>
+                    <h2 style="color: #d32f2f;">Benvenuto ${nome} ${cognome}!</h2>
                     <p>È stato creato un account per te nel Sistema di Gestione Magazzino della CRI SOR Campania.</p>
                     
                     <div class="credentials">
-                        <h3>📋 Le tue credenziali di accesso:</h3>
+                        <h3 style="margin-top: 0; color: #d32f2f;">📋 Le tue credenziali di accesso:</h3>
                         <p><strong>Username:</strong> <code>${username}</code></p>
                         <p><strong>Password temporanea:</strong> <code>${tempPassword}</code></p>
-                        <p><strong>URL Sistema:</strong> <a href="${process.env.URL || 'https://warehouse-sor-campania.netlify.app'}">${process.env.URL || 'https://warehouse-sor-campania.netlify.app'}</a></p>
                     </div>
                     
-                    <p><strong>⚠️ IMPORTANTE:</strong></p>
-                    <ul>
-                        <li>Al primo accesso ti verrà richiesto di cambiare la password</li>
-                        <li>Conserva questa email in modo sicuro</li>
-                        <li>Non condividere le tue credenziali con altri</li>
-                    </ul>
+                    <div class="warning">
+                        <p><strong>⚠️ IMPORTANTE:</strong></p>
+                        <ul style="margin: 10px 0;">
+                            <li>Al primo accesso ti verrà richiesto di cambiare la password</li>
+                            <li>Conserva questa email in modo sicuro</li>
+                            <li>Non condividere le tue credenziali con altri</li>
+                        </ul>
+                    </div>
                     
                     <p>Se hai domande o problemi di accesso, contatta l'amministratore del sistema.</p>
                     
-                    <a href="${process.env.URL || 'https://warehouse-sor-campania.netlify.app'}" class="button">Accedi al Sistema</a>
+                    <div style="text-align: center;">
+                        <a href="${process.env.URL || 'https://warehouse-sor-campania.netlify.app'}" class="button">
+                            🔐 Accedi al Sistema
+                        </a>
+                    </div>
                 </div>
                 <div class="footer">
-                    <p>© ${new Date().getFullYear()} Croce Rossa Italiana - SOR Campania</p>
+                    <p><strong>© ${new Date().getFullYear()} Croce Rossa Italiana - SOR Campania</strong></p>
                     <p>Questa è una email automatica, non rispondere.</p>
                 </div>
             </div>
@@ -135,39 +207,104 @@ async function sendAssignmentNotification(volunteerEmail, volunteerName, materia
         <head>
             <meta charset="UTF-8">
             <style>
-                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                .header { background: #d32f2f; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
-                .content { background: #f9f9f9; padding: 30px; border: 1px solid #ddd; border-radius: 0 0 5px 5px; }
-                .assignment-box { background: white; padding: 20px; margin: 20px 0; border-left: 4px solid #d32f2f; }
-                .barcode { text-align: center; font-size: 24px; font-weight: bold; color: #d32f2f; margin: 10px 0; letter-spacing: 2px; }
-                .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
-                .warning { background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 15px 0; }
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+                .header { 
+                    background: #d32f2f; 
+                    color: white; 
+                    padding: 30px 20px; 
+                    text-align: center; 
+                    border-radius: 5px 5px 0 0; 
+                }
+                .logo-circle {
+                    width: 80px;
+                    height: 80px;
+                    background: white;
+                    border-radius: 50%;
+                    margin: 0 auto 15px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                }
+                .logo-circle img {
+                    width: 60px;
+                    height: 60px;
+                }
+                .header h1 { margin: 10px 0 5px; font-size: 24px; }
+                .header p { margin: 0; font-size: 14px; opacity: 0.9; }
+                .content { background: white; padding: 30px; border: 1px solid #ddd; }
+                .assignment-box { 
+                    background: #f9f9f9; 
+                    padding: 20px; 
+                    margin: 20px 0; 
+                    border-left: 4px solid #d32f2f;
+                    border-radius: 4px;
+                }
+                .assignment-box h3 { margin-top: 0; color: #d32f2f; }
+                .barcode { 
+                    text-align: center; 
+                    font-size: 28px; 
+                    font-weight: bold; 
+                    color: #d32f2f; 
+                    margin: 15px 0; 
+                    letter-spacing: 3px;
+                    background: white;
+                    padding: 15px;
+                    border: 2px dashed #d32f2f;
+                    border-radius: 5px;
+                }
+                .warning { 
+                    background: #fff3cd; 
+                    padding: 15px; 
+                    border-left: 4px solid #ffc107; 
+                    margin: 15px 0;
+                    border-radius: 4px;
+                }
+                .warning strong { color: #856404; }
+                .footer { 
+                    text-align: center; 
+                    margin-top: 20px; 
+                    padding-top: 20px;
+                    border-top: 1px solid #ddd;
+                    font-size: 12px; 
+                    color: #666; 
+                }
             </style>
         </head>
         <body>
             <div class="container">
                 <div class="header">
+                    <div class="logo-circle">
+                        <img src="https://warehouse-sor-campania.netlify.app/assets/logo-sor.png" alt="SOR Logo" onerror="this.style.display='none'">
+                    </div>
                     <h1>🏥 Croce Rossa Italiana</h1>
                     <p>Sala Operativa Regionale - Campania</p>
+                    <p style="font-size: 16px; margin-top: 10px;">Sistema Gestione Magazzino</p>
                 </div>
                 <div class="content">
-                    <h2>Ciao ${volunteerName}! 👋</h2>
-                    <p>Ti è stato assegnato del materiale per l'evento <strong>"${evento}"</strong>.</p>
+                    <h2 style="color: #d32f2f;">Ciao ${volunteerName}! 👋</h2>
+                    <p>Ti è stato assegnato del materiale per l'evento <strong style="color: #d32f2f;">"${evento}"</strong>.</p>
                     
                     <div class="assignment-box">
                         <h3>📦 Dettagli Materiale:</h3>
                         <p><strong>Materiale:</strong> ${materialName}</p>
                         <div class="barcode">${codice}</div>
-                        <p style="text-align: center; color: #666; font-size: 12px;">Codice a Barre</p>
+                        <p style="text-align: center; color: #666; font-size: 12px; margin-top: -5px;">Codice a Barre</p>
                         <p><strong>Evento:</strong> ${evento}</p>
-                        <p><strong>Data Uscita:</strong> ${new Date(dataUscita).toLocaleString('it-IT')}</p>
+                        <p><strong>Data Uscita:</strong> ${new Date(dataUscita).toLocaleString('it-IT', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        })}</p>
                         ${note ? `<p><strong>Note:</strong> ${note}</p>` : ''}
                     </div>
                     
                     <div class="warning">
                         <p><strong>⚠️ RESPONSABILITÀ:</strong></p>
-                        <ul>
+                        <ul style="margin: 10px 0;">
                             <li>Sei responsabile del materiale assegnato</li>
                             <li>Controlla lo stato del materiale prima dell'uso</li>
                             <li>Segnala immediatamente eventuali danni</li>
@@ -176,9 +313,13 @@ async function sendAssignmentNotification(volunteerEmail, volunteerName, materia
                     </div>
                     
                     <p>Per qualsiasi problema o domanda, contatta la Sala Operativa Regionale.</p>
+                    
+                    <p style="color: #d32f2f; font-weight: bold; text-align: center; margin-top: 20px;">
+                        Grazie per il tuo servizio volontario! 🙏
+                    </p>
                 </div>
                 <div class="footer">
-                    <p>© ${new Date().getFullYear()} Croce Rossa Italiana - SOR Campania</p>
+                    <p><strong>© ${new Date().getFullYear()} Croce Rossa Italiana - SOR Campania</strong></p>
                     <p>Questa è una email automatica, non rispondere.</p>
                 </div>
             </div>
@@ -204,6 +345,8 @@ RESPONSABILITÀ:
 - Segnala immediatamente eventuali danni
 - Riconsegna al termine dell'evento
 
+Grazie per il tuo servizio volontario!
+
 Croce Rossa Italiana - SOR Campania
     `;
     
@@ -226,44 +369,115 @@ async function sendReturnNotification(volunteerEmail, volunteerName, materialNam
         <head>
             <meta charset="UTF-8">
             <style>
-                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                .header { background: #d32f2f; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
-                .content { background: #f9f9f9; padding: 30px; border: 1px solid #ddd; border-radius: 0 0 5px 5px; }
-                .return-box { background: white; padding: 20px; margin: 20px 0; border-left: 4px solid ${statoColor}; }
-                .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+                .header { 
+                    background: #d32f2f; 
+                    color: white; 
+                    padding: 30px 20px; 
+                    text-align: center; 
+                    border-radius: 5px 5px 0 0; 
+                }
+                .logo-circle {
+                    width: 80px;
+                    height: 80px;
+                    background: white;
+                    border-radius: 50%;
+                    margin: 0 auto 15px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                }
+                .logo-circle img {
+                    width: 60px;
+                    height: 60px;
+                }
+                .header h1 { margin: 10px 0 5px; font-size: 24px; }
+                .header p { margin: 0; font-size: 14px; opacity: 0.9; }
+                .content { background: white; padding: 30px; border: 1px solid #ddd; }
+                .return-box { 
+                    background: #f9f9f9; 
+                    padding: 20px; 
+                    margin: 20px 0; 
+                    border-left: 4px solid ${statoColor};
+                    border-radius: 4px;
+                }
+                .return-box h3 { margin-top: 0; color: ${statoColor}; }
+                .status-badge {
+                    display: inline-block;
+                    padding: 8px 16px;
+                    background: ${statoColor};
+                    color: white;
+                    border-radius: 20px;
+                    font-weight: bold;
+                    font-size: 16px;
+                }
+                .thank-you {
+                    background: #e8f5e9;
+                    padding: 20px;
+                    border-radius: 5px;
+                    text-align: center;
+                    margin: 20px 0;
+                }
+                .footer { 
+                    text-align: center; 
+                    margin-top: 20px; 
+                    padding-top: 20px;
+                    border-top: 1px solid #ddd;
+                    font-size: 12px; 
+                    color: #666; 
+                }
             </style>
         </head>
         <body>
             <div class="container">
                 <div class="header">
+                    <div class="logo-circle">
+                        <img src="https://warehouse-sor-campania.netlify.app/assets/logo-sor.png" alt="SOR Logo" onerror="this.style.display='none'">
+                    </div>
                     <h1>🏥 Croce Rossa Italiana</h1>
                     <p>Sala Operativa Regionale - Campania</p>
+                    <p style="font-size: 16px; margin-top: 10px;">Sistema Gestione Magazzino</p>
                 </div>
                 <div class="content">
-                    <h2>Rientro Materiale ${statoIcon}</h2>
-                    <p>Ciao ${volunteerName}, confermiamo il rientro del materiale.</p>
+                    <h2 style="color: #d32f2f;">Rientro Materiale ${statoIcon}</h2>
+                    <p>Ciao <strong>${volunteerName}</strong>, confermiamo il rientro del materiale.</p>
                     
                     <div class="return-box">
                         <h3>📦 Dettagli Rientro:</h3>
                         <p><strong>Materiale:</strong> ${materialName}</p>
-                        <p><strong>Codice:</strong> <code>${codice}</code></p>
+                        <p><strong>Codice:</strong> <code style="background: white; padding: 5px 10px; border-radius: 3px;">${codice}</code></p>
                         <p><strong>Evento:</strong> ${evento}</p>
-                        <p><strong>Data Rientro:</strong> ${new Date(dataRientro).toLocaleString('it-IT')}</p>
-                        <p><strong>Stato:</strong> <span style="color: ${statoColor}; font-weight: bold;">${statoText}</span></p>
+                        <p><strong>Data Rientro:</strong> ${new Date(dataRientro).toLocaleString('it-IT', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        })}</p>
+                        <p><strong>Stato:</strong> <span class="status-badge">${statoIcon} ${statoText}</span></p>
                     </div>
                     
                     ${stato === 'danneggiato' ? `
-                        <p><strong>⚠️ Il materiale è stato segnalato come danneggiato.</strong><br>
-                        Verrà avviata una procedura di manutenzione/riparazione.</p>
+                        <div style="background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; border-radius: 4px;">
+                            <p><strong>⚠️ Il materiale è stato segnalato come danneggiato.</strong><br>
+                            Verrà avviata una procedura di manutenzione/riparazione.</p>
+                        </div>
                     ` : `
-                        <p><strong>✅ Grazie per la cura del materiale!</strong></p>
+                        <div class="thank-you">
+                            <h3 style="color: #2e7d32; margin-top: 0;">✅ Grazie per la cura del materiale!</h3>
+                            <p style="margin: 0;">Il materiale è rientrato in perfette condizioni.</p>
+                        </div>
                     `}
                     
-                    <p>Grazie per il tuo servizio volontario! 🙏</p>
+                    <p style="color: #d32f2f; font-weight: bold; text-align: center; margin-top: 30px; font-size: 18px;">
+                        Grazie per il tuo servizio volontario! 🙏
+                    </p>
                 </div>
                 <div class="footer">
-                    <p>© ${new Date().getFullYear()} Croce Rossa Italiana - SOR Campania</p>
+                    <p><strong>© ${new Date().getFullYear()} Croce Rossa Italiana - SOR Campania</strong></p>
+                    <p>Questa è una email automatica, non rispondere.</p>
                 </div>
             </div>
         </body>

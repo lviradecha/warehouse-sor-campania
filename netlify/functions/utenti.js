@@ -50,8 +50,8 @@ exports.handler = async (event) => {
         if (event.httpMethod === 'POST') {
             const data = JSON.parse(event.body);
 
-            if (!data.username || !data.password || !data.nome || !data.cognome || !data.role) {
-                return errorResponse('Dati obbligatori mancanti');
+            if (!data.username || !data.password || !data.nome || !data.cognome || !data.role || !data.email) {
+                return errorResponse('Dati obbligatori mancanti (username, password, nome, cognome, role, email)');
             }
 
             // Verifica unicità username
@@ -76,7 +76,7 @@ exports.handler = async (event) => {
                     data.role,
                     data.nome,
                     data.cognome,
-                    data.email || null
+                    data.email
                 ]
             );
 
@@ -88,26 +88,24 @@ exports.handler = async (event) => {
                 `Nuovo utente: ${newUser.username} (${newUser.role})`
             );
 
-            // Invia email con credenziali se email presente
-            if (newUser.email) {
-                try {
-                    const emailResult = await sendNewUserCredentials(
-                        newUser.email,
-                        newUser.nome,
-                        newUser.cognome,
-                        newUser.username,
-                        tempPassword
-                    );
-                    
-                    if (emailResult.success) {
-                        console.log('✅ Email credenziali inviata a:', newUser.email);
-                    } else {
-                        console.warn('⚠️ Email non inviata:', emailResult.message);
-                    }
-                } catch (emailError) {
-                    console.error('❌ Errore invio email:', emailError.message);
-                    // Non blocchiamo la creazione utente se l'email fallisce
+            // Invia email con credenziali
+            try {
+                const emailResult = await sendNewUserCredentials(
+                    newUser.email,
+                    newUser.nome,
+                    newUser.cognome,
+                    newUser.username,
+                    tempPassword
+                );
+                
+                if (emailResult.success) {
+                    console.log('✅ Email credenziali inviata a:', newUser.email);
+                } else {
+                    console.warn('⚠️ Email non inviata:', emailResult.message);
                 }
+            } catch (emailError) {
+                console.error('❌ Errore invio email:', emailError.message);
+                // Non blocchiamo la creazione utente se l'email fallisce
             }
 
             return successResponse(newUser, 201);

@@ -91,16 +91,21 @@ exports.handler = async (event) => {
             // Invia email con credenziali se email presente
             if (newUser.email) {
                 try {
-                    await sendNewUserCredentials(
+                    const emailResult = await sendNewUserCredentials(
                         newUser.email,
                         newUser.nome,
                         newUser.cognome,
                         newUser.username,
                         tempPassword
                     );
-                    console.log('Email credenziali inviata a:', newUser.email);
+                    
+                    if (emailResult.success) {
+                        console.log('✅ Email credenziali inviata a:', newUser.email);
+                    } else {
+                        console.warn('⚠️ Email non inviata:', emailResult.message);
+                    }
                 } catch (emailError) {
-                    console.error('Errore invio email:', emailError);
+                    console.error('❌ Errore invio email:', emailError.message);
                     // Non blocchiamo la creazione utente se l'email fallisce
                 }
             }

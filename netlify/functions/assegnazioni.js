@@ -132,7 +132,7 @@ exports.handler = async (event) => {
             // Invia email notifica al volontario se ha email
             if (assignmentDetails.volunteer_email) {
                 try {
-                    await sendAssignmentNotification(
+                    const emailResult = await sendAssignmentNotification(
                         assignmentDetails.volunteer_email,
                         `${assignmentDetails.volunteer_nome} ${assignmentDetails.volunteer_cognome}`,
                         assignmentDetails.material_nome,
@@ -141,9 +141,14 @@ exports.handler = async (event) => {
                         assignmentDetails.data_uscita,
                         assignmentDetails.note_uscita
                     );
-                    console.log('Email assegnazione inviata a:', assignmentDetails.volunteer_email);
+                    
+                    if (emailResult.success) {
+                        console.log('✅ Email assegnazione inviata a:', assignmentDetails.volunteer_email);
+                    } else {
+                        console.warn('⚠️ Email assegnazione non inviata:', emailResult.message);
+                    }
                 } catch (emailError) {
-                    console.error('Errore invio email assegnazione:', emailError);
+                    console.error('❌ Errore invio email assegnazione:', emailError.message);
                     // Non blocchiamo l'assegnazione se l'email fallisce
                 }
             }
@@ -213,7 +218,7 @@ exports.handler = async (event) => {
             // Invia email conferma rientro al volontario
             if (returnDetails.volunteer_email) {
                 try {
-                    await sendReturnNotification(
+                    const emailResult = await sendReturnNotification(
                         returnDetails.volunteer_email,
                         `${returnDetails.volunteer_nome} ${returnDetails.volunteer_cognome}`,
                         returnDetails.material_nome,
@@ -222,9 +227,14 @@ exports.handler = async (event) => {
                         returnDetails.data_rientro,
                         returnDetails.stato
                     );
-                    console.log('Email rientro inviata a:', returnDetails.volunteer_email);
+                    
+                    if (emailResult.success) {
+                        console.log('✅ Email rientro inviata a:', returnDetails.volunteer_email);
+                    } else {
+                        console.warn('⚠️ Email rientro non inviata:', emailResult.message);
+                    }
                 } catch (emailError) {
-                    console.error('Errore invio email rientro:', emailError);
+                    console.error('❌ Errore invio email rientro:', emailError.message);
                 }
             }
 

@@ -4,6 +4,7 @@
 
 const { query, queryOne, logActivity } = require('./utils/db');
 const { authenticate, requireOperator, successResponse, errorResponse, parsePath } = require('./utils/auth');
+const { sendAssignmentNotification, sendReturnNotification } = require('./utils/email');
 
 exports.handler = async (event) => {
     if (event.httpMethod === 'OPTIONS') {
@@ -116,6 +117,37 @@ exports.handler = async (event) => {
                 `Assegnazione materiale per: ${data.evento}`
             );
 
+            // Carica dettagli per email
+            const assignmentDetails = await queryOne(
+                `SELECT a.*, 
+                        m.nome as material_nome, m.codice_barre,
+                        v.nome as volunteer_nome, v.cognome as volunteer_cognome, v.email as volunteer_email
+                 FROM assignments a
+                 JOIN materials m ON a.material_id = m.id
+                 JOIN volunteers v ON a.volunteer_id = v.id
+                 WHERE a.id = $1`,
+                [assignment.id]
+            );
+
+            // Invia email notifica al volontario se ha email
+            if (assignmentDetails.volunteer_email) {
+                try {
+                    await sendAssignmentNotification(
+                        assignmentDetails.volunteer_email,
+                        `${assignmentDetails.volunteer_nome} ${assignmentDetails.volunteer_cognome}`,
+                        assignmentDetails.material_nome,
+                        assignmentDetails.codice_barre,
+                        assignmentDetails.evento,
+                        assignmentDetails.data_uscita,
+                        assignmentDetails.note_uscita
+                    );
+                    console.log('Email assegnazione inviata a:', assignmentDetails.volunteer_email);
+                } catch (emailError) {
+                    console.error('Errore invio email assegnazione:', emailError);
+                    // Non blocchiamo l'assegnazione se l'email fallisce
+                }
+            }
+
             return successResponse(assignment, 201);
         }
 
@@ -165,6 +197,36 @@ exports.handler = async (event) => {
                 assignmentId,
                 `Rientro materiale: ${stato}`
             );
+
+            // Carica dettagli per email
+            const returnDetails = await queryOne(
+                `SELECT a.*, 
+                        m.nome as material_nome, m.codice_barre,
+                        v.nome as volunteer_nome, v.cognome as volunteer_cognome, v.email as volunteer_email
+                 FROM assignments a
+                 JOIN materials m ON a.material_id = m.id
+                 JOIN volunteers v ON a.volunteer_id = v.id
+                 WHERE a.id = $1`,
+                [assignmentId]
+            );
+
+            // Invia email conferma rientro al volontario
+            if (returnDetails.volunteer_email) {
+                try {
+                    await sendReturnNotification(
+                        returnDetails.volunteer_email,
+                        `${returnDetails.volunteer_nome} ${returnDetails.volunteer_cognome}`,
+                        returnDetails.material_nome,
+                        returnDetails.codice_barre,
+                        returnDetails.evento,
+                        returnDetails.data_rientro,
+                        returnDetails.stato
+                    );
+                    console.log('Email rientro inviata a:', returnDetails.volunteer_email);
+                } catch (emailError) {
+                    console.error('Errore invio email rientro:', emailError);
+                }
+            }
 
             return successResponse(assignment);
         }

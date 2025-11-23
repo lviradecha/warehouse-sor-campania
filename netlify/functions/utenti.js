@@ -6,6 +6,7 @@
 const bcrypt = require('bcryptjs');
 const { query, queryOne, exists, logActivity } = require('./utils/db');
 const { authenticate, requireAdmin, successResponse, errorResponse, parsePath } = require('./utils/auth');
+const { sendNewUserCredentials } = require('./utils/email');
 
 exports.handler = async (event) => {
     if (event.httpMethod === 'OPTIONS') {
@@ -59,6 +60,9 @@ exports.handler = async (event) => {
                 return errorResponse('Username già esistente');
             }
 
+            // Salva password temporanea per email
+            const tempPassword = data.password;
+
             // Hash password
             const password_hash = await bcrypt.hash(data.password, 10);
 
@@ -83,6 +87,23 @@ exports.handler = async (event) => {
                 newUser.id,
                 `Nuovo utente: ${newUser.username} (${newUser.role})`
             );
+
+            // Invia email con credenziali se email presente
+            if (newUser.email) {
+                try {
+                    await sendNewUserCredentials(
+                        newUser.email,
+                        newUser.nome,
+                        newUser.cognome,
+                        newUser.username,
+                        tempPassword
+                    );
+                    console.log('Email credenziali inviata a:', newUser.email);
+                } catch (emailError) {
+                    console.error('Errore invio email:', emailError);
+                    // Non blocchiamo la creazione utente se l'email fallisce
+                }
+            }
 
             return successResponse(newUser, 201);
         }

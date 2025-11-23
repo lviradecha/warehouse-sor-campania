@@ -8,6 +8,35 @@ const { query, queryOne, exists, logActivity } = require('./utils/db');
 const { authenticate, requireAdmin, successResponse, errorResponse, parsePath } = require('./utils/auth');
 const { sendNewUserCredentials } = require('./utils/email');
 
+// =====================
+// HELPER FUNCTIONS
+// =====================
+
+// Genera password casuale sicura
+function generateSecurePassword(length = 12) {
+    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+    const numbers = '0123456789';
+    const symbols = '!@#$%&*';
+    const allChars = uppercase + lowercase + numbers + symbols;
+    
+    let password = '';
+    
+    // Garantisce almeno 1 carattere per tipo
+    password += uppercase[Math.floor(Math.random() * uppercase.length)];
+    password += lowercase[Math.floor(Math.random() * lowercase.length)];
+    password += numbers[Math.floor(Math.random() * numbers.length)];
+    password += symbols[Math.floor(Math.random() * symbols.length)];
+    
+    // Riempie il resto
+    for (let i = password.length; i < length; i++) {
+        password += allChars[Math.floor(Math.random() * allChars.length)];
+    }
+    
+    // Mescola i caratteri
+    return password.split('').sort(() => Math.random() - 0.5).join('');
+}
+
 exports.handler = async (event) => {
     if (event.httpMethod === 'OPTIONS') {
         return successResponse({});
@@ -25,7 +54,7 @@ exports.handler = async (event) => {
         if (event.httpMethod === 'GET') {
             if (userId && !segments[1]) {
                 const targetUser = await queryOne(
-                    `SELECT id, username, role, nome, cognome, email, attivo, created_at, last_login 
+                    `SELECT id, username, role, nome, cognome, email, attivo, email_sent, email_sent_at, created_at, last_login 
                      FROM users WHERE id = $1`,
                     [userId]
                 );
@@ -39,7 +68,7 @@ exports.handler = async (event) => {
 
             // Lista tutti gli utenti (senza password)
             const users = await query(
-                `SELECT id, username, role, nome, cognome, email, attivo, created_at, last_login 
+                `SELECT id, username, role, nome, cognome, email, attivo, email_sent, email_sent_at, created_at, last_login 
                  FROM users ORDER BY created_at DESC`
             );
 
@@ -50,8 +79,9 @@ exports.handler = async (event) => {
         if (event.httpMethod === 'POST') {
             const data = JSON.parse(event.body);
 
-            if (!data.username || !data.password || !data.nome || !data.cognome || !data.role || !data.email) {
-                return errorResponse('Dati obbligatori mancanti (username, password, nome, cognome, role, email)');
+            // Password non più richiesta - viene generata automaticamente
+            if (!data.username || !data.nome || !data.cognome || !data.role || !data.email) {
+                return errorResponse('Dati obbligatori mancanti (username, nome, cognome, role, email)');
             }
 
             // Verifica unicità username
@@ -60,16 +90,17 @@ exports.handler = async (event) => {
                 return errorResponse('Username già esistente');
             }
 
-            // Salva password temporanea per email
-            const tempPassword = data.password;
+            // 🔐 Genera password casuale sicura
+            const generatedPassword = generateSecurePassword(12);
+            console.log('🔑 Password generata per:', data.username);
 
             // Hash password
-            const password_hash = await bcrypt.hash(data.password, 10);
+            const password_hash = await bcrypt.hash(generatedPassword, 10);
 
             const newUser = await queryOne(
-                `INSERT INTO users (username, password_hash, role, nome, cognome, email, attivo) 
-                 VALUES ($1, $2, $3, $4, $5, $6, true)
-                 RETURNING id, username, role, nome, cognome, email, attivo, created_at`,
+                `INSERT INTO users (username, password_hash, role, nome, cognome, email, attivo, email_sent, email_sent_at) 
+                 VALUES ($1, $2, $3, $4, $5, $6, true, false, NULL)
+                 RETURNING id, username, role, nome, cognome, email, attivo, email_sent, email_sent_at, created_at`,
                 [
                     data.username,
                     password_hash,
@@ -88,18 +119,28 @@ exports.handler = async (event) => {
                 `Nuovo utente: ${newUser.username} (${newUser.role})`
             );
 
-            // Invia email con credenziali
+            // Invia email con credenziali (password generata automaticamente)
+            let emailSuccess = false;
             try {
                 const emailResult = await sendNewUserCredentials(
                     newUser.email,
                     newUser.nome,
                     newUser.cognome,
                     newUser.username,
-                    tempPassword
+                    generatedPassword
                 );
                 
                 if (emailResult.success) {
+                    emailSuccess = true;
                     console.log('✅ Email credenziali inviata a:', newUser.email);
+                    
+                    // Aggiorna stato invio email
+                    await queryOne(
+                        `UPDATE users SET email_sent = true, email_sent_at = NOW() WHERE id = $1`,
+                        [newUser.id]
+                    );
+                    newUser.email_sent = true;
+                    newUser.email_sent_at = new Date();
                 } else {
                     console.warn('⚠️ Email non inviata:', emailResult.message);
                 }

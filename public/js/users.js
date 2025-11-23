@@ -67,6 +67,7 @@ const UsersPage = {
                         <th>Username</th>
                         <th>Nome Completo</th>
                         <th>Email</th>
+                        <th>Email Inviata</th>
                         <th>Ruolo</th>
                         <th>Stato</th>
                         <th>Ultimo Accesso</th>
@@ -79,6 +80,11 @@ const UsersPage = {
                             <td><strong>${u.username}</strong></td>
                             <td>${u.nome} ${u.cognome}</td>
                             <td>${u.email || '-'}</td>
+                            <td>
+                                ${u.email_sent 
+                                    ? `<span class="badge badge-success" title="Inviata il ${u.email_sent_at ? UI.formatDateTime(u.email_sent_at) : ''}">✅ Inviata</span>` 
+                                    : '<span class="badge badge-danger" title="Email non inviata">❌ Non inviata</span>'}
+                            </td>
                             <td><span class="badge badge-${u.role}">${u.role}</span></td>
                             <td>
                                 ${u.attivo 
@@ -115,6 +121,9 @@ const UsersPage = {
     showAddModal() {
         const modalContent = `
             <h3>Nuovo Utente</h3>
+            <div class="alert alert-info mb-3">
+                🔐 <strong>Password Automatica:</strong> Il sistema genererà una password sicura casuale e la invierà via email all'utente.
+            </div>
             <form id="addUserForm">
                 <div class="form-row">
                     <div class="form-group">
@@ -129,19 +138,14 @@ const UsersPage = {
                 
                 <div class="form-group">
                     <label>Username *</label>
-                    <input type="text" name="username" required class="form-control">
-                </div>
-                
-                <div class="form-group">
-                    <label>Password *</label>
-                    <input type="password" name="password" required class="form-control" minlength="8">
-                    <small>Minimo 8 caratteri</small>
+                    <input type="text" name="username" required class="form-control" placeholder="es: m.rossi">
+                    <small>Utilizzato per il login</small>
                 </div>
                 
                 <div class="form-group">
                     <label>Email *</label>
                     <input type="email" name="email" required class="form-control" placeholder="email@esempio.it">
-                    <small>Richiesta per invio credenziali automatico</small>
+                    <small>📧 Le credenziali saranno inviate a questo indirizzo</small>
                 </div>
                 
                 <div class="form-group">
@@ -153,7 +157,7 @@ const UsersPage = {
                 </div>
                 
                 <div class="d-flex gap-2 mt-3">
-                    <button type="submit" class="btn btn-primary">Crea Utente</button>
+                    <button type="submit" class="btn btn-primary">Crea Utente e Invia Email</button>
                     <button type="button" class="btn btn-secondary" onclick="UI.closeModal()">Annulla</button>
                 </div>
             </form>

@@ -4,7 +4,7 @@
 // ===================================
 
 const { query, queryOne, logActivity } = require('./utils/db');
-const { authenticate, requireOperator, successResponse, errorResponse } = require('./utils/auth');
+const { authenticate, requireOperator, successResponse, errorResponse, parsePath } = require('./utils/auth');
 
 exports.handler = async (event) => {
     if (event.httpMethod === 'OPTIONS') {
@@ -15,7 +15,7 @@ exports.handler = async (event) => {
         const user = authenticate(event);
         requireOperator(user);
 
-        const path = event.path.replace('/.netlify/functions/manutenzioni', '');
+        const path = parsePath(event.path, 'manutenzioni');
         const segments = path.split('/').filter(s => s);
         const maintenanceId = segments[0];
 

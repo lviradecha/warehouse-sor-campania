@@ -4,7 +4,7 @@
 // ===================================
 
 const { query, queryOne, exists, logActivity } = require('./utils/db');
-const { authenticate, requireOperator, successResponse, errorResponse } = require('./utils/auth');
+const { authenticate, requireOperator, successResponse, errorResponse, parsePath } = require('./utils/auth');
 
 exports.handler = async (event) => {
     if (event.httpMethod === 'OPTIONS') {
@@ -15,7 +15,7 @@ exports.handler = async (event) => {
         const user = authenticate(event);
         requireOperator(user);
 
-        const path = event.path.replace('/.netlify/functions/volontari', '');
+        const path = parsePath(event.path, 'volontari');
         const segments = path.split('/').filter(s => s);
         const volunteerId = segments[0];
 

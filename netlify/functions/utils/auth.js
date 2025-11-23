@@ -75,6 +75,18 @@ function createResponse(statusCode, body, headers = {}) {
     };
 }
 
+// Parse path helper - gestisce routing Netlify
+function parsePath(eventPath, functionName) {
+    let path = eventPath;
+    // Rimuovi sia il path delle functions che quello dell'API
+    if (path.includes(`/.netlify/functions/${functionName}`)) {
+        path = path.replace(`/.netlify/functions/${functionName}`, '');
+    } else if (path.includes(`/api/${functionName}`)) {
+        path = path.replace(`/api/${functionName}`, '');
+    }
+    return path;
+}
+
 // Success response
 function successResponse(data, statusCode = 200) {
     return createResponse(statusCode, data);
@@ -92,5 +104,6 @@ module.exports = {
     requireAdmin,
     requireOperator,
     successResponse,
-    errorResponse
+    errorResponse,
+    parsePath
 };

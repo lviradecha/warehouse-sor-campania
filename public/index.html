@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Magazzino - SOR Campania</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+</head>
+<body>
+    <!-- Container Login (mostrato solo se non autenticato) -->
+    <div id="loginContainer" class="login-container" style="display: none;">
+        <div class="login-box">
+            <div class="login-header">
+                <h2 style="color: #d32f2f;">🔐 Accesso Sistema</h2>
+                <p>Inserisci le tue credenziali</p>
+            </div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn-primary">🔓 Accedi</button>
+                <div id="loginError" class="error" style="display: none; margin-top: 15px;"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dashboard (mostrato dopo login) -->
+    <div id="dashboardContainer" style="display: none;">
+        <!-- Banner Header con Logo -->
+        <header class="banner">
+            <div class="banner-content">
+                <div class="banner-logo">
+                    <img src="assets/logo-cri.png" alt="Logo SOR Campania" onerror="this.style.display='none'">
+                </div>
+                <div class="banner-text">
+                    <h1 class="banner-title">CROCE ROSSA ITALIANA</h1>
+                    <p class="banner-subtitle">Sala Operativa Regionale - Campania | Sistema Gestione Magazzino</p>
+                </div>
+                <button onclick="if(confirm('Vuoi uscire?')) AuthManager.logout()" class="btn-logout">🚪 Esci</button>
+                <div class="banner-version">v1.0</div>
+            </div>
+        </header>
+
+        <!-- Navigation Menu -->
+        <nav class="nav-menu">
+            <div class="nav-content">
+                <a href="#" data-page="dashboard" class="nav-link active">📊 Dashboard</a>
+                <a href="#" data-page="materials" class="nav-link">📦 Materiali</a>
+                <a href="#" data-page="volunteers" class="nav-link">👥 Volontari</a>
+                <a href="#" data-page="assignments" class="nav-link">📋 Assegnazioni</a>
+                <a href="#" data-page="maintenance" class="nav-link">🔧 Manutenzioni</a>
+                <a href="#" data-page="users" class="nav-link admin-only" id="linkAdmin" style="display: none;">⚙️ Utenti</a>
+                <a href="#" data-page="reports" class="nav-link">📈 Report</a>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="container">
+            <div id="pageContent">
+                <!-- Il contenuto delle pagine verrà caricato dinamicamente qui -->
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>📞 sor.campania@cri.it | +39 081 7810011 (selezione 2)</p>
+            <p class="footer-small">© 2025 Croce Rossa Italiana - Comitato Regionale Campania</p>
+            <p class="footer-small">Sistema Gestione Magazzino Emergenze - Versione 1.0</p>
+        </footer>
+    </div>
+
+    <!-- Modal Generico -->
+    <div id="modal" class="modal" style="display: none;">
+        <div class="modal-content-custom">
+            <span class="modal-close">&times;</span>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner"></div>
+        <p style="color: #d32f2f; margin-top: 20px; font-weight: 600;">Caricamento...</p>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/materials.js"></script>
+    <script src="js/volunteers.js"></script>
+    <script src="js/assignments.js"></script>
+    <script src="js/maintenance.js"></script>
+    <script src="js/users.js"></script>
+    <script src="js/reports.js"></script>
+    <script src="js/barcode.js"></script>
+</body>
+</html>

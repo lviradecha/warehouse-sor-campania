@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stampa Etichetta - Warehouse SOR Campania</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #E30613;
+        }
+
+        .header img {
+            height: 60px;
+            margin-bottom: 10px;
+        }
+
+        .header h1 {
+            color: #E30613;
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .label-preview {
+            border: 2px dashed #ccc;
+            padding: 40px 20px;
+            text-align: center;
+            margin: 30px 0;
+            background: white;
+        }
+
+        .label-content {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .material-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 20px;
+            word-wrap: break-word;
+        }
+
+        #barcode {
+            margin: 20px 0;
+        }
+
+        .barcode-text {
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            color: #666;
+            margin-top: 10px;
+            letter-spacing: 2px;
+        }
+
+        .cri-footer {
+            text-align: center;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+            color: #999;
+            font-size: 0.8rem;
+        }
+
+        .actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            font-size: 1rem;
+            font-weight: 500;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background-color: #E30613;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #B30510;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+
+        .info-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .info-box ul {
+            margin: 10px 0 0 20px;
+        }
+
+        .info-box li {
+            margin: 5px 0;
+        }
+
+        /* Stili per la stampa */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .container {
+                box-shadow: none;
+                padding: 0;
+                max-width: none;
+            }
+
+            .actions,
+            .info-box {
+                display: none !important;
+            }
+
+            .label-preview {
+                border: none;
+                page-break-inside: avoid;
+            }
+
+            .header {
+                border-bottom: 2px solid #E30613;
+            }
+        }
+
+        /* Per stampanti etichette (58mm x 40mm circa) */
+        @media print and (max-width: 58mm) {
+            .header img {
+                height: 30px;
+            }
+
+            .header h1 {
+                font-size: 0.9rem;
+            }
+
+            .material-name {
+                font-size: 0.8rem;
+            }
+
+            .barcode-text {
+                font-size: 0.7rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="assets/logo-cri.png" alt="Croce Rossa Italiana" onerror="this.style.display='none'">
+            <h1>CROCE ROSSA ITALIANA</h1>
+            <p>Sala Operativa Regionale - Campania</p>
+        </div>
+
+        <div class="label-preview">
+            <div class="label-content">
+                <div class="material-name" id="materialName">Caricamento...</div>
+                <svg id="barcode"></svg>
+                <div class="barcode-text" id="barcodeText"></div>
+                
+                <div class="cri-footer">
+                    Magazzino Emergenze SOR Campania
+                </div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button class="btn btn-primary" onclick="window.print()">
+                🖨️ Stampa Etichetta
+            </button>
+            <button class="btn btn-secondary" onclick="window.close()">
+                ← Chiudi
+            </button>
+        </div>
+
+        <div class="info-box">
+            <strong>📝 Istruzioni di Stampa:</strong>
+            <ul>
+                <li>Assicurati che la stampante sia configurata correttamente</li>
+                <li>Per etichette adesive: seleziona il formato etichetta nelle impostazioni di stampa</li>
+                <li>Per fogli A4: puoi stampare su carta normale e poi incollare</li>
+                <li>Verifica che il codice a barre sia leggibile prima di applicare l'etichetta</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Leggi parametri URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const barcodeValue = urlParams.get('code');
+        const materialName = urlParams.get('name');
+
+        // Verifica che i parametri siano presenti
+        if (!barcodeValue) {
+            document.body.innerHTML = `
+                <div class="container">
+                    <div class="header">
+                        <h1 style="color: #dc3545;">Errore</h1>
+                    </div>
+                    <p style="text-align: center; padding: 20px;">
+                        Codice a barre non specificato. Chiudi questa finestra e riprova.
+                    </p>
+                    <div class="actions">
+                        <button class="btn btn-secondary" onclick="window.close()">Chiudi</button>
+                    </div>
+                </div>
+            `;
+        } else {
+            // Genera codice a barre
+            try {
+                JsBarcode("#barcode", barcodeValue, {
+                    format: "CODE128",
+                    width: 2,
+                    height: 80,
+                    displayValue: false,
+                    margin: 10,
+                    background: "#ffffff",
+                    lineColor: "#000000"
+                });
+
+                // Mostra nome materiale e codice
+                document.getElementById('materialName').textContent = 
+                    materialName ? decodeURIComponent(materialName) : 'Materiale';
+                document.getElementById('barcodeText').textContent = barcodeValue;
+
+                // Imposta titolo pagina
+                document.title = `Etichetta - ${barcodeValue}`;
+            } catch (error) {
+                console.error('Errore generazione barcode:', error);
+                alert('Errore nella generazione del codice a barre. Controlla il formato del codice.');
+            }
+        }
+
+        // Stampa automatica (opzionale)
+        // window.onload = function() {
+        //     setTimeout(() => window.print(), 500);
+        // };
+    </script>
+</body>
+</html>

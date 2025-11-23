@@ -1,5 +1,6 @@
-        container.innerHTML = '<div class="card"><h3>Gestione Utenti</h3><p>Funzionalità in sviluppo...</p></div>';
+// reports.js
+const ReportsPage = {
+    async render(container) {
+        container.innerHTML = '<div class="card"><h3>Report e Statistiche</h3><p>Funzionalità in sviluppo...</p></div>';
     }
 };
-
-// reports.js

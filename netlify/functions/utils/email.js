@@ -134,7 +134,7 @@ async function sendNewUserCredentials(email, nome, cognome, username, tempPasswo
                     <div class="logo-circle">
                         <img src="https://warehouse-sor-campania.netlify.app/assets/logo-sor.png" alt="SOR Logo" onerror="this.style.display='none'">
                     </div>
-                    <h1>🏥 Croce Rossa Italiana</h1>
+                    <h1>Croce Rossa Italiana</h1>
                     <p>Sala Operativa Regionale - Campania</p>
                     <p style="font-size: 16px; margin-top: 10px;">Sistema Gestione Magazzino</p>
                 </div>
@@ -278,7 +278,7 @@ async function sendAssignmentNotification(volunteerEmail, volunteerName, materia
                     <div class="logo-circle">
                         <img src="https://warehouse-sor-campania.netlify.app/assets/logo-sor.png" alt="SOR Logo" onerror="this.style.display='none'">
                     </div>
-                    <h1>🏥 Croce Rossa Italiana</h1>
+                    <h1>Croce Rossa Italiana</h1>
                     <p>Sala Operativa Regionale - Campania</p>
                     <p style="font-size: 16px; margin-top: 10px;">Sistema Gestione Magazzino</p>
                 </div>
@@ -436,7 +436,7 @@ async function sendReturnNotification(volunteerEmail, volunteerName, materialNam
                     <div class="logo-circle">
                         <img src="https://warehouse-sor-campania.netlify.app/assets/logo-sor.png" alt="SOR Logo" onerror="this.style.display='none'">
                     </div>
-                    <h1>🏥 Croce Rossa Italiana</h1>
+                    <h1>Croce Rossa Italiana</h1>
                     <p>Sala Operativa Regionale - Campania</p>
                     <p style="font-size: 16px; margin-top: 10px;">Sistema Gestione Magazzino</p>
                 </div>

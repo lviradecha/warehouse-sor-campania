@@ -39,9 +39,9 @@ const MaterialsPage = {
                             </select>
                         </div>
                         <div class="form-group">
-                            <input type="text" id="filterCategoria" 
-                                   placeholder="Categoria..." 
-                                   class="form-control">
+                            <select id="filterCategoria" class="form-control">
+                                <option value="">Tutte le categorie</option>
+                            </select>
                         </div>
                         <button class="btn btn-secondary" onclick="MaterialsPage.applyFilters()">
                             Filtra
@@ -60,6 +60,10 @@ const MaterialsPage = {
         `;
 
         await this.loadMaterials();
+        
+        // Carica categorie nel filtro
+        await this.loadCategoriesIntoSelect('filterCategoria');
+        
         this.setupEventListeners();
     },
 
@@ -119,34 +123,43 @@ const MaterialsPage = {
     },
 
     renderRow(material) {
+        // Badge categoria con colore e icona
+        const categoriaBadge = material.categoria_nome 
+            ? `<span class="badge-categoria" style="background-color: ${material.categoria_colore || '#9E9E9E'}">
+                ${material.categoria_icona || ''} ${material.categoria_nome}
+               </span>`
+            : '<span style="color: #999;">-</span>';
+        
         return `
             <tr>
                 <td><code>${material.codice_barre}</code></td>
                 <td><strong>${material.nome}</strong></td>
-                <td>${material.categoria || '-'}</td>
+                <td>${categoriaBadge}</td>
                 <td><span class="badge badge-${material.stato}">${material.stato}</span></td>
                 <td>${material.posizione_magazzino || '-'}</td>
                 <td>
-                    <button class="btn btn-sm btn-secondary" 
-                            onclick="MaterialsPage.showDetailModal(${material.id})"
-                            title="Dettagli">
-                        👁️
-                    </button>
-                    <button class="btn btn-sm btn-primary" 
-                            onclick="MaterialsPage.showEditModal(${material.id})"
-                            title="Modifica">
-                        ✏️
-                    </button>
-                    <button class="btn btn-sm btn-success" 
-                            onclick="MaterialsPage.printBarcode(${material.id})"
-                            title="Stampa Etichetta">
-                        🏷️
-                    </button>
-                    <button class="btn btn-sm btn-danger" 
-                            onclick="MaterialsPage.deleteMaterial(${material.id})"
-                            title="Elimina">
-                        🗑️
-                    </button>
+                    <div class="action-buttons">
+                        <button class="btn btn-sm btn-secondary btn-icon" 
+                                onclick="MaterialsPage.showDetailModal(${material.id})"
+                                title="Dettagli">
+                            👁️
+                        </button>
+                        <button class="btn btn-sm btn-primary btn-icon" 
+                                onclick="MaterialsPage.showEditModal(${material.id})"
+                                title="Modifica">
+                            ✏️
+                        </button>
+                        <button class="btn btn-sm btn-success btn-icon" 
+                                onclick="MaterialsPage.printBarcode(${material.id})"
+                                title="Stampa Etichetta">
+                            🏷️
+                        </button>
+                        <button class="btn btn-sm btn-danger btn-icon" 
+                                onclick="MaterialsPage.deleteMaterial(${material.id})"
+                                title="Elimina">
+                            🗑️
+                        </button>
+                    </div>
                 </td>
             </tr>
         `;
@@ -195,18 +208,9 @@ const MaterialsPage = {
                 <div class="form-row">
                     <div class="form-group">
                         <label>Categoria</label>
-                        <input type="text" name="categoria" class="form-control" 
-                               list="categorieList">
-                        <datalist id="categorieList">
-                            <option value="Tende">
-                            <option value="Brandine">
-                            <option value="Coperte">
-                            <option value="Generatori">
-                            <option value="Illuminazione">
-                            <option value="Cucina">
-                            <option value="Sanitario">
-                            <option value="Altro">
-                        </datalist>
+                        <select name="categoria_id" class="form-control" id="categoriaSelect">
+                            <option value="">Seleziona categoria...</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label>Quantità</label>
@@ -251,6 +255,9 @@ const MaterialsPage = {
         `;
         
         UI.showModal(modalContent);
+        
+        // Carica categorie nel select
+        this.loadCategoriesIntoSelect('categoriaSelect');
         
         document.getElementById('addMaterialForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -385,8 +392,9 @@ const MaterialsPage = {
                     <div class="form-row">
                         <div class="form-group">
                             <label>Categoria</label>
-                            <input type="text" name="categoria" value="${material.categoria || ''}" 
-                                   class="form-control">
+                            <select name="categoria_id" class="form-control" id="categoriaSelectEdit">
+                                <option value="">Seleziona categoria...</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label>Posizione Magazzino</label>
@@ -409,6 +417,9 @@ const MaterialsPage = {
             `;
             
             UI.showModal(modalContent);
+            
+            // Carica categorie con valore preselezionato
+            await this.loadCategoriesIntoSelect('categoriaSelectEdit', material.categoria_id);
             
             document.getElementById('editMaterialForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -460,6 +471,33 @@ const MaterialsPage = {
             window.open(`/print-barcode.html?code=${data.codice_barre}&name=${encodeURIComponent(data.nome)}`, '_blank');
         } catch (error) {
             UI.showToast('Errore nella generazione del codice a barre', 'error');
+        }
+    },
+
+    // Carica categorie nel select dropdown
+    async loadCategoriesIntoSelect(selectId, selectedId = null) {
+        try {
+            const categories = await API.materialCategories.getAll();
+            const select = document.getElementById(selectId);
+            
+            if (!select) return;
+            
+            // Mantieni opzione vuota
+            select.innerHTML = '<option value="">Seleziona categoria...</option>';
+            
+            // Aggiungi categorie
+            categories.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat.id;
+                option.textContent = `${cat.icona || ''} ${cat.nome}`;
+                if (selectedId && cat.id === selectedId) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Errore caricamento categorie:', error);
+            UI.showToast('Errore nel caricamento delle categorie', 'error');
         }
     }
 };

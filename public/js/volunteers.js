@@ -166,12 +166,14 @@ const VolunteersPage = {
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Codice Fiscale</label>
-                        <input type="text" name="codice_fiscale" maxlength="16" class="form-control">
+                        <label>Codice Fiscale *</label>
+                        <input type="text" name="codice_fiscale" maxlength="16" 
+                               required class="form-control" 
+                               placeholder="16 caratteri">
                     </div>
                     <div class="form-group">
-                        <label>Comitato CRI</label>
-                        <input type="text" name="gruppo" class="form-control" 
+                        <label>Comitato CRI *</label>
+                        <input type="text" name="gruppo" required class="form-control" 
                                placeholder="Es: Napoli 1" list="comitatoList">
                         <datalist id="comitatoList">
                             <option value="Napoli 1">
@@ -186,13 +188,13 @@ const VolunteersPage = {
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Telefono</label>
-                        <input type="tel" name="telefono" class="form-control" 
+                        <label>Telefono *</label>
+                        <input type="tel" name="telefono" required class="form-control" 
                                placeholder="Es: 3331234567">
                     </div>
                     <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" name="email" class="form-control" 
+                        <label>Email *</label>
+                        <input type="email" name="email" required class="form-control" 
                                placeholder="nome.cognome@email.it">
                     </div>
                 </div>
@@ -333,9 +335,9 @@ const VolunteersPage = {
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Comitato CRI</label>
+                            <label>Comitato CRI *</label>
                             <input type="text" name="gruppo" value="${volunteer.gruppo || ''}" 
-                                   class="form-control" list="comitatoList">
+                                   required class="form-control" list="comitatoList">
                             <datalist id="comitatoList">
                                 <option value="Napoli 1">
                                 <option value="Napoli 2">
@@ -347,13 +349,15 @@ const VolunteersPage = {
                             </datalist>
                         </div>
                         <div class="form-group">
-                            <label>Telefono</label>
-                            <input type="tel" name="telefono" value="${volunteer.telefono || ''}" class="form-control">
+                            <label>Telefono *</label>
+                            <input type="tel" name="telefono" value="${volunteer.telefono || ''}" 
+                                   required class="form-control">
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" name="email" value="${volunteer.email || ''}" class="form-control">
+                        <label>Email *</label>
+                        <input type="email" name="email" value="${volunteer.email || ''}" 
+                               required class="form-control">
                     </div>
                     <div class="form-group">
                         <label>Stato</label>

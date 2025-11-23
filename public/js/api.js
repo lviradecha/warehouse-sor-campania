@@ -67,6 +67,29 @@ const API = {
     },
 
     // ===================================
+    // CATEGORIE MATERIALI
+    // ===================================
+    materialCategories: {
+        getAll: () => API.request('/categorie-materiali'),
+        
+        getById: (id) => API.request(`/categorie-materiali/${id}`),
+        
+        create: (data) => API.request('/categorie-materiali', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        }),
+        
+        update: (id, data) => API.request(`/categorie-materiali/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        }),
+        
+        delete: (id) => API.request(`/categorie-materiali/${id}`, {
+            method: 'DELETE'
+        })
+    },
+
+    // ===================================
     // VOLONTARI
     // ===================================
     volunteers: {

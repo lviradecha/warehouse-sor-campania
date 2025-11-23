@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Controlla se è primo login
                 if (loginData.user && loginData.user.first_login) {
                     // Mostra modal cambio password obbligatorio
-                    this.showFirstLoginPasswordChange(loginData.user);
+                    showFirstLoginPasswordChange(loginData.user);
                 } else {
                     // Reindirizza alla dashboard
                     window.location.reload();
@@ -131,8 +131,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Mostra modal cambio password primo login
-    showFirstLoginPasswordChange(user) {
+    // Funzione mostra modal cambio password primo login
+    function showFirstLoginPasswordChange(user) {
         // Nascondi form login
         const loginContainer = document.getElementById('loginContainer');
         loginContainer.style.display = 'none';
@@ -238,20 +238,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 submitBtn.textContent = 'Cambia Password e Accedi';
             }
         });
-    },
-
-    // Gestione logout
-    logoutHandler() {
-        const logoutBtn = document.getElementById('logoutBtn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', () => {
-                if (confirm('Sei sicuro di voler uscire?')) {
-                    AuthManager.logout();
-                }
-            });
-        }
     }
-};
+});
 
 // Inizializza gestione logout
 document.addEventListener('DOMContentLoaded', () => {

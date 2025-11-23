@@ -54,11 +54,17 @@ const AssignmentsPage = {
                         <th>Data Uscita</th>
                         <th>Data Rientro</th>
                         <th>Stato</th>
+                        <th>Email</th>
                         <th>Azioni</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${this.assignments.map(a => `
+                    ${this.assignments.map(a => {
+                        const emailStatus = a.email_inviata 
+                            ? '<span title="Email inviata" style="color: #4CAF50;">✅</span>'
+                            : '<span title="Email non inviata" style="color: #9E9E9E;">📧</span>';
+                        
+                        return `
                         <tr>
                             <td><strong>${a.evento}</strong></td>
                             <td>${a.material_nome || '-'}</td>
@@ -66,6 +72,7 @@ const AssignmentsPage = {
                             <td>${UI.formatDateTime(a.data_uscita)}</td>
                             <td>${a.data_rientro ? UI.formatDateTime(a.data_rientro) : '-'}</td>
                             <td><span class="badge badge-${a.stato}">${a.stato}</span></td>
+                            <td>${emailStatus}</td>
                             <td>
                                 ${a.stato === 'in_corso' ? `
                                     <button class="btn btn-sm btn-success" onclick="AssignmentsPage.showReturnModal(${a.id})">
@@ -74,7 +81,7 @@ const AssignmentsPage = {
                                 ` : ''}
                             </td>
                         </tr>
-                    `).join('')}
+                    `}).join('')}
                 </tbody>
             </table>
         `;
@@ -123,6 +130,16 @@ const AssignmentsPage = {
                     <div class="form-group">
                         <label>Note Uscita</label>
                         <textarea name="note_uscita" class="form-control"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="invia_email" value="true" checked>
+                            📧 Invia email di notifica al volontario
+                        </label>
+                        <small class="text-muted d-block mt-1">
+                            Il volontario riceverà un'email con i dettagli dell'assegnazione
+                        </small>
                     </div>
                     
                     <div class="d-flex gap-2 mt-3">

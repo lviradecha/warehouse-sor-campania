@@ -26,7 +26,13 @@ exports.handler = async (event) => {
             // GET singolo materiale
             if (materialId && !segments[1]) {
                 const material = await queryOne(
-                    `SELECT * FROM materials WHERE id = $1`,
+                    `SELECT m.*, 
+                            mc.nome as categoria_nome,
+                            mc.icona as categoria_icona,
+                            mc.colore as categoria_colore
+                     FROM materials m
+                     LEFT JOIN material_categories mc ON m.categoria_id = mc.id
+                     WHERE m.id = $1`,
                     [materialId]
                 );
 
@@ -40,7 +46,11 @@ exports.handler = async (event) => {
             // GET /materiali/:id/barcode - Genera codice a barre
             if (materialId && segments[1] === 'barcode') {
                 const material = await queryOne(
-                    `SELECT id, codice_barre, nome, categoria FROM materials WHERE id = $1`,
+                    `SELECT m.id, m.codice_barre, m.nome, 
+                            mc.nome as categoria_nome
+                     FROM materials m
+                     LEFT JOIN material_categories mc ON m.categoria_id = mc.id
+                     WHERE m.id = $1`,
                     [materialId]
                 );
 
@@ -84,7 +94,7 @@ exports.handler = async (event) => {
             // Filtro per categoria
             if (params.categoria) {
                 paramCount++;
-                filters.push(`categoria = $${paramCount}`);
+                filters.push(`categoria_id = $${paramCount}`);
                 values.push(params.categoria);
             }
 
@@ -102,7 +112,14 @@ exports.handler = async (event) => {
             const whereClause = filters.length > 0 ? `WHERE ${filters.join(' AND ')}` : '';
             
             const materials = await query(
-                `SELECT * FROM materials ${whereClause} ORDER BY created_at DESC`,
+                `SELECT m.*, 
+                        mc.nome as categoria_nome,
+                        mc.icona as categoria_icona,
+                        mc.colore as categoria_colore
+                 FROM materials m
+                 LEFT JOIN material_categories mc ON m.categoria_id = mc.id
+                 ${whereClause} 
+                 ORDER BY m.created_at DESC`,
                 values
             );
 
@@ -139,7 +156,7 @@ exports.handler = async (event) => {
             // Inserimento materiale
             const material = await queryOne(
                 `INSERT INTO materials (
-                    codice_barre, nome, descrizione, categoria, quantita,
+                    codice_barre, nome, descrizione, categoria_id, quantita,
                     stato, data_acquisto, fornitore, costo, posizione_magazzino, note
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
                 RETURNING *`,
@@ -147,7 +164,7 @@ exports.handler = async (event) => {
                     data.codice_barre,
                     data.nome,
                     data.descrizione || null,
-                    data.categoria || null,
+                    data.categoria_id || null,
                     data.quantita || 1,
                     data.stato || 'disponibile',
                     data.data_acquisto || null,
@@ -198,7 +215,7 @@ exports.handler = async (event) => {
                     codice_barre = COALESCE($1, codice_barre),
                     nome = COALESCE($2, nome),
                     descrizione = COALESCE($3, descrizione),
-                    categoria = COALESCE($4, categoria),
+                    categoria_id = COALESCE($4, categoria_id),
                     quantita = COALESCE($5, quantita),
                     data_acquisto = COALESCE($6, data_acquisto),
                     fornitore = COALESCE($7, fornitore),
@@ -212,7 +229,7 @@ exports.handler = async (event) => {
                     data.codice_barre,
                     data.nome,
                     data.descrizione,
-                    data.categoria,
+                    data.categoria_id,
                     data.quantita,
                     data.data_acquisto,
                     data.fornitore,

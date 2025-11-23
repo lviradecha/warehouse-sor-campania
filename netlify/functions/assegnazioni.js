@@ -37,7 +37,8 @@ exports.handler = async (event) => {
             const assignments = await query(
                 `SELECT a.*, 
                         m.nome as material_nome, m.codice_barre,
-                        v.nome as volunteer_nome, v.cognome as volunteer_cognome
+                        v.nome as volunteer_nome, v.cognome as volunteer_cognome,
+                        a.email_inviata, a.email_inviata_at
                  FROM assignments a
                  JOIN materials m ON a.material_id = m.id
                  JOIN volunteers v ON a.volunteer_id = v.id
@@ -90,8 +91,8 @@ exports.handler = async (event) => {
             // Crea assegnazione
             const assignment = await queryOne(
                 `INSERT INTO assignments (
-                    material_id, volunteer_id, evento, data_uscita, note_uscita, user_id, stato
-                ) VALUES ($1, $2, $3, $4, $5, $6, 'in_corso')
+                    material_id, volunteer_id, evento, data_uscita, note_uscita, user_id, stato, email_inviata
+                ) VALUES ($1, $2, $3, $4, $5, $6, 'in_corso', false)
                 RETURNING *`,
                 [
                     data.material_id,
@@ -129,8 +130,10 @@ exports.handler = async (event) => {
                 [assignment.id]
             );
 
-            // Invia email notifica al volontario se ha email
-            if (assignmentDetails.volunteer_email) {
+            // Invia email notifica al volontario SE richiesto e se ha email
+            const inviaEmail = data.invia_email === 'true' || data.invia_email === true;
+            
+            if (inviaEmail && assignmentDetails.volunteer_email) {
                 try {
                     const emailResult = await sendAssignmentNotification(
                         assignmentDetails.volunteer_email,
@@ -143,6 +146,13 @@ exports.handler = async (event) => {
                     );
                     
                     if (emailResult.success) {
+                        // Aggiorna stato email nel database
+                        await query(
+                            `UPDATE assignments 
+                             SET email_inviata = true, email_inviata_at = CURRENT_TIMESTAMP 
+                             WHERE id = $1`,
+                            [assignment.id]
+                        );
                         console.log('✅ Email assegnazione inviata a:', assignmentDetails.volunteer_email);
                     } else {
                         console.warn('⚠️ Email assegnazione non inviata:', emailResult.message);
@@ -151,6 +161,10 @@ exports.handler = async (event) => {
                     console.error('❌ Errore invio email assegnazione:', emailError.message);
                     // Non blocchiamo l'assegnazione se l'email fallisce
                 }
+            } else if (!inviaEmail) {
+                console.log('ℹ️ Email non inviata: non richiesta dall\'utente');
+            } else {
+                console.log('ℹ️ Email non inviata: volontario senza email');
             }
 
             return successResponse(assignment, 201);

@@ -101,12 +101,17 @@ const UsersPage = {
                                     </button>
                                     <button class="btn btn-sm btn-warning" 
                                             onclick="UsersPage.resetPassword(${u.id})"
-                                            title="Reset Password">
+                                            title="Reset Password (genera nuova e invia email)">
                                         🔑
+                                    </button>
+                                    <button class="btn btn-sm ${u.attivo ? 'btn-secondary' : 'btn-success'}" 
+                                            onclick="UsersPage.toggleUserStatus(${u.id}, ${u.attivo})"
+                                            title="${u.attivo ? 'Disabilita' : 'Riattiva'} Utente">
+                                        ${u.attivo ? '🚫' : '✅'}
                                     </button>
                                     <button class="btn btn-sm btn-danger" 
                                             onclick="UsersPage.deleteUser(${u.id})"
-                                            title="Elimina">
+                                            title="Elimina Definitivamente">
                                         🗑️
                                     </button>
                                 ` : '<em>Utente corrente</em>'}
@@ -266,18 +271,41 @@ const UsersPage = {
     },
     
     async resetPassword(id) {
-        const newPassword = prompt('Inserisci la nuova password (minimo 8 caratteri):');
-        if (!newPassword) return;
-        
-        if (newPassword.length < 8) {
-            UI.showToast('Password troppo corta (minimo 8 caratteri)', 'error');
-            return;
-        }
+        if (!await UI.confirm('Vuoi rigenerare la password e inviarla via email all\'utente?')) return;
         
         try {
             UI.showLoading();
-            await API.users.changePassword(id, { newPassword });
-            UI.showToast('Password aggiornata con successo', 'success');
+            
+            // Chiama endpoint reset che genera password e invia email
+            const response = await fetch(`/api/utenti/${id}/reset-password`, {
+                method: 'POST',
+                headers: AuthManager.getAuthHeaders()
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || 'Errore reset password');
+            }
+            
+            UI.showToast('✅ Password rigenerata e inviata via email!', 'success');
+            await this.loadUsers();
+        } catch (error) {
+            UI.showToast(error.message, 'error');
+        } finally {
+            UI.hideLoading();
+        }
+    },
+    
+    async toggleUserStatus(id, currentStatus) {
+        const action = currentStatus ? 'disabilitare' : 'riattivare';
+        if (!await UI.confirm(`Vuoi ${action} questo utente?`)) return;
+        
+        try {
+            UI.showLoading();
+            await API.users.update(id, { attivo: !currentStatus });
+            UI.showToast(`Utente ${currentStatus ? 'disabilitato' : 'riattivato'}`, 'success');
+            await this.loadUsers();
         } catch (error) {
             UI.showToast(error.message, 'error');
         } finally {

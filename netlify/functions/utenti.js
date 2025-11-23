@@ -98,9 +98,9 @@ exports.handler = async (event) => {
             const password_hash = await bcrypt.hash(generatedPassword, 10);
 
             const newUser = await queryOne(
-                `INSERT INTO users (username, password_hash, role, nome, cognome, email, attivo, email_sent, email_sent_at) 
-                 VALUES ($1, $2, $3, $4, $5, $6, true, false, NULL)
-                 RETURNING id, username, role, nome, cognome, email, attivo, email_sent, email_sent_at, created_at`,
+                `INSERT INTO users (username, password_hash, role, nome, cognome, email, attivo, email_sent, email_sent_at, first_login) 
+                 VALUES ($1, $2, $3, $4, $5, $6, true, false, NULL, true)
+                 RETURNING id, username, role, nome, cognome, email, attivo, email_sent, email_sent_at, first_login, created_at`,
                 [
                     data.username,
                     password_hash,
@@ -210,8 +210,9 @@ exports.handler = async (event) => {
 
             const password_hash = await bcrypt.hash(newPassword, 10);
 
+            // Aggiorna password e imposta first_login a false
             await query(
-                `UPDATE users SET password_hash = $1 WHERE id = $2`,
+                `UPDATE users SET password_hash = $1, first_login = false WHERE id = $2`,
                 [password_hash, userId]
             );
 
@@ -224,6 +225,81 @@ exports.handler = async (event) => {
             );
 
             return successResponse({ message: 'Password aggiornata con successo' });
+        }
+
+        // POST - Reset password (genera nuova password e invia email)
+        if (event.httpMethod === 'POST' && userId && segments[1] === 'reset-password') {
+            // Non può resettare se stesso
+            if (parseInt(userId) === user.id) {
+                return errorResponse('Non puoi resettare la tua stessa password da qui');
+            }
+
+            // Recupera dati utente
+            const targetUser = await queryOne(
+                `SELECT id, username, nome, cognome, email FROM users WHERE id = $1`,
+                [userId]
+            );
+
+            if (!targetUser) {
+                return errorResponse('Utente non trovato', 404);
+            }
+
+            if (!targetUser.email) {
+                return errorResponse('Utente senza email configurata');
+            }
+
+            // 🔐 Genera nuova password casuale
+            const newPassword = generateSecurePassword(12);
+            console.log('🔑 Password reset generata per:', targetUser.username);
+
+            // Hash password
+            const password_hash = await bcrypt.hash(newPassword, 10);
+
+            // Aggiorna password e imposta first_login a true
+            await query(
+                `UPDATE users SET password_hash = $1, first_login = true, email_sent = false WHERE id = $2`,
+                [password_hash, userId]
+            );
+
+            // Invia email con nuove credenziali
+            let emailSuccess = false;
+            try {
+                const emailResult = await sendNewUserCredentials(
+                    targetUser.email,
+                    targetUser.nome,
+                    targetUser.cognome,
+                    targetUser.username,
+                    newPassword
+                );
+                
+                if (emailResult.success) {
+                    emailSuccess = true;
+                    console.log('✅ Email reset password inviata a:', targetUser.email);
+                    
+                    // Aggiorna stato invio email
+                    await queryOne(
+                        `UPDATE users SET email_sent = true, email_sent_at = NOW() WHERE id = $1`,
+                        [userId]
+                    );
+                } else {
+                    console.warn('⚠️ Email reset non inviata:', emailResult.message);
+                }
+            } catch (emailError) {
+                console.error('❌ Errore invio email reset:', emailError.message);
+            }
+
+            await logActivity(
+                user.id,
+                'RESET_PASSWORD',
+                'users',
+                userId,
+                `Password resettata per: ${targetUser.username}${emailSuccess ? ' (email inviata)' : ' (email NON inviata)'}`
+            );
+
+            return successResponse({ 
+                message: 'Password rigenerata e inviata via email',
+                email_sent: emailSuccess
+            });
         }
 
         // DELETE - Elimina utente

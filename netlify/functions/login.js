@@ -62,7 +62,8 @@ exports.handler = async (event) => {
             role: user.role,
             nome: user.nome,
             cognome: user.cognome,
-            email: user.email
+            email: user.email,
+            first_login: user.first_login || false
         };
 
         return successResponse({

@@ -29,7 +29,8 @@ exports.handler = async (event) => {
                     `SELECT m.*, 
                             mc.nome as categoria_nome,
                             mc.icona as categoria_icona,
-                            mc.colore as categoria_colore
+                            mc.colore as categoria_colore,
+                            (m.quantita - COALESCE(m.quantita_assegnata, 0)) as quantita_disponibile_calc
                      FROM materials m
                      LEFT JOIN material_categories mc ON m.categoria_id = mc.id
                      WHERE m.id = $1`,
@@ -115,7 +116,8 @@ exports.handler = async (event) => {
                 `SELECT m.*, 
                         mc.nome as categoria_nome,
                         mc.icona as categoria_icona,
-                        mc.colore as categoria_colore
+                        mc.colore as categoria_colore,
+                        (m.quantita - COALESCE(m.quantita_assegnata, 0)) as quantita_disponibile_calc
                  FROM materials m
                  LEFT JOIN material_categories mc ON m.categoria_id = mc.id
                  ${whereClause} 
@@ -131,7 +133,10 @@ exports.handler = async (event) => {
                     COUNT(*) FILTER (WHERE stato = 'assegnato') as assegnati,
                     COUNT(*) FILTER (WHERE stato = 'in_manutenzione') as in_manutenzione,
                     COUNT(*) FILTER (WHERE stato = 'fuori_servizio') as fuori_servizio,
-                    COUNT(*) FILTER (WHERE stato = 'dismesso') as dismessi
+                    COUNT(*) FILTER (WHERE stato = 'dismesso') as dismessi,
+                    SUM(quantita) as quantita_totale,
+                    SUM(COALESCE(quantita_assegnata, 0)) as quantita_impegnata_totale,
+                    SUM(quantita - COALESCE(quantita_assegnata, 0)) as quantita_disponibile_totale
                 FROM materials
             `);
 
@@ -156,9 +161,9 @@ exports.handler = async (event) => {
             // Inserimento materiale
             const material = await queryOne(
                 `INSERT INTO materials (
-                    codice_barre, nome, descrizione, categoria_id, quantita,
+                    codice_barre, nome, descrizione, categoria_id, quantita, quantita_assegnata,
                     stato, data_acquisto, fornitore, costo, posizione_magazzino, note
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
                 RETURNING *`,
                 [
                     data.codice_barre,
@@ -166,6 +171,7 @@ exports.handler = async (event) => {
                     data.descrizione || null,
                     data.categoria_id || null,
                     data.quantita || 1,
+                    0, // quantita_assegnata iniziale = 0
                     data.stato || 'disponibile',
                     data.data_acquisto || null,
                     data.fornitore || null,

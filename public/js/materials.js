@@ -116,6 +116,8 @@ const MaterialsPage = {
                         <th>Nome</th>
                         <th>Categoria</th>
                         <th>Stato</th>
+                        <th style="text-align: center;">Disponibili</th>
+                        <th style="text-align: center;">Impegnati</th>
                         <th>Posizione</th>
                         <th>Azioni</th>
                     </tr>
@@ -128,6 +130,11 @@ const MaterialsPage = {
     },
 
     renderRow(material) {
+        // Calcola quantità disponibili e impegnate
+        const quantitaTotale = material.quantita || 0;
+        const quantitaImpegnata = material.quantita_assegnata || 0;
+        const quantitaDisponibile = quantitaTotale - quantitaImpegnata;
+        
         // Badge categoria con colore e icona
         const categoriaBadge = material.categoria_nome 
             ? `<span class="badge-categoria" style="background-color: ${material.categoria_colore || '#9E9E9E'}">
@@ -135,12 +142,25 @@ const MaterialsPage = {
                </span>`
             : '<span style="color: #999;">-</span>';
         
+        // Classe CSS per evidenziare disponibili = 0
+        const disponibiliClass = quantitaDisponibile === 0 ? 'text-danger' : 'text-success';
+        
         return `
             <tr>
                 <td><code>${material.codice_barre}</code></td>
                 <td><strong>${material.nome}</strong></td>
                 <td>${categoriaBadge}</td>
                 <td><span class="badge badge-${material.stato}">${material.stato}</span></td>
+                <td style="text-align: center;">
+                    <strong class="${disponibiliClass}" style="font-size: 1.1em;">
+                        ${quantitaDisponibile}
+                    </strong>
+                </td>
+                <td style="text-align: center;">
+                    <strong class="text-warning" style="font-size: 1.1em;">
+                        ${quantitaImpegnata}
+                    </strong>
+                </td>
                 <td>${material.posizione_magazzino || '-'}</td>
                 <td>
                     <div class="action-buttons">
@@ -190,7 +210,7 @@ const MaterialsPage = {
         this.loadMaterials();
     },
 
-    showAddModal() {
+    async showAddModal() {
         const modalContent = `
             <h3 class="mb-3">Nuovo Materiale</h3>
             <form id="addMaterialForm">
@@ -218,8 +238,23 @@ const MaterialsPage = {
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Quantità</label>
-                        <input type="number" name="quantita" value="1" min="1" class="form-control">
+                        <label>Quantità *</label>
+                        <input type="number" name="quantita" value="1" min="0" required class="form-control">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Stato</label>
+                        <select name="stato" class="form-control">
+                            <option value="disponibile">Disponibile</option>
+                            <option value="in_manutenzione">In Manutenzione</option>
+                            <option value="fuori_servizio">Fuori Servizio</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Posizione Magazzino</label>
+                        <input type="text" name="posizione_magazzino" class="form-control">
                     </div>
                 </div>
                 
@@ -229,21 +264,14 @@ const MaterialsPage = {
                         <input type="date" name="data_acquisto" class="form-control">
                     </div>
                     <div class="form-group">
-                        <label>Costo (€)</label>
-                        <input type="number" name="costo" step="0.01" min="0" class="form-control">
-                    </div>
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
                         <label>Fornitore</label>
                         <input type="text" name="fornitore" class="form-control">
                     </div>
-                    <div class="form-group">
-                        <label>Posizione Magazzino</label>
-                        <input type="text" name="posizione_magazzino" class="form-control" 
-                               placeholder="Es: Scaffale A - Ripiano 3">
-                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Costo (€)</label>
+                    <input type="number" name="costo" step="0.01" min="0" class="form-control">
                 </div>
                 
                 <div class="form-group">
@@ -252,7 +280,7 @@ const MaterialsPage = {
                 </div>
                 
                 <div class="d-flex gap-2 mt-3">
-                    <button type="submit" class="btn btn-primary">Salva</button>
+                    <button type="submit" class="btn btn-primary">Crea Materiale</button>
                     <button type="button" class="btn btn-secondary" 
                             onclick="UI.closeModal()">Annulla</button>
                 </div>
@@ -262,7 +290,7 @@ const MaterialsPage = {
         UI.showModal(modalContent);
         
         // Carica categorie nel select
-        this.loadCategoriesIntoSelect('categoriaSelect');
+        await this.loadCategoriesIntoSelect('categoriaSelect');
         
         document.getElementById('addMaterialForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -273,7 +301,7 @@ const MaterialsPage = {
                 UI.showLoading();
                 await API.materials.create(data);
                 UI.closeModal();
-                UI.showToast('Materiale aggiunto con successo', 'success');
+                UI.showToast('Materiale creato con successo', 'success');
                 await this.loadMaterials();
             } catch (error) {
                 UI.showToast(error.message, 'error');
@@ -286,66 +314,79 @@ const MaterialsPage = {
     async showDetailModal(id) {
         try {
             UI.showLoading();
-            const material = await API.materials.getById(id);
-            const maintenances = await API.maintenance.getByMaterial(id);
+            const material = await API.materials.getOne(id);
+            
+            // Calcola quantità
+            const quantitaTotale = material.quantita || 0;
+            const quantitaImpegnata = material.quantita_assegnata || 0;
+            const quantitaDisponibile = quantitaTotale - quantitaImpegnata;
             
             const modalContent = `
-                <h3 class="mb-3">Dettaglio Materiale</h3>
-                
-                <div class="mb-3">
-                    <strong>Codice a Barre:</strong> <code>${material.codice_barre}</code>
-                    <button class="btn btn-sm btn-success ml-2" 
-                            onclick="MaterialsPage.printBarcode(${material.id})">
-                        🏷️ Stampa Etichetta
+                <h3 class="mb-3">Dettagli Materiale</h3>
+                <div class="detail-view">
+                    <div class="detail-row">
+                        <strong>Codice a Barre:</strong>
+                        <span><code>${material.codice_barre}</code></span>
+                    </div>
+                    <div class="detail-row">
+                        <strong>Nome:</strong>
+                        <span>${material.nome}</span>
+                    </div>
+                    <div class="detail-row">
+                        <strong>Categoria:</strong>
+                        <span>${material.categoria_nome || '-'}</span>
+                    </div>
+                    <div class="detail-row">
+                        <strong>Stato:</strong>
+                        <span class="badge badge-${material.stato}">${material.stato}</span>
+                    </div>
+                    <div class="detail-row">
+                        <strong>Quantità Totale:</strong>
+                        <span>${quantitaTotale}</span>
+                    </div>
+                    <div class="detail-row">
+                        <strong>Disponibili:</strong>
+                        <span class="text-success" style="font-weight: bold; font-size: 1.1em;">
+                            ${quantitaDisponibile}
+                        </span>
+                    </div>
+                    <div class="detail-row">
+                        <strong>Impegnati:</strong>
+                        <span class="text-warning" style="font-weight: bold; font-size: 1.1em;">
+                            ${quantitaImpegnata}
+                        </span>
+                    </div>
+                    <div class="detail-row">
+                        <strong>Posizione:</strong>
+                        <span>${material.posizione_magazzino || '-'}</span>
+                    </div>
+                    <div class="detail-row">
+                        <strong>Descrizione:</strong>
+                        <span>${material.descrizione || '-'}</span>
+                    </div>
+                    <div class="detail-row">
+                        <strong>Data Acquisto:</strong>
+                        <span>${material.data_acquisto || '-'}</span>
+                    </div>
+                    <div class="detail-row">
+                        <strong>Fornitore:</strong>
+                        <span>${material.fornitore || '-'}</span>
+                    </div>
+                    <div class="detail-row">
+                        <strong>Costo:</strong>
+                        <span>${material.costo ? '€' + material.costo : '-'}</span>
+                    </div>
+                    <div class="detail-row">
+                        <strong>Note:</strong>
+                        <span>${material.note || '-'}</span>
+                    </div>
+                </div>
+                <div class="d-flex gap-2 mt-3">
+                    <button class="btn btn-primary" onclick="MaterialsPage.showEditModal(${id}); UI.closeModal();">
+                        Modifica
                     </button>
+                    <button class="btn btn-secondary" onclick="UI.closeModal()">Chiudi</button>
                 </div>
-                
-                <div class="mb-3">
-                    <strong>Nome:</strong> ${material.nome}<br>
-                    <strong>Categoria:</strong> ${material.categoria || '-'}<br>
-                    <strong>Stato:</strong> <span class="badge badge-${material.stato}">${material.stato}</span>
-                </div>
-                
-                ${material.descrizione ? `<div class="mb-3"><strong>Descrizione:</strong><br>${material.descrizione}</div>` : ''}
-                
-                <div class="mb-3">
-                    <strong>Quantità:</strong> ${material.quantita}<br>
-                    <strong>Posizione:</strong> ${material.posizione_magazzino || '-'}
-                </div>
-                
-                ${material.data_acquisto ? `<div class="mb-3"><strong>Data Acquisto:</strong> ${UI.formatDate(material.data_acquisto)}</div>` : ''}
-                ${material.fornitore ? `<div class="mb-3"><strong>Fornitore:</strong> ${material.fornitore}</div>` : ''}
-                ${material.costo ? `<div class="mb-3"><strong>Costo:</strong> ${UI.formatCurrency(material.costo)}</div>` : ''}
-                
-                ${material.note ? `<div class="mb-3"><strong>Note:</strong><br>${material.note}</div>` : ''}
-                
-                <hr>
-                
-                <h4 class="mb-2">Storico Manutenzioni</h4>
-                ${maintenances.length > 0 ? `
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Data</th>
-                                <th>Tipo</th>
-                                <th>Esito</th>
-                                <th>Descrizione</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${maintenances.map(m => `
-                                <tr>
-                                    <td>${UI.formatDate(m.data_inizio)}</td>
-                                    <td>${m.tipo}</td>
-                                    <td><span class="badge">${m.esito}</span></td>
-                                    <td>${m.descrizione}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                ` : '<p>Nessuna manutenzione registrata</p>'}
-                
-                <button class="btn btn-secondary mt-3" onclick="UI.closeModal()">Chiudi</button>
             `;
             
             UI.showModal(modalContent);
@@ -359,7 +400,7 @@ const MaterialsPage = {
     async showEditModal(id) {
         try {
             UI.showLoading();
-            const material = await API.materials.getById(id);
+            const material = await API.materials.getOne(id);
             
             const modalContent = `
                 <h3 class="mb-3">Modifica Materiale</h3>
@@ -402,10 +443,38 @@ const MaterialsPage = {
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>Posizione Magazzino</label>
-                            <input type="text" name="posizione_magazzino" 
-                                   value="${material.posizione_magazzino || ''}" class="form-control">
+                            <label>Quantità Totale *</label>
+                            <input type="number" name="quantita" value="${material.quantita || 0}" 
+                                   min="0" required class="form-control">
+                            <small class="form-text text-muted">
+                                Impegnati: ${material.quantita_assegnata || 0}
+                            </small>
                         </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Posizione Magazzino</label>
+                        <input type="text" name="posizione_magazzino" 
+                               value="${material.posizione_magazzino || ''}" class="form-control">
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Data Acquisto</label>
+                            <input type="date" name="data_acquisto" 
+                                   value="${material.data_acquisto || ''}" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Fornitore</label>
+                            <input type="text" name="fornitore" 
+                                   value="${material.fornitore || ''}" class="form-control">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Costo (€)</label>
+                        <input type="number" name="costo" step="0.01" min="0" 
+                               value="${material.costo || ''}" class="form-control">
                     </div>
                     
                     <div class="form-group">
@@ -499,12 +568,12 @@ const MaterialsPage = {
                     option.selected = true;
                 }
                 select.appendChild(option);
-            });  // ← CHIUDI forEach QUI
+            });
         } catch (error) {
             console.error('Errore caricamento categorie:', error);
             UI.showToast('Errore nel caricamento delle categorie', 'error');
         }
-    },  // ← VIRGOLA IMPORTANTE
+    },
     
     exportCSV() {
         if (this.materials.length === 0) {
@@ -513,22 +582,31 @@ const MaterialsPage = {
         }
         
         const headers = [
-            'Codice Barre', 'Nome', 'Categoria', 'Stato', 'Posizione', 
-            'Note', 'Data Acquisizione', 'Valore', 'Fornitore', 'Numero Seriale'
+            'Codice Barre', 'Nome', 'Categoria', 'Stato', 'Quantità Totale', 
+            'Disponibili', 'Impegnati', 'Posizione', 'Note', 'Data Acquisto', 
+            'Costo', 'Fornitore'
         ];
         
-        const rows = this.materials.map(m => [
-            m.codice_barre || '',
-            m.nome || '',
-            m.categoria_nome || '',
-            m.stato || '',
-            m.posizione || '',
-            (m.note || '').replace(/"/g, '""'),
-            m.data_acquisizione || '',
-            m.valore || '',
-            m.fornitore || '',
-            m.numero_seriale || ''
-        ]);
+        const rows = this.materials.map(m => {
+            const quantitaTotale = m.quantita || 0;
+            const quantitaImpegnata = m.quantita_assegnata || 0;
+            const quantitaDisponibile = quantitaTotale - quantitaImpegnata;
+            
+            return [
+                m.codice_barre || '',
+                m.nome || '',
+                m.categoria_nome || '',
+                m.stato || '',
+                quantitaTotale,
+                quantitaDisponibile,
+                quantitaImpegnata,
+                m.posizione_magazzino || '',
+                (m.note || '').replace(/"/g, '""'),
+                m.data_acquisto || '',
+                m.costo || '',
+                m.fornitore || ''
+            ];
+        });
         
         const csvContent = [
             headers.join(','),

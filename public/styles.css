@@ -1008,3 +1008,123 @@ body.admin .admin-only {
         padding: 10px 12px;
     }
 }
+
+/* ===================================
+   SCROLL TABELLE
+   =================================== */
+
+#materialsTable,
+#volunteersTable,
+#assignmentsTable,
+#usersTable,
+#maintenanceTable {
+    max-height: 600px;
+    overflow-y: auto;
+    overflow-x: auto;
+    position: relative;
+}
+
+#materialsTable table,
+#volunteersTable table,
+#assignmentsTable table,
+#usersTable table,
+#maintenanceTable table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+#materialsTable thead,
+#volunteersTable thead,
+#assignmentsTable thead,
+#usersTable thead,
+#maintenanceTable thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #d32f2f;
+}
+
+#materialsTable thead th,
+#volunteersTable thead th,
+#assignmentsTable thead th,
+#usersTable thead th,
+#maintenanceTable thead th {
+    background: #d32f2f;
+    color: white;
+    border-bottom: 2px solid #b71c1c;
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.1);
+}
+
+#materialsTable::-webkit-scrollbar,
+#volunteersTable::-webkit-scrollbar,
+#assignmentsTable::-webkit-scrollbar,
+#usersTable::-webkit-scrollbar,
+#maintenanceTable::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+#materialsTable::-webkit-scrollbar-track,
+#volunteersTable::-webkit-scrollbar-track,
+#assignmentsTable::-webkit-scrollbar-track,
+#usersTable::-webkit-scrollbar-track,
+#maintenanceTable::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 5px;
+}
+
+#materialsTable::-webkit-scrollbar-thumb,
+#volunteersTable::-webkit-scrollbar-thumb,
+#assignmentsTable::-webkit-scrollbar-thumb,
+#usersTable::-webkit-scrollbar-thumb,
+#maintenanceTable::-webkit-scrollbar-thumb {
+    background: #d32f2f;
+    border-radius: 5px;
+}
+
+#materialsTable::-webkit-scrollbar-thumb:hover,
+#volunteersTable::-webkit-scrollbar-thumb:hover,
+#assignmentsTable::-webkit-scrollbar-thumb:hover,
+#usersTable::-webkit-scrollbar-thumb:hover,
+#maintenanceTable::-webkit-scrollbar-thumb:hover {
+    background: #b71c1c;
+}
+
+/* ===================================
+   COLONNE QUANTITÀ MATERIALI
+   =================================== */
+
+/* Solo per la tabella materiali - colonne centrate */
+#materialsTable thead th:nth-child(5),
+#materialsTable thead th:nth-child(6) {
+    text-align: center;
+}
+
+#materialsTable tbody td:nth-child(5),
+#materialsTable tbody td:nth-child(6) {
+    text-align: center;
+}
+
+/* Colori per disponibili e impegnati */
+#materialsTable .text-success {
+    color: #28a745 !important;
+}
+
+#materialsTable .text-warning {
+    color: #ffc107 !important;
+}
+
+#materialsTable .text-danger {
+    color: #dc3545 !important;
+    font-weight: 700;
+}
+
+.badge-categoria {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 12px;
+    color: white;
+    font-size: 0.85em;
+    font-weight: 600;
+}

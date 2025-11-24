@@ -222,12 +222,12 @@
         </form>
 
         <div class="login-footer">
-            <p>Per assistenza contattare: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="51223e237f32303c21303f3830113223387f3825">[email&#160;protected]</a></p>
+            <p>Per assistenza contattare: sor.campania@cri.it</p>
             <p>© 2025 Croce Rossa Italiana - Campania</p>
         </div>
     </div>
 
-    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+    <script>
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🔐 Login page loaded');
             
@@ -317,7 +317,7 @@
                         console.log('❌ Login fallito:', data.error);
                         
                         // Mostra errore
-                        errorMessage.textContent = `❌ ${data.error || 'Errore durante il login'}`;
+                        errorMessage.textContent = '❌ ' + (data.error || 'Errore durante il login');
                         errorMessage.style.display = 'block';
                         
                         // Riabilita form
@@ -331,7 +331,7 @@
                 } catch (error) {
                     console.error('❌ Errore connessione:', error);
                     
-                    errorMessage.textContent = `❌ ${error.message}`;
+                    errorMessage.textContent = '❌ ' + error.message;
                     errorMessage.style.display = 'block';
                     
                     btnLogin.disabled = false;
@@ -340,4 +340,12 @@
             });
             
             // Enter su password
-            passw
+            passwordInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    form.dispatchEvent(new Event('submit'));
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -222,12 +222,12 @@
         </form>
 
         <div class="login-footer">
-            <p>Per assistenza contattare: sor.campania@cri.it</p>
+            <p>Per assistenza contattare: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="1e6d716c307d7f736e7f70777f5e7d6c7730776a">[email&#160;protected]</a></p>
             <p>© 2025 Croce Rossa Italiana - Campania</p>
         </div>
     </div>
 
-    <script>
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🔐 Login page loaded');
             
@@ -300,7 +300,16 @@
                     if (response.ok && data.user) {
                         console.log('✅ Login valido!');
                         
-                        // Salva sessione
+                        // Salva token (IMPORTANTE per le API calls)
+                        if (data.token) {
+                            localStorage.setItem('warehouse_auth_token', data.token);
+                            console.log('🔑 Token salvato');
+                        }
+                        
+                        // Salva dati utente in localStorage
+                        localStorage.setItem('warehouse_user_data', JSON.stringify(data.user));
+                        
+                        // Salva sessione in sessionStorage
                         sessionStorage.setItem('isLoggedIn', 'true');
                         sessionStorage.setItem('username', data.user.username);
                         sessionStorage.setItem('userId', data.user.id);
@@ -340,12 +349,4 @@
             });
             
             // Enter su password
-            passwordInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    form.dispatchEvent(new Event('submit'));
-                }
-            });
-        });
-    </script>
-</body>
-</html>
+            passw

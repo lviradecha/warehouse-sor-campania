@@ -130,6 +130,9 @@ const MaterialsPage = {
     },
 
     renderRow(material) {
+        // Controlla ruolo utente una volta sola
+        const isAdmin = AuthManager.isAdmin();
+        
         // Calcola quantità disponibili e impegnate
         const quantitaTotale = material.quantita || 0;
         const quantitaImpegnata = material.quantita_assegnata || 0;
@@ -179,11 +182,13 @@ const MaterialsPage = {
                                 title="Stampa Etichetta">
                             🏷️
                         </button>
+                        ${isAdmin ? `
                         <button class="btn btn-sm btn-danger btn-icon" 
                                 onclick="MaterialsPage.deleteMaterial(${material.id})"
                                 title="Elimina">
                             🗑️
                         </button>
+                        ` : ''}
                     </div>
                 </td>
             </tr>
@@ -314,7 +319,11 @@ const MaterialsPage = {
     async showDetailModal(id) {
         try {
             UI.showLoading();
-            const material = await API.materials.getOne(id);
+            // Trova il materiale nell'array esistente
+            const material = this.materials.find(m => m.id === id);
+            if (!material) {
+                throw new Error('Materiale non trovato');
+            }
             
             // Calcola quantità
             const quantitaTotale = material.quantita || 0;
@@ -400,7 +409,11 @@ const MaterialsPage = {
     async showEditModal(id) {
         try {
             UI.showLoading();
-            const material = await API.materials.getOne(id);
+            // Trova il materiale nell'array esistente
+            const material = this.materials.find(m => m.id === id);
+            if (!material) {
+                throw new Error('Materiale non trovato');
+            }
             
             const modalContent = `
                 <h3 class="mb-3">Modifica Materiale</h3>

@@ -101,6 +101,9 @@ const VolunteersPage = {
             return;
         }
         
+        // Controlla ruolo utente una volta sola
+        const isAdmin = AuthManager.isAdmin();
+        
         container.innerHTML = `
             <table class="table">
                 <thead>
@@ -131,6 +134,7 @@ const VolunteersPage = {
                                             style="min-width: 35px;">
                                         👁️
                                     </button>
+                                    ${isAdmin ? `
                                     <button class="btn btn-sm btn-primary" 
                                             onclick="VolunteersPage.showEditModal(${v.id})"
                                             title="Modifica volontario"
@@ -143,6 +147,7 @@ const VolunteersPage = {
                                             style="min-width: 35px;">
                                         🗑️
                                     </button>
+                                    ` : ''}
                                 </div>
                             </td>
                         </tr>

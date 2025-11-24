@@ -43,12 +43,23 @@ exports.handler = async (event) => {
     }
 
     try {
+        // DEBUG - Log della richiesta
+        console.log('📡 Method:', event.httpMethod);
+        console.log('📡 Path:', event.path);
+        console.log('📡 Body:', event.body);
+        
         const user = authenticate(event);
         requireAdmin(user); // Solo admin può gestire utenti
 
         const path = parsePath(event.path, 'utenti');
         const segments = path.split('/').filter(s => s);
         const userId = segments[0];
+        
+        // DEBUG - Log del parsing
+        console.log('🔍 Parsed path:', path);
+        console.log('🔍 Segments:', segments);
+        console.log('🔍 UserId:', userId);
+        console.log('🔍 Segments[1]:', segments[1]);
 
         // GET - Lista utenti o singolo utente
         if (event.httpMethod === 'GET') {
@@ -76,7 +87,7 @@ exports.handler = async (event) => {
         }
 
         // POST - Crea nuovo utente
-        if (event.httpMethod === 'POST') {
+        if (event.httpMethod === 'POST' && !userId) {
             const data = JSON.parse(event.body);
 
             // Password non più richiesta - viene generata automaticamente
@@ -153,7 +164,7 @@ exports.handler = async (event) => {
         }
 
         // PUT - Aggiorna utente
-        if (event.httpMethod === 'PUT' && userId) {
+        if (event.httpMethod === 'PUT' && userId && !segments[1]) {
             const data = JSON.parse(event.body);
 
             // Non può modificare se stesso (per sicurezza)
@@ -229,6 +240,8 @@ exports.handler = async (event) => {
 
         // POST - Reset password (genera nuova password e invia email)
         if (event.httpMethod === 'POST' && userId && segments[1] === 'reset-password') {
+            console.log('🔄 Reset password richiesto per utente:', userId);
+            
             // Non può resettare se stesso
             if (parseInt(userId) === user.id) {
                 return errorResponse('Non puoi resettare la tua stessa password da qui');
@@ -303,7 +316,9 @@ exports.handler = async (event) => {
         }
 
         // DELETE - Elimina utente
-        if (event.httpMethod === 'DELETE' && userId) {
+        if (event.httpMethod === 'DELETE' && userId && !segments[1]) {
+            console.log('🗑️ Richiesta eliminazione utente:', userId);
+            
             // Non può eliminare se stesso
             if (parseInt(userId) === user.id) {
                 return errorResponse('Non puoi eliminare il tuo stesso account');
@@ -335,12 +350,13 @@ exports.handler = async (event) => {
         return errorResponse('Richiesta non valida', 400);
 
     } catch (error) {
-        console.error('Errore API utenti:', error);
+        console.error('❌ Errore API utenti:', error);
+        console.error('Stack:', error.stack);
         
         if (error.message.includes('Token') || error.message.includes('Accesso negato')) {
             return errorResponse(error.message, 401);
         }
         
-        return errorResponse('Errore interno del server', 500);
+        return errorResponse(error.message || 'Errore interno del server', 500);
     }
 };

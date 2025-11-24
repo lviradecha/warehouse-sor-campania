@@ -8,14 +8,14 @@ const App = {
     
     // Inizializzazione applicazione
     init() {
-        // Verifica autenticazione
+        // Verifica autenticazione (già fatto in index.html, ma doppio check)
         if (!AuthManager.isAuthenticated()) {
-            this.showLogin();
+            window.location.replace('login.html');
             return;
         }
 
-        // Mostra dashboard
-        this.showDashboard();
+        // Setup dashboard
+        this.setupDashboard();
         
         // Carica pagina iniziale
         this.loadPage('dashboard');
@@ -27,21 +27,17 @@ const App = {
         this.setupRoleBasedUI();
     },
 
-    // Mostra schermata login
-    showLogin() {
-        document.getElementById('loginContainer').style.display = 'flex';
-        document.getElementById('dashboardContainer').style.display = 'none';
-    },
-
-    // Mostra dashboard
-    showDashboard() {
-        document.getElementById('loginContainer').style.display = 'none';
-        document.getElementById('dashboardContainer').style.display = 'block';
-        
+    // Setup dashboard (non più show/hide)
+    setupDashboard() {
         // Mostra link admin se necessario
         const user = AuthManager.getUser();
-        if (user && user.role === 'admin') {
-            document.getElementById('linkAdmin').style.display = 'flex';
+        const ruolo = sessionStorage.getItem('ruolo') || sessionStorage.getItem('role');
+        
+        if ((user && user.role === 'admin') || ruolo === 'admin') {
+            const linkAdmin = document.getElementById('linkAdmin');
+            if (linkAdmin) {
+                linkAdmin.style.display = '';
+            }
             document.body.classList.add('admin');
         }
     },
@@ -66,9 +62,10 @@ const App = {
     // Setup UI basato sul ruolo
     setupRoleBasedUI() {
         const user = AuthManager.getUser();
+        const ruolo = sessionStorage.getItem('ruolo') || sessionStorage.getItem('role');
         
         // Nascondi elementi solo admin se utente è operatore
-        if (user.role !== 'admin') {
+        if (user && user.role !== 'admin' && ruolo !== 'admin') {
             document.querySelectorAll('.admin-only').forEach(el => {
                 el.style.display = 'none';
             });
@@ -148,7 +145,7 @@ const App = {
                     </div>
                     
                     <div class="stat-card">
-                        <div class="stat-icon green">✓</div>
+                        <div class="stat-icon green">✔</div>
                         <div class="stat-details">
                             <h3>${data.materials.disponibili || 0}</h3>
                             <p>Disponibili</p>

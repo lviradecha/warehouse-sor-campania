@@ -13,9 +13,14 @@ const MaintenancePage = {
                     <h2>🔧 Gestione Manutenzioni</h2>
                     <p>Riparazioni, rotture e storico materiali</p>
                 </div>
-                <button class="btn btn-primary" onclick="MaintenancePage.showAddModal()">
-                    ➕ Nuova Manutenzione
-                </button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-success" onclick="MaintenancePage.exportCSV()">
+                        📥 Esporta CSV
+                    </button>
+                    <button class="btn btn-primary" onclick="MaintenancePage.showAddModal()">
+                        ➕ Nuova Manutenzione
+                    </button>
+                </div>
             </div>
 
             <!-- Filtri -->
@@ -300,5 +305,52 @@ const MaintenancePage = {
         } finally {
             UI.hideLoading();
         }
+    },  // ← VIRGOLA IMPORTANTE
+    
+    exportCSV() {
+        if (this.maintenances.length === 0) {
+            UI.showToast('Nessuna manutenzione da esportare', 'warning');
+            return;
+        }
+        
+        const headers = [
+            'Materiale', 'Codice Barre', 'Tipo', 'Descrizione', 
+            'Data Inizio', 'Data Fine', 'Esito', 'Costo', 
+            'Fornitore', 'Note', 'Utente'
+        ];
+        
+        const rows = this.maintenances.map(m => [
+            m.material_nome || '',
+            m.codice_barre || '',
+            m.tipo || '',
+            (m.descrizione || '').replace(/"/g, '""'),
+            m.data_inizio || '',
+            m.data_fine || '',
+            m.esito || '',
+            m.costo || '',
+            m.fornitore_riparazione || '',
+            (m.note || '').replace(/"/g, '""'),
+            m.user_nome ? `${m.user_nome} ${m.user_cognome}` : ''
+        ]);
+        
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+        ].join('\n');
+        
+        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        const timestamp = new Date().toISOString().split('T')[0];
+        link.setAttribute('href', url);
+        link.setAttribute('download', `manutenzioni_CRI_${timestamp}.csv`);
+        link.style.visibility = 'hidden';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        UI.showToast(`${this.maintenances.length} manutenzioni esportate`, 'success');
     }
 };

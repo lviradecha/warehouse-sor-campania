@@ -1,4 +1,4 @@
-// ===================================
+/// ===================================
 // ASSIGNMENTS PAGE
 // Gestione assegnazioni materiali
 // ===================================
@@ -13,9 +13,14 @@ const AssignmentsPage = {
                     <h2>Gestione Assegnazioni</h2>
                     <p>Uscite e rientri materiali</p>
                 </div>
-                <button class="btn btn-primary" onclick="AssignmentsPage.showAddModal()">
-                    ➕ Nuova Assegnazione
-                </button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-success" onclick="AssignmentsPage.exportCSV()">
+                        📥 Esporta CSV
+                    </button>
+                    <button class="btn btn-primary" onclick="AssignmentsPage.showAddModal()">
+                        ➕ Nuova Assegnazione
+                    </button>
+                </div>
             </div>
             <div class="card">
                 <div id="assignmentsTable"></div>
@@ -221,5 +226,53 @@ const AssignmentsPage = {
                 UI.hideLoading();
             }
         });
+    },  // ← VIRGOLA IMPORTANTE
+    
+    exportCSV() {
+        if (this.assignments.length === 0) {
+            UI.showToast('Nessuna assegnazione da esportare', 'warning');
+            return;
+        }
+        
+        const headers = [
+            'Evento', 'Materiale', 'Codice Barre', 'Volontario Nome', 
+            'Volontario Cognome', 'Comitato', 'Data Uscita', 'Data Rientro', 
+            'Stato', 'Email Inviata', 'Note Uscita', 'Note Rientro'
+        ];
+        
+        const rows = this.assignments.map(a => [
+            (a.evento || '').replace(/"/g, '""'),
+            a.material_nome || '',
+            a.codice_barre || '',
+            a.volunteer_nome || '',
+            a.volunteer_cognome || '',
+            a.volunteer_gruppo || '',
+            a.data_uscita || '',
+            a.data_rientro || '',
+            a.stato || '',
+            a.email_inviata ? 'Si' : 'No',
+            (a.note_uscita || '').replace(/"/g, '""'),
+            (a.note_rientro || '').replace(/"/g, '""')
+        ]);
+        
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+        ].join('\n');
+        
+        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        const timestamp = new Date().toISOString().split('T')[0];
+        link.setAttribute('href', url);
+        link.setAttribute('download', `assegnazioni_CRI_${timestamp}.csv`);
+        link.style.visibility = 'hidden';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        UI.showToast(`${this.assignments.length} assegnazioni esportate`, 'success');
     }
 };

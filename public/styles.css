@@ -238,34 +238,40 @@ body {
 
 .btn-filter {
     padding: 10px 20px;
-    background: #666;
+    background: #E31837;
     color: white;
-    border: none;
+    border: 2px solid #E31837;
     border-radius: 6px;
     cursor: pointer;
     font-weight: 600;
     font-size: 14px;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
 }
 
 .btn-filter:hover {
-    background: #555;
+    background: #C41230;
+    border-color: #C41230;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(227, 24, 55, 0.3);
 }
 
 .btn-reset {
     padding: 10px 20px;
-    background: #999;
-    color: white;
-    border: none;
+    background: white;
+    color: #E31837;
+    border: 2px solid #E31837;
     border-radius: 6px;
     cursor: pointer;
     font-weight: 600;
     font-size: 14px;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
 }
 
 .btn-reset:hover {
-    background: #777;
+    background: #f8f9fa;
+    color: #C41230;
+    border-color: #C41230;
+    transform: translateY(-2px);
 }
 
 /* Form styling */
@@ -340,6 +346,56 @@ body {
 .btn-primary:disabled {
     background: #ccc;
     cursor: not-allowed;
+}
+
+/* Pulsanti secondari (usati nei filtri) */
+.btn-secondary {
+    background: #E31837;
+    color: white;
+    border: 2px solid #E31837;
+    padding: 12px 28px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: none;
+}
+
+.btn-secondary:hover {
+    background: #C41230;
+    border-color: #C41230;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(227, 24, 55, 0.3);
+}
+
+.btn-secondary:active {
+    transform: scale(0.98);
+}
+
+/* Pulsanti outline (usati per Reset) */
+.btn-outline {
+    background: white;
+    color: #E31837;
+    border: 2px solid #E31837;
+    padding: 12px 28px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: none;
+}
+
+.btn-outline:hover {
+    background: #f8f9fa;
+    color: #C41230;
+    border-color: #C41230;
+    transform: translateY(-2px);
+}
+
+.btn-outline:active {
+    transform: scale(0.98);
 }
 
 /* Info boxes */

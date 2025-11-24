@@ -45,7 +45,7 @@ const VolunteersPage = {
                         <button class="btn btn-secondary" onclick="VolunteersPage.applyFilters()">
                             Filtra
                         </button>
-                        <button class="btn btn-secondary" onclick="VolunteersPage.resetFilters()">
+                        <button class="btn btn-outline" onclick="VolunteersPage.resetFilters()">
                             Reset
                         </button>
                     </div>

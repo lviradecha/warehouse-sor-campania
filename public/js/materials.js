@@ -51,7 +51,7 @@ const MaterialsPage = {
                         <button class="btn btn-secondary" onclick="MaterialsPage.applyFilters()">
                             Filtra
                         </button>
-                        <button class="btn btn-secondary" onclick="MaterialsPage.resetFilters()">
+                        <button class="btn btn-outline" onclick="MaterialsPage.resetFilters()">
                             Reset
                         </button>
                     </div>

@@ -14,9 +14,14 @@ const MaterialsPage = {
                     <h2>Gestione Materiali</h2>
                     <p>Inventario completo magazzino</p>
                 </div>
-                <button class="btn btn-primary" onclick="MaterialsPage.showAddModal()">
-                    <span>➕</span> Nuovo Materiale
-                </button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-success" onclick="MaterialsPage.exportCSV()">
+                        📥 Esporta CSV
+                    </button>
+                    <button class="btn btn-primary" onclick="MaterialsPage.showAddModal()">
+                        <span>➕</span> Nuovo Materiale
+                    </button>
+                </div>
             </div>
 
             <!-- Filtri -->
@@ -494,10 +499,55 @@ const MaterialsPage = {
                     option.selected = true;
                 }
                 select.appendChild(option);
-            });
+            });  // ← CHIUDI forEach QUI
         } catch (error) {
             console.error('Errore caricamento categorie:', error);
             UI.showToast('Errore nel caricamento delle categorie', 'error');
         }
+    },  // ← VIRGOLA IMPORTANTE
+    
+    exportCSV() {
+        if (this.materials.length === 0) {
+            UI.showToast('Nessun materiale da esportare', 'warning');
+            return;
+        }
+        
+        const headers = [
+            'Codice Barre', 'Nome', 'Categoria', 'Stato', 'Posizione', 
+            'Note', 'Data Acquisizione', 'Valore', 'Fornitore', 'Numero Seriale'
+        ];
+        
+        const rows = this.materials.map(m => [
+            m.codice_barre || '',
+            m.nome || '',
+            m.categoria_nome || '',
+            m.stato || '',
+            m.posizione || '',
+            (m.note || '').replace(/"/g, '""'),
+            m.data_acquisizione || '',
+            m.valore || '',
+            m.fornitore || '',
+            m.numero_seriale || ''
+        ]);
+        
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+        ].join('\n');
+        
+        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        const timestamp = new Date().toISOString().split('T')[0];
+        link.setAttribute('href', url);
+        link.setAttribute('download', `materiali_CRI_${timestamp}.csv`);
+        link.style.visibility = 'hidden';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        UI.showToast(`${this.materials.length} materiali esportati`, 'success');
     }
 };

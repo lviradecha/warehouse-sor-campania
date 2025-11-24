@@ -82,6 +82,7 @@ const MaintenancePage = {
                     <tr>
                         <th>Materiale</th>
                         <th>Tipo</th>
+                        <th>Quantità</th>
                         <th>Descrizione</th>
                         <th>Data Inizio</th>
                         <th>Data Fine</th>
@@ -97,6 +98,7 @@ const MaintenancePage = {
                                 <small>${m.codice_barre || ''}</small>
                             </td>
                             <td><span class="badge">${m.tipo}</span></td>
+                            <td style="text-align: center;"><strong>${m.quantita || 1}</strong></td>
                             <td>${m.descrizione}</td>
                             <td>${UI.formatDate(m.data_inizio)}</td>
                             <td>${m.data_fine ? UI.formatDate(m.data_fine) : '-'}</td>
@@ -137,12 +139,24 @@ const MaintenancePage = {
                 <form id="addMaintenanceForm">
                     <div class="form-group">
                         <label>Materiale *</label>
-                        <select name="material_id" required class="form-control">
+                        <select name="material_id" id="materialSelect" required class="form-control">
                             <option value="">Seleziona materiale...</option>
-                            ${materials.materials.map(m => `
-                                <option value="${m.id}">${m.nome} (${m.codice_barre})</option>
-                            `).join('')}
+                            ${materials.materials.map(m => {
+                                const quantitaTotale = m.quantita || 0;
+                                return `
+                                    <option value="${m.id}" data-quantita="${quantitaTotale}">
+                                        ${m.nome} (${m.codice_barre}) - Totale: ${quantitaTotale}
+                                    </option>
+                                `;
+                            }).join('')}
                         </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Quantità *</label>
+                        <input type="number" name="quantita" id="quantitaInput" 
+                               value="1" min="1" required class="form-control">
+                        <small class="text-muted" id="quantitaHelp"></small>
                     </div>
                     
                     <div class="form-group">
@@ -185,10 +199,42 @@ const MaintenancePage = {
             
             UI.showModal(modalContent);
             
+            // Gestione cambio materiale per aggiornare quantità massima
+            const materialSelect = document.getElementById('materialSelect');
+            const quantitaInput = document.getElementById('quantitaInput');
+            const quantitaHelp = document.getElementById('quantitaHelp');
+            
+            materialSelect.addEventListener('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                const quantitaTotale = parseInt(selectedOption.getAttribute('data-quantita')) || 0;
+                
+                quantitaInput.max = quantitaTotale;
+                quantitaInput.value = Math.min(1, quantitaTotale);
+                
+                if (quantitaTotale > 0) {
+                    quantitaHelp.textContent = `Massimo: ${quantitaTotale}`;
+                    quantitaHelp.style.color = '#28a745';
+                } else {
+                    quantitaHelp.textContent = 'Nessuna unità disponibile';
+                    quantitaHelp.style.color = '#dc3545';
+                }
+            });
+            
             document.getElementById('addMaintenanceForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const formData = new FormData(e.target);
                 const data = Object.fromEntries(formData);
+                
+                // Validazione quantità
+                const materialSelect = document.getElementById('materialSelect');
+                const selectedOption = materialSelect.options[materialSelect.selectedIndex];
+                const quantitaTotale = parseInt(selectedOption.getAttribute('data-quantita')) || 0;
+                const quantitaRichiesta = parseInt(data.quantita);
+                
+                if (quantitaRichiesta > quantitaTotale) {
+                    UI.showToast(`Quantità non disponibile. Massimo: ${quantitaTotale}`, 'error');
+                    return;
+                }
                 
                 try {
                     UI.showLoading();
@@ -274,7 +320,8 @@ const MaintenancePage = {
                 
                 <div class="mb-3">
                     <strong>Materiale:</strong> ${maintenance.material_nome}<br>
-                    <strong>Codice:</strong> <code>${maintenance.codice_barre}</code>
+                    <strong>Codice:</strong> <code>${maintenance.codice_barre}</code><br>
+                    <strong>Quantità:</strong> ${maintenance.quantita || 1}
                 </div>
                 
                 <div class="mb-3">
@@ -305,7 +352,7 @@ const MaintenancePage = {
         } finally {
             UI.hideLoading();
         }
-    },  // ← VIRGOLA IMPORTANTE
+    },
     
     exportCSV() {
         if (this.maintenances.length === 0) {
@@ -314,7 +361,7 @@ const MaintenancePage = {
         }
         
         const headers = [
-            'Materiale', 'Codice Barre', 'Tipo', 'Descrizione', 
+            'Materiale', 'Codice Barre', 'Quantità', 'Tipo', 'Descrizione', 
             'Data Inizio', 'Data Fine', 'Esito', 'Costo', 
             'Fornitore', 'Note', 'Utente'
         ];
@@ -322,6 +369,7 @@ const MaintenancePage = {
         const rows = this.maintenances.map(m => [
             m.material_nome || '',
             m.codice_barre || '',
+            m.quantita || 1,
             m.tipo || '',
             (m.descrizione || '').replace(/"/g, '""'),
             m.data_inizio || '',

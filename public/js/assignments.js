@@ -55,6 +55,7 @@ const AssignmentsPage = {
                     <tr>
                         <th>Evento</th>
                         <th>Materiale</th>
+                        <th>Quantità</th>
                         <th>Volontario</th>
                         <th>Data Uscita</th>
                         <th>Data Rientro</th>
@@ -73,6 +74,7 @@ const AssignmentsPage = {
                         <tr>
                             <td><strong>${a.evento}</strong></td>
                             <td>${a.material_nome || '-'}</td>
+                            <td style="text-align: center;"><strong>${a.quantita || 1}</strong></td>
                             <td>${a.volunteer_nome || ''} ${a.volunteer_cognome || ''}</td>
                             <td>${UI.formatDateTime(a.data_uscita)}</td>
                             <td>${a.data_rientro ? UI.formatDateTime(a.data_rientro) : '-'}</td>
@@ -109,12 +111,24 @@ const AssignmentsPage = {
                     
                     <div class="form-group">
                         <label>Materiale *</label>
-                        <select name="material_id" required class="form-control">
+                        <select name="material_id" id="materialSelect" required class="form-control">
                             <option value="">Seleziona materiale...</option>
-                            ${materials.materials.map(m => `
-                                <option value="${m.id}">${m.nome} (${m.codice_barre})</option>
-                            `).join('')}
+                            ${materials.materials.map(m => {
+                                const disponibili = (m.quantita || 0) - (m.quantita_assegnata || 0);
+                                return `
+                                    <option value="${m.id}" data-disponibili="${disponibili}">
+                                        ${m.nome} (${m.codice_barre}) - Disponibili: ${disponibili}
+                                    </option>
+                                `;
+                            }).join('')}
                         </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Quantità *</label>
+                        <input type="number" name="quantita" id="quantitaInput" 
+                               value="1" min="1" required class="form-control">
+                        <small class="text-muted" id="quantitaHelp"></small>
                     </div>
                     
                     <div class="form-group">
@@ -156,10 +170,42 @@ const AssignmentsPage = {
             
             UI.showModal(modalContent);
             
+            // Gestione cambio materiale per aggiornare quantità massima
+            const materialSelect = document.getElementById('materialSelect');
+            const quantitaInput = document.getElementById('quantitaInput');
+            const quantitaHelp = document.getElementById('quantitaHelp');
+            
+            materialSelect.addEventListener('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                const disponibili = parseInt(selectedOption.getAttribute('data-disponibili')) || 0;
+                
+                quantitaInput.max = disponibili;
+                quantitaInput.value = Math.min(1, disponibili);
+                
+                if (disponibili > 0) {
+                    quantitaHelp.textContent = `Massimo disponibile: ${disponibili}`;
+                    quantitaHelp.style.color = '#28a745';
+                } else {
+                    quantitaHelp.textContent = 'Nessuna unità disponibile';
+                    quantitaHelp.style.color = '#dc3545';
+                }
+            });
+            
             document.getElementById('addAssignmentForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const formData = new FormData(e.target);
                 const data = Object.fromEntries(formData);
+                
+                // Validazione quantità
+                const materialSelect = document.getElementById('materialSelect');
+                const selectedOption = materialSelect.options[materialSelect.selectedIndex];
+                const disponibili = parseInt(selectedOption.getAttribute('data-disponibili')) || 0;
+                const quantitaRichiesta = parseInt(data.quantita);
+                
+                if (quantitaRichiesta > disponibili) {
+                    UI.showToast(`Quantità non disponibile. Massimo: ${disponibili}`, 'error');
+                    return;
+                }
                 
                 try {
                     UI.showLoading();
@@ -226,7 +272,7 @@ const AssignmentsPage = {
                 UI.hideLoading();
             }
         });
-    },  // ← VIRGOLA IMPORTANTE
+    },
     
     exportCSV() {
         if (this.assignments.length === 0) {
@@ -235,7 +281,7 @@ const AssignmentsPage = {
         }
         
         const headers = [
-            'Evento', 'Materiale', 'Codice Barre', 'Volontario Nome', 
+            'Evento', 'Materiale', 'Codice Barre', 'Quantità', 'Volontario Nome', 
             'Volontario Cognome', 'Comitato', 'Data Uscita', 'Data Rientro', 
             'Stato', 'Email Inviata', 'Note Uscita', 'Note Rientro'
         ];
@@ -244,6 +290,7 @@ const AssignmentsPage = {
             (a.evento || '').replace(/"/g, '""'),
             a.material_nome || '',
             a.codice_barre || '',
+            a.quantita || 1,
             a.volunteer_nome || '',
             a.volunteer_cognome || '',
             a.volunteer_gruppo || '',

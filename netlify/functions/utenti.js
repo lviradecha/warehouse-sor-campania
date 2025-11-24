@@ -315,9 +315,9 @@ exports.handler = async (event) => {
             });
         }
 
-        // DELETE - Elimina utente
+        // DELETE - Disattiva utente (soft delete - conserva i log)
         if (event.httpMethod === 'DELETE' && userId && !segments[1]) {
-            console.log('🗑️ Richiesta eliminazione utente:', userId);
+            console.log('🗑️ Richiesta disattivazione utente:', userId);
             
             // Non può eliminare se stesso
             if (parseInt(userId) === user.id) {
@@ -326,7 +326,7 @@ exports.handler = async (event) => {
 
             // Verifica che l'utente esista
             const targetUser = await queryOne(
-                `SELECT username FROM users WHERE id = $1`,
+                `SELECT username, attivo FROM users WHERE id = $1`,
                 [userId]
             );
 
@@ -334,17 +334,31 @@ exports.handler = async (event) => {
                 return errorResponse('Utente non trovato', 404);
             }
 
-            await query(`DELETE FROM users WHERE id = $1`, [userId]);
+            if (!targetUser.attivo) {
+                return errorResponse('Utente già disattivato', 400);
+            }
+
+            // SOFT DELETE: Disattiva l'utente invece di eliminarlo
+            // Questo conserva tutti i log e la cronologia
+            await query(
+                `UPDATE users SET attivo = false WHERE id = $1`,
+                [userId]
+            );
+            
+            console.log('✅ Utente disattivato (conservati tutti i log):', targetUser.username);
 
             await logActivity(
                 user.id,
-                'DELETE',
+                'DEACTIVATE',
                 'users',
                 userId,
-                `Utente eliminato: ${targetUser.username}`
+                `Utente disattivato: ${targetUser.username}`
             );
 
-            return successResponse({ message: 'Utente eliminato con successo' });
+            return successResponse({ 
+                message: 'Utente disattivato con successo',
+                note: 'I log di attività sono stati conservati'
+            });
         }
 
         return errorResponse('Richiesta non valida', 400);

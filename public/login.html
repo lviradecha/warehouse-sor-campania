@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sistema Magazzino SOR Campania</title>
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: #d32f2f;
+            padding: 20px;
+        }
+        
+        .login-container {
+            max-width: 480px;
+            width: 100%;
+            background: white;
+            border-radius: 15px;
+            padding: 40px 35px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+        
+        .login-logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 25px;
+            display: block;
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+        
+        .login-header h1 {
+            color: #d32f2f;
+            margin-bottom: 8px;
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        
+        .login-header h2 {
+            color: #757575;
+            font-size: 16px;
+            font-weight: 400;
+            margin-bottom: 3px;
+        }
+        
+        .login-header p {
+            color: #9e9e9e;
+            font-size: 13px;
+            font-weight: 400;
+        }
+        
+        .error-message {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            display: none;
+            color: #c62828;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: flex;
+            align-items: center;
+            color: #424242;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        
+        .form-group label::before {
+            content: '';
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            margin-right: 8px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+        
+        .form-group label[for="username"]::before {
+            content: '👤';
+            font-size: 16px;
+        }
+        
+        .form-group label[for="password"]::before {
+            content: '🔒';
+            font-size: 16px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            background: #fafafa;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #d32f2f;
+            background: white;
+        }
+        
+        .form-group input::placeholder {
+            color: #bdbdbd;
+        }
+        
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            background: #d32f2f;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+        
+        .btn-login:hover:not(:disabled) {
+            background: #b71c1c;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
+        }
+        
+        .btn-login:active:not(:disabled) {
+            transform: translateY(0);
+        }
+        
+        .btn-login:disabled {
+            background: #bdbdbd;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .login-footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eeeeee;
+        }
+        
+        .login-footer p {
+            font-size: 12px;
+            color: #757575;
+            margin: 5px 0;
+        }
+        
+        .login-footer p:first-child {
+            color: #9e9e9e;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <img src="assets/logo-sor.png" alt="Logo SOR Campania" class="login-logo" onerror="this.style.display='none'">
+        
+        <div class="login-header">
+            <h1>CROCE ROSSA ITALIANA</h1>
+            <h2>Sistema Magazzino</h2>
+            <p>Sala Operativa Regionale Campania</p>
+        </div>
+
+        <div id="errorMessage" class="error-message"></div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input 
+                    type="text" 
+                    id="username" 
+                    name="username" 
+                    required 
+                    autocomplete="username" 
+                    placeholder="admin"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    required 
+                    autocomplete="current-password" 
+                    placeholder="••••••••••"
+                >
+            </div>
+
+            <button type="submit" class="btn-login" id="btnLogin">
+                ACCEDI AL SISTEMA
+            </button>
+        </form>
+
+        <div class="login-footer">
+            <p>Per assistenza contattare: sor.campania@cri.it</p>
+            <p>© 2025 Croce Rossa Italiana - Campania</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔐 Login page loaded');
+            
+            // Se già loggato, vai a index
+            if (sessionStorage.getItem('isLoggedIn') === 'true') {
+                console.log('✅ Già loggato - redirect a index');
+                window.location.replace('index.html');
+                return;
+            }
+            
+            const form = document.getElementById('loginForm');
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            const btnLogin = document.getElementById('btnLogin');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            // Focus su username
+            usernameInput.focus();
+            
+            // Gestione form
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const username = usernameInput.value.trim();
+                const password = passwordInput.value.trim();
+                
+                if (!username || !password) {
+                    errorMessage.textContent = '⚠️ Inserisci username e password';
+                    errorMessage.style.display = 'block';
+                    return;
+                }
+                
+                console.log('🔑 Tentativo login:', username);
+                
+                // Disabilita form
+                btnLogin.disabled = true;
+                btnLogin.textContent = '⏳ Verifica credenziali...';
+                errorMessage.style.display = 'none';
+                
+                try {
+                    // Chiamata al backend
+                    const response = await fetch('/.netlify/functions/auth-login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ username, password })
+                    });
+                    
+                    const data = await response.json();
+                    console.log('📦 Risposta server:', data);
+                    
+                    if (response.ok && data.success) {
+                        console.log('✅ Login valido!');
+                        
+                        // Salva sessione
+                        sessionStorage.setItem('isLoggedIn', 'true');
+                        sessionStorage.setItem('username', data.user.username);
+                        sessionStorage.setItem('userId', data.user.id);
+                        sessionStorage.setItem('nome', data.user.nome);
+                        sessionStorage.setItem('cognome', data.user.cognome);
+                        sessionStorage.setItem('ruolo', data.user.ruolo);
+                        sessionStorage.setItem('loginTime', new Date().toISOString());
+                        
+                        console.log('💾 Session salvata');
+                        
+                        // Redirect a index
+                        window.location.replace('index.html');
+                    } else {
+                        console.log('❌ Login fallito:', data.error);
+                        
+                        // Mostra errore
+                        errorMessage.textContent = `❌ ${data.error || 'Errore durante il login'}`;
+                        errorMessage.style.display = 'block';
+                        
+                        // Riabilita form
+                        btnLogin.disabled = false;
+                        btnLogin.textContent = 'ACCEDI AL SISTEMA';
+                        
+                        // Focus su password
+                        passwordInput.focus();
+                        passwordInput.select();
+                    }
+                } catch (error) {
+                    console.error('❌ Errore connessione:', error);
+                    
+                    errorMessage.textContent = '❌ Errore di connessione al server';
+                    errorMessage.style.display = 'block';
+                    
+                    btnLogin.disabled = false;
+                    btnLogin.textContent = 'ACCEDI AL SISTEMA';
+                }
+            });
+            
+            // Enter su password
+            passwordInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    form.dispatchEvent(new Event('submit'));
+                }
+            });
+        });
+    </script>
+</body>
+</html>

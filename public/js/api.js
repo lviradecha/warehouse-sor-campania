@@ -70,7 +70,7 @@ const API = {
     // CATEGORIE MATERIALI
     // ===================================
     materialCategories: {
-        getAll: () => API.request('/categorie-materiali'),
+        getAll: () => API.request(`/categorie-materiali?_t=${Date.now()}`),
         
         getById: (id) => API.request(`/categorie-materiali/${id}`),
         

@@ -27,6 +27,14 @@ const AuthManager = {
             this.setToken(data.token);
             this.setUser(data.user);
 
+            // ⚠️ CONTROLLO PRIMO ACCESSO ⚠️
+            // Se è il primo login, reindirizza al cambio password
+            if (data.user.first_login === true || data.user.first_login === 1) {
+                console.log('🔐 Primo accesso rilevato - redirect a cambio password');
+                window.location.replace('cambio-password.html');
+                return data;
+            }
+
             return data;
         } catch (error) {
             console.error('Errore login:', error);

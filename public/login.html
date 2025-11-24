@@ -222,12 +222,12 @@
         </form>
 
         <div class="login-footer">
-            <p>Per assistenza contattare: sor.campania@cri.it</p>
+            <p>Per assistenza contattare: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="5d2e322f733e3c302d3c33343c1d3e2f34733429">[email&#160;protected]</a></p>
             <p>© 2025 Croce Rossa Italiana - Campania</p>
         </div>
     </div>
 
-    <script>
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🔐 Login page loaded');
             
@@ -277,8 +277,24 @@
                         body: JSON.stringify({ username, password })
                     });
                     
-                    const data = await response.json();
-                    console.log('📦 Risposta server:', data);
+                    // Debug: mostra response
+                    console.log('📡 Response status:', response.status);
+                    console.log('📡 Response headers:', response.headers);
+                    
+                    // Prova a leggere il testo della risposta
+                    const responseText = await response.text();
+                    console.log('📦 Risposta server (raw):', responseText);
+                    
+                    // Prova a parsare come JSON
+                    let data;
+                    try {
+                        data = JSON.parse(responseText);
+                        console.log('📦 Risposta server (JSON):', data);
+                    } catch (parseError) {
+                        console.error('❌ Errore parsing JSON:', parseError);
+                        console.error('❌ Risposta ricevuta:', responseText);
+                        throw new Error('Errore nella risposta del server. Verifica la configurazione.');
+                    }
                     
                     if (response.ok && data.success) {
                         console.log('✅ Login valido!');
@@ -323,12 +339,4 @@
             });
             
             // Enter su password
-            passwordInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    form.dispatchEvent(new Event('submit'));
-                }
-            });
-        });
-    </script>
-</body>
-</html>
+            passw

@@ -13,9 +13,19 @@ const VolunteersPage = {
                     <h2>👥 Gestione Volontari</h2>
                     <p>Anagrafica volontari CRI</p>
                 </div>
-                <button class="btn btn-primary" onclick="VolunteersPage.showAddModal()">
-                    ➕ Nuovo Volontario
-                </button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-success" onclick="VolunteersPage.exportCSV()" 
+                            title="Esporta tutti i volontari in CSV">
+                        📥 Esporta CSV
+                    </button>
+                    <button class="btn btn-info" onclick="VolunteersPage.showImportModal()" 
+                            title="Importa volontari da file CSV">
+                        📤 Importa CSV
+                    </button>
+                    <button class="btn btn-primary" onclick="VolunteersPage.showAddModal()">
+                        ➕ Nuovo Volontario
+                    </button>
+                </div>
             </div>
             
             <!-- Filtri -->
@@ -24,7 +34,7 @@ const VolunteersPage = {
                     <div class="form-row">
                         <div class="form-group">
                             <input type="text" id="searchVolunteers" 
-                                   placeholder="Cerca per nome, cognome, email..." 
+                                   placeholder="Cerca per nome, cognome, CF, email..." 
                                    class="form-control">
                         </div>
                         <div class="form-group">
@@ -97,6 +107,7 @@ const VolunteersPage = {
                     <tr>
                         <th>Nome</th>
                         <th>Cognome</th>
+                        <th>Codice Fiscale</th>
                         <th>Comitato</th>
                         <th>Telefono</th>
                         <th>Email</th>
@@ -108,6 +119,7 @@ const VolunteersPage = {
                         <tr>
                             <td>${v.nome}</td>
                             <td>${v.cognome}</td>
+                            <td><code>${v.codice_fiscale || '-'}</code></td>
                             <td>${v.gruppo || '-'}</td>
                             <td>${v.telefono || '-'}</td>
                             <td>${v.email || '-'}</td>
@@ -150,6 +162,271 @@ const VolunteersPage = {
         this.loadVolunteers();
     },
     
+    // ===================================
+    // EXPORT CSV
+    // ===================================
+    exportCSV() {
+        if (this.volunteers.length === 0) {
+            UI.showToast('Nessun volontario da esportare', 'warning');
+            return;
+        }
+        
+        // Headers CSV
+        const headers = ['Nome', 'Cognome', 'Codice Fiscale', 'Comitato', 'Telefono', 'Email', 'Attivo'];
+        
+        // Converti dati in righe CSV
+        const rows = this.volunteers.map(v => [
+            v.nome || '',
+            v.cognome || '',
+            v.codice_fiscale || '',
+            v.gruppo || '',
+            v.telefono || '',
+            v.email || '',
+            v.attivo ? 'Si' : 'No'
+        ]);
+        
+        // Crea CSV
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+        ].join('\n');
+        
+        // Download file
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        const timestamp = new Date().toISOString().split('T')[0];
+        link.setAttribute('href', url);
+        link.setAttribute('download', `volontari_CRI_${timestamp}.csv`);
+        link.style.visibility = 'hidden';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        UI.showToast(`${this.volunteers.length} volontari esportati`, 'success');
+    },
+    
+    // ===================================
+    // IMPORT CSV
+    // ===================================
+    showImportModal() {
+        const modalContent = `
+            <h3>📤 Importa Volontari da CSV</h3>
+            
+            <div class="alert alert-info">
+                <strong>ℹ️ Formato File CSV:</strong><br>
+                Il file CSV deve contenere le seguenti colonne nell'ordine:<br>
+                <code>Nome, Cognome, Codice Fiscale, Comitato, Telefono, Email</code>
+                <br><br>
+                <button class="btn btn-sm btn-secondary" onclick="VolunteersPage.downloadTemplate()">
+                    📥 Scarica Template CSV
+                </button>
+            </div>
+            
+            <div class="form-group">
+                <label>Seleziona file CSV *</label>
+                <input type="file" id="csvFileInput" accept=".csv" class="form-control">
+                <small>Formato supportato: CSV (con virgola come separatore)</small>
+            </div>
+            
+            <div id="csvPreview" style="display: none; margin-top: 20px;">
+                <h4>📋 Anteprima Dati (primi 5)</h4>
+                <div id="csvPreviewTable" style="max-height: 300px; overflow-y: auto;"></div>
+                <p id="csvSummary" style="margin-top: 10px; font-weight: 600;"></p>
+            </div>
+            
+            <div class="d-flex gap-2 mt-3">
+                <button id="btnImportCSV" class="btn btn-primary" disabled onclick="VolunteersPage.processImport()">
+                    Importa Volontari
+                </button>
+                <button class="btn btn-secondary" onclick="UI.closeModal()">Annulla</button>
+            </div>
+        `;
+        
+        UI.showModal(modalContent);
+        
+        // Setup file input listener
+        document.getElementById('csvFileInput').addEventListener('change', (e) => {
+            this.previewCSV(e.target.files[0]);
+        });
+    },
+    
+    downloadTemplate() {
+        const template = [
+            ['Nome', 'Cognome', 'Codice Fiscale', 'Comitato', 'Telefono', 'Email'],
+            ['Mario', 'Rossi', 'RSSMRA85M01H501Z', 'Napoli 1', '3331234567', 'mario.rossi@example.com'],
+            ['Laura', 'Bianchi', 'BNCHLR90A41F839X', 'Salerno 1', '3337654321', 'laura.bianchi@example.com']
+        ];
+        
+        const csvContent = template.map(row => 
+            row.map(cell => `"${cell}"`).join(',')
+        ).join('\n');
+        
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'template_volontari_CRI.csv');
+        link.style.visibility = 'hidden';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        UI.showToast('Template scaricato', 'success');
+    },
+    
+    async previewCSV(file) {
+        if (!file) return;
+        
+        try {
+            const text = await file.text();
+            const lines = text.split('\n').filter(line => line.trim());
+            
+            if (lines.length < 2) {
+                UI.showToast('File CSV vuoto o non valido', 'error');
+                return;
+            }
+            
+            // Parse CSV (gestisce virgole tra virgolette)
+            const parseCSVLine = (line) => {
+                const result = [];
+                let current = '';
+                let inQuotes = false;
+                
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        result.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                result.push(current.trim());
+                return result;
+            };
+            
+            const headers = parseCSVLine(lines[0]);
+            const dataRows = lines.slice(1).map(line => parseCSVLine(line));
+            
+            // Salva dati per import
+            this.csvData = dataRows;
+            
+            // Mostra anteprima
+            const previewRows = dataRows.slice(0, 5);
+            const previewHTML = `
+                <table class="table">
+                    <thead>
+                        <tr>
+                            ${headers.map(h => `<th>${h}</th>`).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${previewRows.map(row => `
+                            <tr>
+                                ${row.map(cell => `<td>${cell}</td>`).join('')}
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            document.getElementById('csvPreview').style.display = 'block';
+            document.getElementById('csvPreviewTable').innerHTML = previewHTML;
+            document.getElementById('csvSummary').textContent = 
+                `Trovati ${dataRows.length} volontari da importare`;
+            document.getElementById('btnImportCSV').disabled = false;
+            
+        } catch (error) {
+            console.error('Errore parsing CSV:', error);
+            UI.showToast('Errore nella lettura del file CSV', 'error');
+        }
+    },
+    
+    async processImport() {
+        if (!this.csvData || this.csvData.length === 0) {
+            UI.showToast('Nessun dato da importare', 'warning');
+            return;
+        }
+        
+        try {
+            UI.showLoading();
+            
+            let successCount = 0;
+            let errorCount = 0;
+            const errors = [];
+            
+            for (let i = 0; i < this.csvData.length; i++) {
+                const row = this.csvData[i];
+                
+                // Salta righe vuote
+                if (!row[0] && !row[1]) continue;
+                
+                const volunteerData = {
+                    nome: row[0]?.trim() || '',
+                    cognome: row[1]?.trim() || '',
+                    codice_fiscale: row[2]?.trim() || '',
+                    gruppo: row[3]?.trim() || '',
+                    telefono: row[4]?.trim() || '',
+                    email: row[5]?.trim() || '',
+                    attivo: true
+                };
+                
+                // Validazione base
+                if (!volunteerData.nome || !volunteerData.cognome) {
+                    errorCount++;
+                    errors.push(`Riga ${i + 2}: Nome o Cognome mancante`);
+                    continue;
+                }
+                
+                if (!volunteerData.codice_fiscale || volunteerData.codice_fiscale.length !== 16) {
+                    errorCount++;
+                    errors.push(`Riga ${i + 2}: Codice Fiscale non valido`);
+                    continue;
+                }
+                
+                try {
+                    await API.volunteers.create(volunteerData);
+                    successCount++;
+                } catch (error) {
+                    errorCount++;
+                    errors.push(`Riga ${i + 2}: ${error.message}`);
+                }
+            }
+            
+            UI.closeModal();
+            
+            // Mostra risultato
+            if (errorCount === 0) {
+                UI.showToast(`✅ ${successCount} volontari importati con successo`, 'success');
+            } else {
+                const summary = `Importati: ${successCount}, Errori: ${errorCount}`;
+                UI.showToast(summary, errorCount > successCount ? 'error' : 'warning');
+                
+                if (errors.length > 0) {
+                    console.error('Errori import:', errors);
+                    alert(`Dettagli errori:\n\n${errors.slice(0, 10).join('\n')}\n\n${errors.length > 10 ? '(vedi console per tutti gli errori)' : ''}`);
+                }
+            }
+            
+            // Ricarica lista
+            await this.loadVolunteers();
+            
+        } catch (error) {
+            console.error('Errore import CSV:', error);
+            UI.showToast('Errore durante l\'importazione', 'error');
+        } finally {
+            UI.hideLoading();
+        }
+    },
+    
     showAddModal() {
         const modalContent = `
             <h3>Nuovo Volontario</h3>
@@ -169,7 +446,9 @@ const VolunteersPage = {
                         <label>Codice Fiscale *</label>
                         <input type="text" name="codice_fiscale" maxlength="16" 
                                required class="form-control" 
-                               placeholder="16 caratteri">
+                               placeholder="16 caratteri"
+                               pattern="[A-Z]{6}[0-9]{2}[A-Z][0-9]{2}[A-Z][0-9]{3}[A-Z]"
+                               title="Formato: 16 caratteri alfanumerici">
                     </div>
                     <div class="form-group">
                         <label>Comitato CRI *</label>
@@ -193,13 +472,13 @@ const VolunteersPage = {
                                placeholder="Es: 3331234567">
                     </div>
                     <div class="form-group">
-                        <label>Email *</label>
-                        <input type="email" name="email" required class="form-control" 
-                               placeholder="nome.cognome@email.it">
+                        <label>Email</label>
+                        <input type="email" name="email" class="form-control" 
+                               placeholder="email@example.com">
                     </div>
                 </div>
                 <div class="d-flex gap-2 mt-3">
-                    <button type="submit" class="btn btn-primary">Salva Volontario</button>
+                    <button type="submit" class="btn btn-primary">Crea Volontario</button>
                     <button type="button" class="btn btn-secondary" onclick="UI.closeModal()">Annulla</button>
                 </div>
             </form>
@@ -216,7 +495,7 @@ const VolunteersPage = {
                 UI.showLoading();
                 await API.volunteers.create(data);
                 UI.closeModal();
-                UI.showToast('Volontario aggiunto con successo', 'success');
+                UI.showToast('Volontario creato', 'success');
                 await this.loadVolunteers();
             } catch (error) {
                 UI.showToast(error.message, 'error');
@@ -232,7 +511,7 @@ const VolunteersPage = {
             const volunteer = await API.volunteers.getById(id);
             
             const modalContent = `
-                <h3>Dettaglio Volontario</h3>
+                <h3>Dettagli Volontario</h3>
                 
                 <div class="mb-3">
                     <strong>Nome Completo:</strong><br>
@@ -335,6 +614,11 @@ const VolunteersPage = {
                     </div>
                     <div class="form-row">
                         <div class="form-group">
+                            <label>Codice Fiscale *</label>
+                            <input type="text" name="codice_fiscale" value="${volunteer.codice_fiscale || ''}" 
+                                   maxlength="16" required class="form-control">
+                        </div>
+                        <div class="form-group">
                             <label>Comitato CRI *</label>
                             <input type="text" name="gruppo" value="${volunteer.gruppo || ''}" 
                                    required class="form-control" list="comitatoList">
@@ -348,16 +632,18 @@ const VolunteersPage = {
                                 <option value="Benevento 1">
                             </datalist>
                         </div>
+                    </div>
+                    <div class="form-row">
                         <div class="form-group">
                             <label>Telefono *</label>
                             <input type="tel" name="telefono" value="${volunteer.telefono || ''}" 
                                    required class="form-control">
                         </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Email *</label>
-                        <input type="email" name="email" value="${volunteer.email || ''}" 
-                               required class="form-control">
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" name="email" value="${volunteer.email || ''}" 
+                                   class="form-control">
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>Stato</label>

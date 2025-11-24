@@ -77,10 +77,26 @@ exports.handler = async (event) => {
                 return successResponse(targetUser);
             }
 
-            // Lista tutti gli utenti (senza password)
+            // Verifica se richiede utenti disattivati
+            const showDeactivated = event.queryStringParameters?.deactivated === 'true';
+
+            if (showDeactivated) {
+                // Lista utenti DISATTIVATI
+                const users = await query(
+                    `SELECT id, username, role, nome, cognome, email, attivo, email_sent, email_sent_at, created_at, last_login 
+                     FROM users 
+                     WHERE attivo = false
+                     ORDER BY created_at DESC`
+                );
+                return successResponse(users);
+            }
+
+            // Lista tutti gli utenti ATTIVI (default)
             const users = await query(
                 `SELECT id, username, role, nome, cognome, email, attivo, email_sent, email_sent_at, created_at, last_login 
-                 FROM users ORDER BY created_at DESC`
+                 FROM users 
+                 WHERE attivo = true
+                 ORDER BY created_at DESC`
             );
 
             return successResponse(users);

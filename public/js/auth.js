@@ -76,14 +76,14 @@ const AuthManager = {
     // Verifica se l'utente è admin
     isAdmin() {
         const user = this.getUser();
-        const ruolo = sessionStorage.getItem('ruolo');
+        const ruolo = sessionStorage.getItem('ruolo') || sessionStorage.getItem('role');
         return (user && user.role === 'admin') || ruolo === 'admin';
     },
 
     // Verifica se l'utente è operatore
     isOperator() {
         const user = this.getUser();
-        const ruolo = sessionStorage.getItem('ruolo');
+        const ruolo = sessionStorage.getItem('ruolo') || sessionStorage.getItem('role');
         return (user && user.role === 'operatore') || ruolo === 'operatore';
     },
 
@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('✅ Utente autenticato');
         
         // Mostra/nascondi elementi in base al ruolo
-        const ruolo = sessionStorage.getItem('ruolo');
+        const ruolo = sessionStorage.getItem('ruolo') || sessionStorage.getItem('role');
         if (ruolo === 'admin') {
             const adminLinks = document.querySelectorAll('.admin-only');
             adminLinks.forEach(link => link.style.display = '');

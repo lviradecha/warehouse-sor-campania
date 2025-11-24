@@ -222,12 +222,12 @@
         </form>
 
         <div class="login-footer">
-            <p>Per assistenza contattare: sor.campania@cri.it</p>
+            <p>Per assistenza contattare: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="51223e237f32303c21303f3830113223387f3825">[email&#160;protected]</a></p>
             <p>© 2025 Croce Rossa Italiana - Campania</p>
         </div>
     </div>
 
-    <script>
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🔐 Login page loaded');
             
@@ -269,9 +269,9 @@
                 
                 try {
                     // Chiamata al backend
-                    console.log('📡 Chiamata a: /.netlify/functions/auth-login');
+                    console.log('📡 Chiamata a: /.netlify/functions/login');
                     
-                    const response = await fetch('/.netlify/functions/auth-login', {
+                    const response = await fetch('/.netlify/functions/login', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -297,7 +297,7 @@
                         throw new Error('Errore nella risposta del server. Verifica che le API functions siano configurate correttamente.');
                     }
                     
-                    if (response.ok && data.success) {
+                    if (response.ok && data.user) {
                         console.log('✅ Login valido!');
                         
                         // Salva sessione
@@ -306,7 +306,7 @@
                         sessionStorage.setItem('userId', data.user.id);
                         sessionStorage.setItem('nome', data.user.nome);
                         sessionStorage.setItem('cognome', data.user.cognome);
-                        sessionStorage.setItem('ruolo', data.user.ruolo);
+                        sessionStorage.setItem('ruolo', data.user.role);
                         sessionStorage.setItem('loginTime', new Date().toISOString());
                         
                         console.log('💾 Session salvata');
@@ -340,12 +340,4 @@
             });
             
             // Enter su password
-            passwordInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    form.dispatchEvent(new Event('submit'));
-                }
-            });
-        });
-    </script>
-</body>
-</html>
+            passw

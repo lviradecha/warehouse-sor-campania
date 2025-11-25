@@ -200,6 +200,66 @@ const API = {
         })
     },
 
+    // Questo file è l'aggiornamento di api.js
+// AGGIUNGI QUESTA SEZIONE prima della sezione "REPORT & STATISTICHE"
+
+    // ===================================
+    // AUTOMEZZI / VEICOLI
+    // ===================================
+    vehicles: {
+        getAll: (filters = {}) => {
+            const params = new URLSearchParams(filters);
+            return API.request(`/automezzi?${params}`);
+        },
+        
+        getById: (id) => API.request(`/automezzi/${id}`),
+        
+        create: (data) => API.request('/automezzi', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        }),
+        
+        update: (id, data) => API.request(`/automezzi/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        }),
+        
+        delete: (id) => API.request(`/automezzi/${id}`, {
+            method: 'DELETE'
+        }),
+        
+        // Assegnazioni veicoli
+        assign: (data) => API.request('/automezzi/assegnazioni', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        }),
+        
+        getAllAssignments: (filters = {}) => {
+            const params = new URLSearchParams(filters);
+            return API.request(`/automezzi/assegnazioni?${params}`);
+        },
+        
+        getAssignment: (id) => API.request(`/automezzi/assegnazioni/${id}`),
+        
+        getAssignments: (vehicleId) => API.request(`/automezzi/${vehicleId}/assegnazioni`),
+        
+        returnVehicle: (assignmentId, data) => API.request(`/automezzi/assegnazioni/${assignmentId}/rientro`, {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        }),
+        
+        // Rifornimenti
+        getRefueling: (filters = {}) => {
+            const params = new URLSearchParams(filters);
+            return API.request(`/automezzi/rifornimenti?${params}`);
+        },
+        
+        addRefueling: (data) => API.request('/automezzi/rifornimenti', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        })
+    },
+
     // ===================================
     // REPORT & STATISTICHE
     // ===================================

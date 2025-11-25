@@ -48,6 +48,14 @@ const App = {
         
         navLinks.forEach(link => {
             link.addEventListener('click', (e) => {
+                const href = link.getAttribute('href');
+                
+                // Se il link è esterno (non inizia con #), non bloccare
+                // Permette link come automezzi.html di funzionare normalmente
+                if (href && !href.startsWith('#')) {
+                    return; // Lascia che il browser segua il link normalmente
+                }
+                
                 e.preventDefault();
                 const page = link.dataset.page;
                 this.loadPage(page);

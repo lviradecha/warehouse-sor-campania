@@ -37,8 +37,8 @@ exports.handler = async (event) => {
             const assignments = await query(
                 `SELECT a.*, 
                         m.nome as material_nome, m.codice_barre,
-                        v.nome as volunteer_nome, v.cognome as volunteer_cognome,
-                        a.email_inviata, a.email_inviata_at
+                        v.nome as volunteer_nome, v.cognome as volunteer_cognome, v.gruppo as volunteer_gruppo,
+                        a.email_inviata, a.email_inviata_at, a.quantita, a.data_rientro_prevista
                  FROM assignments a
                  JOIN materials m ON a.material_id = m.id
                  JOIN volunteers v ON a.volunteer_id = v.id
@@ -55,7 +55,8 @@ exports.handler = async (event) => {
             const assignment = await queryOne(
                 `SELECT a.*, 
                         m.nome as material_nome, m.codice_barre,
-                        v.nome as volunteer_nome, v.cognome as volunteer_cognome
+                        v.nome as volunteer_nome, v.cognome as volunteer_cognome,
+                        a.quantita, a.data_rientro_prevista
                  FROM assignments a
                  JOIN materials m ON a.material_id = m.id
                  JOIN volunteers v ON a.volunteer_id = v.id
@@ -78,36 +79,59 @@ exports.handler = async (event) => {
                 return errorResponse('Dati obbligatori mancanti');
             }
 
-            // Verifica che il materiale sia disponibile
+            const quantita = parseInt(data.quantita) || 1;
+
+            // Verifica disponibilità materiale con quantità
             const material = await queryOne(
-                `SELECT stato FROM materials WHERE id = $1`,
+                `SELECT id, nome, codice_barre, quantita, quantita_assegnata, stato 
+                 FROM materials 
+                 WHERE id = $1`,
                 [data.material_id]
             );
 
-            if (!material || material.stato !== 'disponibile') {
-                return errorResponse('Materiale non disponibile');
+            if (!material) {
+                return errorResponse('Materiale non trovato', 404);
             }
 
-            // Crea assegnazione
+            const disponibili = (material.quantita || 0) - (material.quantita_assegnata || 0);
+            
+            if (quantita > disponibili) {
+                return errorResponse(`Quantità non disponibile. Disponibili: ${disponibili}, Richieste: ${quantita}`, 400);
+            }
+
+            // Crea assegnazione con quantità e data rientro prevista
             const assignment = await queryOne(
                 `INSERT INTO assignments (
-                    material_id, volunteer_id, evento, data_uscita, note_uscita, user_id, stato, email_inviata
-                ) VALUES ($1, $2, $3, $4, $5, $6, 'in_corso', false)
+                    material_id, volunteer_id, evento, quantita, 
+                    data_uscita, data_rientro_prevista, note_uscita, 
+                    user_id, stato, email_inviata
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'in_corso', false)
                 RETURNING *`,
                 [
                     data.material_id,
                     data.volunteer_id,
                     data.evento,
+                    quantita,
                     data.data_uscita,
+                    data.data_rientro_prevista || null,
                     data.note_uscita || null,
                     user.id
                 ]
             );
 
-            // Aggiorna stato materiale
+            // Aggiorna quantità assegnata del materiale
+            const nuovaQuantitaAssegnata = (material.quantita_assegnata || 0) + quantita;
+            const tuttoAssegnato = nuovaQuantitaAssegnata >= material.quantita;
+            
             await query(
-                `UPDATE materials SET stato = 'assegnato' WHERE id = $1`,
-                [data.material_id]
+                `UPDATE materials 
+                 SET quantita_assegnata = $1,
+                     stato = CASE 
+                         WHEN $2 THEN 'assegnato' 
+                         ELSE stato 
+                     END
+                 WHERE id = $3`,
+                [nuovaQuantitaAssegnata, tuttoAssegnato, data.material_id]
             );
 
             await logActivity(
@@ -115,7 +139,7 @@ exports.handler = async (event) => {
                 'CREATE',
                 'assignments',
                 assignment.id,
-                `Assegnazione materiale per: ${data.evento}`
+                `Assegnazione ${quantita}x materiale per: ${data.evento}`
             );
 
             // Carica dettagli per email
@@ -142,7 +166,9 @@ exports.handler = async (event) => {
                         assignmentDetails.codice_barre,
                         assignmentDetails.evento,
                         assignmentDetails.data_uscita,
-                        assignmentDetails.note_uscita
+                        assignmentDetails.note_uscita,
+                        assignmentDetails.quantita,
+                        assignmentDetails.data_rientro_prevista
                     );
                     
                     if (emailResult.success) {
@@ -178,6 +204,16 @@ exports.handler = async (event) => {
                 return errorResponse('Data rientro obbligatoria');
             }
 
+            // Recupera assegnazione con quantità
+            const currentAssignment = await queryOne(
+                `SELECT * FROM assignments WHERE id = $1`,
+                [assignmentId]
+            );
+
+            if (!currentAssignment) {
+                return errorResponse('Assegnazione non trovata', 404);
+            }
+
             const assignment = await queryOne(
                 `UPDATE assignments SET
                     data_rientro = $1,
@@ -188,15 +224,31 @@ exports.handler = async (event) => {
                 [data_rientro, stato || 'rientrato', note_rientro, assignmentId]
             );
 
-            if (!assignment) {
-                return errorResponse('Assegnazione non trovata', 404);
+            // Recupera materiale e aggiorna quantità assegnata
+            const material = await queryOne(
+                `SELECT quantita, quantita_assegnata FROM materials WHERE id = $1`,
+                [assignment.material_id]
+            );
+
+            const quantitaRientrata = assignment.quantita || 1;
+            const nuovaQuantitaAssegnata = Math.max(0, (material.quantita_assegnata || 0) - quantitaRientrata);
+            
+            // Determina nuovo stato materiale
+            let newMaterialStatus;
+            if (stato === 'danneggiato') {
+                newMaterialStatus = 'in_manutenzione';
+            } else if (nuovaQuantitaAssegnata === 0) {
+                newMaterialStatus = 'disponibile';
+            } else {
+                // Se ha ancora unità assegnate, mantiene lo stato attuale o disponibile
+                newMaterialStatus = nuovaQuantitaAssegnata >= material.quantita ? 'assegnato' : 'disponibile';
             }
 
-            // Aggiorna stato materiale
-            const newMaterialStatus = stato === 'danneggiato' ? 'in_manutenzione' : 'disponibile';
             await query(
-                `UPDATE materials SET stato = $1 WHERE id = $2`,
-                [newMaterialStatus, assignment.material_id]
+                `UPDATE materials 
+                 SET quantita_assegnata = $1, stato = $2 
+                 WHERE id = $3`,
+                [nuovaQuantitaAssegnata, newMaterialStatus, assignment.material_id]
             );
 
             // Se danneggiato, crea record manutenzione
@@ -214,7 +266,7 @@ exports.handler = async (event) => {
                 'UPDATE',
                 'assignments',
                 assignmentId,
-                `Rientro materiale: ${stato}`
+                `Rientro ${quantitaRientrata}x materiale: ${stato}`
             );
 
             // Carica dettagli per email
@@ -257,6 +309,28 @@ exports.handler = async (event) => {
 
         // DELETE
         if (event.httpMethod === 'DELETE' && assignmentId) {
+            // Recupera assegnazione prima di eliminarla
+            const assignment = await queryOne(
+                `SELECT material_id, quantita FROM assignments WHERE id = $1`,
+                [assignmentId]
+            );
+
+            if (assignment) {
+                // Ripristina quantità assegnata se l'assegnazione è in corso
+                const material = await queryOne(
+                    `SELECT quantita_assegnata FROM materials WHERE id = $1`,
+                    [assignment.material_id]
+                );
+
+                if (material) {
+                    const nuovaQuantitaAssegnata = Math.max(0, (material.quantita_assegnata || 0) - (assignment.quantita || 1));
+                    await query(
+                        `UPDATE materials SET quantita_assegnata = $1 WHERE id = $2`,
+                        [nuovaQuantitaAssegnata, assignment.material_id]
+                    );
+                }
+            }
+
             await query(`DELETE FROM assignments WHERE id = $1`, [assignmentId]);
             await logActivity(user.id, 'DELETE', 'assignments', assignmentId, 'Assegnazione eliminata');
             return successResponse({ message: 'Assegnazione eliminata' });

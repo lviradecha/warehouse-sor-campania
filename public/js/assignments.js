@@ -1,10 +1,11 @@
-/// ===================================
+// ===================================
 // ASSIGNMENTS PAGE
 // Gestione assegnazioni materiali
 // ===================================
 
 const AssignmentsPage = {
     assignments: [],
+    materialRows: [],
     
     async render(container) {
         container.innerHTML = `
@@ -58,6 +59,7 @@ const AssignmentsPage = {
                         <th>Quantità</th>
                         <th>Volontario</th>
                         <th>Data Uscita</th>
+                        <th>Rientro Previsto</th>
                         <th>Data Rientro</th>
                         <th>Stato</th>
                         <th>Email</th>
@@ -70,6 +72,16 @@ const AssignmentsPage = {
                             ? '<span title="Email inviata" style="color: #4CAF50;">✅</span>'
                             : '<span title="Email non inviata" style="color: #9E9E9E;">📧</span>';
                         
+                        // Calcola se il rientro è in ritardo
+                        let rientroClass = '';
+                        if (a.data_rientro_prevista && a.stato === 'in_corso') {
+                            const oggi = new Date();
+                            const previsto = new Date(a.data_rientro_prevista);
+                            if (oggi > previsto) {
+                                rientroClass = 'style="color: #d32f2f; font-weight: bold;"';
+                            }
+                        }
+                        
                         return `
                         <tr>
                             <td><strong>${a.evento}</strong></td>
@@ -77,13 +89,14 @@ const AssignmentsPage = {
                             <td style="text-align: center;"><strong>${a.quantita || 1}</strong></td>
                             <td>${a.volunteer_nome || ''} ${a.volunteer_cognome || ''}</td>
                             <td>${UI.formatDateTime(a.data_uscita)}</td>
+                            <td ${rientroClass}>${a.data_rientro_prevista ? UI.formatDateTime(a.data_rientro_prevista) : '-'}</td>
                             <td>${a.data_rientro ? UI.formatDateTime(a.data_rientro) : '-'}</td>
                             <td><span class="badge badge-${a.stato}">${a.stato}</span></td>
                             <td>${emailStatus}</td>
                             <td>
                                 ${a.stato === 'in_corso' ? `
                                     <button class="btn btn-sm btn-success" onclick="AssignmentsPage.showReturnModal(${a.id})">
-                                        📥 Rientro
+                                        🔙 Rientro
                                     </button>
                                 ` : ''}
                             </td>
@@ -100,6 +113,9 @@ const AssignmentsPage = {
             const materials = await API.materials.getAll({ stato: 'disponibile' });
             const volunteers = await API.volunteers.getAll({ attivo: 'true' });
             
+            // Reset righe materiali
+            this.materialRows = [];
+            
             const modalContent = `
                 <h3>Nuova Assegnazione</h3>
                 <form id="addAssignmentForm">
@@ -107,28 +123,6 @@ const AssignmentsPage = {
                         <label>Evento *</label>
                         <input type="text" name="evento" required class="form-control" 
                                placeholder="Es: Esercitazione Protezione Civile">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Materiale *</label>
-                        <select name="material_id" id="materialSelect" required class="form-control">
-                            <option value="">Seleziona materiale...</option>
-                            ${materials.materials.map(m => {
-                                const disponibili = (m.quantita || 0) - (m.quantita_assegnata || 0);
-                                return `
-                                    <option value="${m.id}" data-disponibili="${disponibili}">
-                                        ${m.nome} (${m.codice_barre}) - Disponibili: ${disponibili}
-                                    </option>
-                                `;
-                            }).join('')}
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Quantità *</label>
-                        <input type="number" name="quantita" id="quantitaInput" 
-                               value="1" min="1" required class="form-control">
-                        <small class="text-muted" id="quantitaHelp"></small>
                     </div>
                     
                     <div class="form-group">
@@ -142,13 +136,29 @@ const AssignmentsPage = {
                     </div>
                     
                     <div class="form-group">
+                        <label>Materiali *</label>
+                        <div id="materialsContainer" style="border: 1px solid #ddd; padding: 15px; border-radius: 4px; background: #f9f9f9;">
+                            <!-- Le righe materiali saranno inserite qui -->
+                        </div>
+                        <button type="button" class="btn btn-sm btn-secondary mt-2" onclick="AssignmentsPage.addMaterialRow()">
+                            ➕ Aggiungi altro materiale
+                        </button>
+                    </div>
+                    
+                    <div class="form-group">
                         <label>Data/Ora Uscita *</label>
                         <input type="datetime-local" name="data_uscita" required class="form-control">
                     </div>
                     
                     <div class="form-group">
+                        <label>Data/Ora Rientro Prevista</label>
+                        <input type="datetime-local" name="data_rientro_prevista" class="form-control">
+                        <small class="text-muted">Opzionale - quando è previsto il rientro del materiale</small>
+                    </div>
+                    
+                    <div class="form-group">
                         <label>Note Uscita</label>
-                        <textarea name="note_uscita" class="form-control"></textarea>
+                        <textarea name="note_uscita" class="form-control" rows="3"></textarea>
                     </div>
                     
                     <div class="form-group">
@@ -162,7 +172,7 @@ const AssignmentsPage = {
                     </div>
                     
                     <div class="d-flex gap-2 mt-3">
-                        <button type="submit" class="btn btn-primary">Salva</button>
+                        <button type="submit" class="btn btn-primary">Salva Assegnazione</button>
                         <button type="button" class="btn btn-secondary" onclick="UI.closeModal()">Annulla</button>
                     </div>
                 </form>
@@ -170,12 +180,70 @@ const AssignmentsPage = {
             
             UI.showModal(modalContent);
             
-            // Gestione cambio materiale per aggiornare quantità massima
-            const materialSelect = document.getElementById('materialSelect');
-            const quantitaInput = document.getElementById('quantitaInput');
-            const quantitaHelp = document.getElementById('quantitaHelp');
+            // Aggiungi la prima riga materiale
+            this.addMaterialRow();
             
-            materialSelect.addEventListener('change', function() {
+            document.getElementById('addAssignmentForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await this.handleSubmitAssignment(e);
+            });
+        } catch (error) {
+            UI.showToast(error.message, 'error');
+        }
+    },
+    
+    async addMaterialRow() {
+        try {
+            const materials = await API.materials.getAll({ stato: 'disponibile' });
+            const container = document.getElementById('materialsContainer');
+            const rowIndex = this.materialRows.length;
+            
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'material-row';
+            rowDiv.style.cssText = 'display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-start;';
+            rowDiv.dataset.rowIndex = rowIndex;
+            
+            rowDiv.innerHTML = `
+                <div style="flex: 2;">
+                    <select name="materials[${rowIndex}][material_id]" required class="form-control material-select" data-row="${rowIndex}">
+                        <option value="">Seleziona materiale...</option>
+                        ${materials.materials.map(m => {
+                            const disponibili = (m.quantita || 0) - (m.quantita_assegnata || 0);
+                            return `
+                                <option value="${m.id}" data-disponibili="${disponibili}" data-nome="${m.nome}">
+                                    ${m.nome} (${m.codice_barre}) - Disponibili: ${disponibili}
+                                </option>
+                            `;
+                        }).join('')}
+                    </select>
+                </div>
+                <div style="flex: 1;">
+                    <input type="number" 
+                           name="materials[${rowIndex}][quantita]" 
+                           class="form-control quantita-input" 
+                           data-row="${rowIndex}"
+                           value="1" 
+                           min="1" 
+                           required 
+                           placeholder="Qtà">
+                    <small class="text-muted quantita-help" data-row="${rowIndex}"></small>
+                </div>
+                ${rowIndex > 0 ? `
+                    <button type="button" class="btn btn-sm btn-danger" onclick="AssignmentsPage.removeMaterialRow(${rowIndex})" title="Rimuovi materiale">
+                        ✖
+                    </button>
+                ` : '<div style="width: 36px;"></div>'}
+            `;
+            
+            container.appendChild(rowDiv);
+            this.materialRows.push(rowDiv);
+            
+            // Aggiungi event listener per validazione quantità
+            const select = rowDiv.querySelector('.material-select');
+            const quantitaInput = rowDiv.querySelector('.quantita-input');
+            const quantitaHelp = rowDiv.querySelector('.quantita-help');
+            
+            select.addEventListener('change', function() {
                 const selectedOption = this.options[this.selectedIndex];
                 const disponibili = parseInt(selectedOption.getAttribute('data-disponibili')) || 0;
                 
@@ -183,44 +251,93 @@ const AssignmentsPage = {
                 quantitaInput.value = Math.min(1, disponibili);
                 
                 if (disponibili > 0) {
-                    quantitaHelp.textContent = `Massimo disponibile: ${disponibili}`;
+                    quantitaHelp.textContent = `Max: ${disponibili}`;
                     quantitaHelp.style.color = '#28a745';
                 } else {
-                    quantitaHelp.textContent = 'Nessuna unità disponibile';
+                    quantitaHelp.textContent = 'Non disponibile';
                     quantitaHelp.style.color = '#dc3545';
                 }
             });
             
-            document.getElementById('addAssignmentForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                const data = Object.fromEntries(formData);
-                
-                // Validazione quantità
-                const materialSelect = document.getElementById('materialSelect');
-                const selectedOption = materialSelect.options[materialSelect.selectedIndex];
+        } catch (error) {
+            UI.showToast('Errore caricamento materiali', 'error');
+        }
+    },
+    
+    removeMaterialRow(rowIndex) {
+        const row = document.querySelector(`.material-row[data-row-index="${rowIndex}"]`);
+        if (row) {
+            row.remove();
+            this.materialRows = this.materialRows.filter((r, i) => i !== rowIndex);
+        }
+    },
+    
+    async handleSubmitAssignment(e) {
+        const formData = new FormData(e.target);
+        
+        // Estrai dati comuni
+        const commonData = {
+            evento: formData.get('evento'),
+            volunteer_id: formData.get('volunteer_id'),
+            data_uscita: formData.get('data_uscita'),
+            data_rientro_prevista: formData.get('data_rientro_prevista') || null,
+            note_uscita: formData.get('note_uscita'),
+            invia_email: formData.get('invia_email') === 'true'
+        };
+        
+        // Estrai materiali
+        const materials = [];
+        let rowIndex = 0;
+        
+        while (formData.get(`materials[${rowIndex}][material_id]`)) {
+            const materialId = formData.get(`materials[${rowIndex}][material_id]`);
+            const quantita = parseInt(formData.get(`materials[${rowIndex}][quantita]`));
+            
+            if (materialId && quantita > 0) {
+                // Valida quantità disponibile
+                const selectElement = document.querySelector(`.material-select[data-row="${rowIndex}"]`);
+                const selectedOption = selectElement.options[selectElement.selectedIndex];
                 const disponibili = parseInt(selectedOption.getAttribute('data-disponibili')) || 0;
-                const quantitaRichiesta = parseInt(data.quantita);
                 
-                if (quantitaRichiesta > disponibili) {
-                    UI.showToast(`Quantità non disponibile. Massimo: ${disponibili}`, 'error');
+                if (quantita > disponibili) {
+                    UI.showToast(`Quantità non disponibile per ${selectedOption.getAttribute('data-nome')}. Massimo: ${disponibili}`, 'error');
                     return;
                 }
                 
-                try {
-                    UI.showLoading();
-                    await API.assignments.create(data);
-                    UI.closeModal();
-                    UI.showToast('Assegnazione creata con successo', 'success');
-                    await this.loadAssignments();
-                } catch (error) {
-                    UI.showToast(error.message, 'error');
-                } finally {
-                    UI.hideLoading();
-                }
+                materials.push({
+                    material_id: materialId,
+                    quantita: quantita
+                });
+            }
+            rowIndex++;
+        }
+        
+        if (materials.length === 0) {
+            UI.showToast('Seleziona almeno un materiale', 'error');
+            return;
+        }
+        
+        try {
+            UI.showLoading();
+            
+            // Crea le assegnazioni (una per ogni materiale)
+            const promises = materials.map(mat => {
+                return API.assignments.create({
+                    ...commonData,
+                    material_id: mat.material_id,
+                    quantita: mat.quantita
+                });
             });
+            
+            await Promise.all(promises);
+            
+            UI.closeModal();
+            UI.showToast(`${materials.length} assegnazione/i creata/e con successo`, 'success');
+            await this.loadAssignments();
         } catch (error) {
             UI.showToast(error.message, 'error');
+        } finally {
+            UI.hideLoading();
         }
     },
     
@@ -243,7 +360,7 @@ const AssignmentsPage = {
                 
                 <div class="form-group">
                     <label>Note Rientro</label>
-                    <textarea name="note_rientro" class="form-control"></textarea>
+                    <textarea name="note_rientro" class="form-control" rows="3"></textarea>
                 </div>
                 
                 <div class="d-flex gap-2 mt-3">
@@ -282,7 +399,7 @@ const AssignmentsPage = {
         
         const headers = [
             'Evento', 'Materiale', 'Codice Barre', 'Quantità', 'Volontario Nome', 
-            'Volontario Cognome', 'Comitato', 'Data Uscita', 'Data Rientro', 
+            'Volontario Cognome', 'Comitato', 'Data Uscita', 'Rientro Previsto', 'Data Rientro', 
             'Stato', 'Email Inviata', 'Note Uscita', 'Note Rientro'
         ];
         
@@ -295,6 +412,7 @@ const AssignmentsPage = {
             a.volunteer_cognome || '',
             a.volunteer_gruppo || '',
             a.data_uscita || '',
+            a.data_rientro_prevista || '',
             a.data_rientro || '',
             a.stato || '',
             a.email_inviata ? 'Si' : 'No',

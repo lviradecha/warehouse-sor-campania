@@ -200,8 +200,6 @@ const API = {
         })
     },
 
-    // Questo file è l'aggiornamento di api.js
-// AGGIUNGI QUESTA SEZIONE prima della sezione "REPORT & STATISTICHE"
 
     // ===================================
     // AUTOMEZZI / VEICOLI

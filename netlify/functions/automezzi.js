@@ -21,10 +21,28 @@ exports.handler = async (event) => {
         // Verifica permessi admin per operazioni CRUD su veicoli (non assegnazioni/rifornimenti)
         const isVehicleCRUD = !segments.includes('assegnazioni') && 
                               !segments.includes('rifornimenti') &&
+                              !segments.includes('scadenze') &&
+                              !segments.includes('manutenzioni') &&
+                              !segments.includes('documenti') &&
                               ['POST', 'PUT', 'DELETE'].includes(event.httpMethod);
         
         if (isVehicleCRUD && user.role !== 'admin') {
             return errorResponse('Solo gli amministratori possono modificare gli automezzi', 403);
+        }
+
+        // Route: /automezzi/scadenze/*
+        if (segments[0] === 'scadenze') {
+            return await handleDeadlines(segments, event, user);
+        }
+
+        // Route: /automezzi/manutenzioni/*
+        if (segments[0] === 'manutenzioni') {
+            return await handleMaintenance(segments, event, user);
+        }
+
+        // Route: /automezzi/documenti/*
+        if (segments[0] === 'documenti') {
+            return await handleDocuments(segments, event, user);
         }
 
         // Route: /automezzi/rifornimenti/*
@@ -459,14 +477,15 @@ async function handleRefueling(segments, event, user) {
         const refueling = await queryOne(
             `INSERT INTO vehicle_refueling (
                 vehicle_id, data_rifornimento, km_rifornimento, 
-                litri, note, user_id
-            ) VALUES ($1, $2, $3, $4, $5, $6)
+                litri, importo, note, user_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *`,
             [
                 data.vehicle_id,
                 data.data_rifornimento,
                 data.km_rifornimento,
                 data.litri,
+                data.importo || null,
                 data.note || null,
                 user.id
             ]
@@ -488,6 +507,234 @@ async function handleRefueling(segments, event, user) {
         await query(`DELETE FROM vehicle_refueling WHERE id = $1`, [refuelingId]);
         await logActivity(user.id, 'DELETE', 'vehicle_refueling', refuelingId, 'Rifornimento eliminato');
         return successResponse({ message: 'Rifornimento eliminato' });
+    }
+
+    return errorResponse('Richiesta non valida', 400);
+}
+
+// ===================================
+// GESTIONE SCADENZE
+// ===================================
+async function handleDeadlines(segments, event, user) {
+    const deadlineId = segments[1];
+
+    // GET - Lista scadenze
+    if (event.httpMethod === 'GET' && !deadlineId) {
+        const params = event.queryStringParameters || {};
+        const filters = [];
+        const values = [];
+        let paramCount = 0;
+
+        if (params.vehicle_id) {
+            paramCount++;
+            filters.push(`vd.vehicle_id = $${paramCount}`);
+            values.push(params.vehicle_id);
+        }
+
+        if (params.stato) {
+            paramCount++;
+            filters.push(`vd.stato = $${paramCount}`);
+            values.push(params.stato);
+        }
+
+        if (params.upcoming === 'true') {
+            filters.push(`vd.data_scadenza <= CURRENT_DATE + INTERVAL '30 days'`);
+            filters.push(`vd.data_scadenza >= CURRENT_DATE`);
+            filters.push(`vd.stato = 'attivo'`);
+        }
+
+        const whereClause = filters.length > 0 ? `WHERE ${filters.join(' AND ')}` : '';
+
+        const deadlines = await query(
+            `SELECT vd.*, 
+                    v.targa as vehicle_targa,
+                    v.tipo as vehicle_tipo,
+                    (vd.data_scadenza - CURRENT_DATE) as giorni_rimanenti
+             FROM vehicle_deadlines vd
+             JOIN vehicles v ON vd.vehicle_id = v.id
+             ${whereClause}
+             ORDER BY vd.data_scadenza ASC`,
+            values
+        );
+
+        return successResponse(deadlines);
+    }
+
+    // POST - Crea scadenza (solo admin)
+    if (event.httpMethod === 'POST') {
+        if (user.role !== 'admin') {
+            return errorResponse('Solo gli amministratori possono gestire le scadenze', 403);
+        }
+
+        const data = JSON.parse(event.body);
+
+        const deadline = await queryOne(
+            `INSERT INTO vehicle_deadlines (
+                vehicle_id, tipo, descrizione, data_scadenza, 
+                costo, alert_giorni, note, user_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            RETURNING *`,
+            [
+                data.vehicle_id, data.tipo, data.descrizione || null,
+                data.data_scadenza, data.costo || null,
+                data.alert_giorni || 30, data.note || null, user.id
+            ]
+        );
+
+        await logActivity(user.id, 'CREATE', 'vehicle_deadlines', deadline.id, `Nuova scadenza: ${data.tipo}`);
+        return successResponse(deadline, 201);
+    }
+
+    // PATCH - Completa scadenza
+    if (event.httpMethod === 'PATCH' && deadlineId && segments[2] === 'completa') {
+        const { data_completamento, costo, note } = JSON.parse(event.body);
+
+        const deadline = await queryOne(
+            `UPDATE vehicle_deadlines SET
+                data_completamento = $1, costo = COALESCE($2, costo),
+                note = COALESCE($3, note), stato = 'completato'
+             WHERE id = $4 RETURNING *`,
+            [data_completamento, costo, note, deadlineId]
+        );
+
+        await logActivity(user.id, 'UPDATE', 'vehicle_deadlines', deadlineId, 'Scadenza completata');
+        return successResponse(deadline);
+    }
+
+    return errorResponse('Richiesta non valida', 400);
+}
+
+// ===================================
+// GESTIONE MANUTENZIONI
+// ===================================
+async function handleMaintenance(segments, event, user) {
+    const maintenanceId = segments[1];
+
+    // GET - Lista manutenzioni
+    if (event.httpMethod === 'GET' && !maintenanceId) {
+        const params = event.queryStringParameters || {};
+        const filters = [];
+        const values = [];
+        let paramCount = 0;
+
+        if (params.vehicle_id) {
+            paramCount++;
+            filters.push(`vm.vehicle_id = $${paramCount}`);
+            values.push(params.vehicle_id);
+        }
+
+        if (params.stato) {
+            paramCount++;
+            filters.push(`vm.stato = $${paramCount}`);
+            values.push(params.stato);
+        }
+
+        const whereClause = filters.length > 0 ? `WHERE ${filters.join(' AND ')}` : '';
+
+        const maintenance = await query(
+            `SELECT vm.*, v.targa as vehicle_targa, v.tipo as vehicle_tipo
+             FROM vehicle_maintenance vm
+             JOIN vehicles v ON vm.vehicle_id = v.id
+             ${whereClause}
+             ORDER BY vm.data_programmata DESC`,
+            values
+        );
+
+        return successResponse(maintenance);
+    }
+
+    // POST - Crea manutenzione
+    if (event.httpMethod === 'POST') {
+        const data = JSON.parse(event.body);
+
+        const maintenance = await queryOne(
+            `INSERT INTO vehicle_maintenance (
+                vehicle_id, tipo, descrizione, data_programmata,
+                km_manutenzione, fornitore, note, user_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+            [
+                data.vehicle_id, data.tipo, data.descrizione,
+                data.data_programmata || null, data.km_manutenzione || null,
+                data.fornitore || null, data.note || null, user.id
+            ]
+        );
+
+        await logActivity(user.id, 'CREATE', 'vehicle_maintenance', maintenance.id, `Manutenzione: ${data.descrizione}`);
+        return successResponse(maintenance, 201);
+    }
+
+    // PATCH - Aggiorna manutenzione
+    if (event.httpMethod === 'PATCH' && maintenanceId) {
+        const data = JSON.parse(event.body);
+
+        const maintenance = await queryOne(
+            `UPDATE vehicle_maintenance SET
+                stato = COALESCE($1, stato), data_inizio = COALESCE($2, data_inizio),
+                data_completamento = COALESCE($3, data_completamento),
+                costo = COALESCE($4, costo), note = COALESCE($5, note)
+             WHERE id = $6 RETURNING *`,
+            [data.stato, data.data_inizio, data.data_completamento, data.costo, data.note, maintenanceId]
+        );
+
+        await logActivity(user.id, 'UPDATE', 'vehicle_maintenance', maintenanceId, `Manutenzione aggiornata`);
+        return successResponse(maintenance);
+    }
+
+    return errorResponse('Richiesta non valida', 400);
+}
+
+// ===================================
+// GESTIONE DOCUMENTI
+// ===================================
+async function handleDocuments(segments, event, user) {
+    const documentId = segments[1];
+
+    // GET - Lista documenti
+    if (event.httpMethod === 'GET' && !documentId) {
+        const params = event.queryStringParameters || {};
+        const filters = [];
+        const values = [];
+        let paramCount = 0;
+
+        if (params.vehicle_id) {
+            paramCount++;
+            filters.push(`vd.vehicle_id = $${paramCount}`);
+            values.push(params.vehicle_id);
+        }
+
+        const whereClause = filters.length > 0 ? `WHERE ${filters.join(' AND ')}` : '';
+
+        const documents = await query(
+            `SELECT vd.*, v.targa as vehicle_targa, u.nome as user_nome
+             FROM vehicle_documents vd
+             JOIN vehicles v ON vd.vehicle_id = v.id
+             LEFT JOIN users u ON vd.user_id = u.id
+             ${whereClause}
+             ORDER BY vd.created_at DESC`,
+            values
+        );
+
+        return successResponse(documents);
+    }
+
+    // POST - Crea documento
+    if (event.httpMethod === 'POST') {
+        const data = JSON.parse(event.body);
+
+        const document = await queryOne(
+            `INSERT INTO vehicle_documents (
+                vehicle_id, tipo, nome_file, file_path, file_size,
+                mime_type, descrizione, data_scadenza, user_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+            [
+                data.vehicle_id, data.tipo, data.nome_file, data.file_path,
+                data.file_size || null, data.mime_type || null,
+                data.descrizione || null, data.data_scadenza || null, user.id
+            ]
+        );
+
+        await logActivity(user.id, 'CREATE', 'vehicle_documents', document.id, `Documento: ${data.nome_file}`);
+        return successResponse(document, 201);
     }
 
     return errorResponse('Richiesta non valida', 400);

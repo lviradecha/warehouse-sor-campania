@@ -49,15 +49,20 @@ const App = {
         navLinks.forEach(link => {
             link.addEventListener('click', (e) => {
                 const href = link.getAttribute('href');
+                const page = link.dataset.page;
                 
-                // Se il link è esterno (non inizia con #), non bloccare
-                // Permette link come automezzi.html di funzionare normalmente
+                // Se il link è esterno (non inizia con #), lascialo funzionare normalmente
                 if (href && !href.startsWith('#')) {
-                    return; // Lascia che il browser segua il link normalmente
+                    return; // Permette automezzi.html di aprirsi
                 }
                 
+                // Se è interno ma non ha data-page, ignora
+                if (!page) {
+                    return;
+                }
+                
+                // Link interno con data-page: gestisci con SPA routing
                 e.preventDefault();
-                const page = link.dataset.page;
                 this.loadPage(page);
                 
                 // Update active link

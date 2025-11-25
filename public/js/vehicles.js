@@ -754,21 +754,27 @@ const VehiclesPage = {
                         <th>Automezzo</th>
                         <th>Km</th>
                         <th>Litri</th>
+                        <th>Importo</th>
+                        <th>€/L</th>
                         <th>Operatore</th>
                         <th>Note</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${refueling.map(r => `
+                    ${refueling.map(r => {
+                        const prezzoLitro = r.importo && r.litri ? (r.importo / r.litri).toFixed(2) : '-';
+                        return `
                         <tr>
                             <td>${UI.formatDateTime(r.data_rifornimento)}</td>
                             <td><strong>${r.vehicle_targa}</strong></td>
                             <td style="text-align: right;">${r.km_rifornimento.toLocaleString()} km</td>
                             <td style="text-align: right;"><strong>${r.litri}</strong> L</td>
+                            <td style="text-align: right;">${r.importo ? UI.formatCurrency(r.importo) : '-'}</td>
+                            <td style="text-align: right;">${prezzoLitro !== '-' ? '€' + prezzoLitro : '-'}</td>
                             <td>${r.user_nome || '-'}</td>
                             <td>${r.note || '-'}</td>
                         </tr>
-                    `).join('')}
+                    `}).join('')}
                 </tbody>
             </table>
         `;
@@ -811,6 +817,13 @@ const VehiclesPage = {
                         <label>Quantità Litri *</label>
                         <input type="number" name="litri" required class="form-control" 
                                min="0" step="0.01" placeholder="Es: 45.50">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Importo (€)</label>
+                        <input type="number" name="importo" class="form-control" 
+                               min="0" step="0.01" placeholder="Es: 85.50">
+                        <small class="text-muted">Costo totale del rifornimento</small>
                     </div>
                     
                     <div class="form-group">

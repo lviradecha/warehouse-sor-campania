@@ -24,16 +24,16 @@ const VehiclesPage = {
             
             <!-- Tab Navigation -->
             <div class="tabs-nav mb-3">
-                <button class="tab-btn active" onclick="VehiclesPage.switchTab('vehicles')">
+                <button class="tab-btn active" onclick="VehiclesPage.switchTab('vehicles', event)">
                     🚗 Automezzi
                 </button>
-                <button class="tab-btn" onclick="VehiclesPage.switchTab('assignments')">
+                <button class="tab-btn" onclick="VehiclesPage.switchTab('assignments', event)">
                     📋 Assegnazioni
                 </button>
-                <button class="tab-btn" onclick="VehiclesPage.switchTab('refueling')">
+                <button class="tab-btn" onclick="VehiclesPage.switchTab('refueling', event)">
                     ⛽ Rifornimenti
                 </button>
-                <button class="tab-btn" onclick="VehiclesPage.switchTab('maintenance')">
+                <button class="tab-btn" onclick="VehiclesPage.switchTab('maintenance', event)">
                     🔧 Manutenzioni
                 </button>
             </div>
@@ -45,11 +45,25 @@ const VehiclesPage = {
         this.switchTab('vehicles');
     },
     
-    switchTab(tab) {
+    switchTab(tab, event = null) {
         this.currentView = tab;
         
+        // Rimuovi active da tutti i tab
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        event?.target?.classList.add('active');
+        
+        // Aggiungi active al tab corretto
+        if (event && event.target) {
+            // Se chiamato da click, usa l'event target
+            event.target.classList.add('active');
+        } else {
+            // Se chiamato da init, trova il pulsante corretto per nome
+            const targetBtn = Array.from(document.querySelectorAll('.tab-btn')).find(btn => 
+                btn.textContent.includes(this.getTabLabel(tab))
+            );
+            if (targetBtn) {
+                targetBtn.classList.add('active');
+            }
+        }
         
         switch(tab) {
             case 'vehicles':
@@ -65,6 +79,16 @@ const VehiclesPage = {
                 this.renderMaintenanceTab();
                 break;
         }
+    },
+    
+    getTabLabel(tab) {
+        const labels = {
+            'vehicles': 'Automezzi',
+            'assignments': 'Assegnazioni',
+            'refueling': 'Rifornimenti',
+            'maintenance': 'Manutenzioni'
+        };
+        return labels[tab] || '';
     },
     
     // ===================================

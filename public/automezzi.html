@@ -74,19 +74,30 @@
     <!-- Auth Check Script -->
     <script>
         // Verifica autenticazione prima di caricare tutto
-        if (sessionStorage.getItem('isLoggedIn') !== 'true') {
+        const isLoggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
+        const hasToken = localStorage.getItem('warehouse_auth_token');
+        
+        console.log('🔍 Check Auth:', { isLoggedIn, hasToken: !!hasToken });
+        
+        if (!isLoggedIn || !hasToken) {
             console.log('❌ Non autenticato - redirect a login');
             window.location.replace('login.html');
         } else {
             console.log('✅ Autenticato - carico pagina automezzi');
             // Mostra link admin se necessario
             const ruolo = sessionStorage.getItem('ruolo') || sessionStorage.getItem('role');
+            console.log('👤 Ruolo utente:', ruolo);
+            
             if (ruolo === 'admin') {
-                document.querySelectorAll('.admin-only').forEach(el => el.style.display = '');
+                document.querySelectorAll('.admin-only').forEach(el => {
+                    el.style.display = '';
+                    console.log('✅ Link admin mostrato');
+                });
             }
         }
     </script>
 
+    <!-- Load Scripts -->
     <script src="js/auth.js"></script>
     <script src="js/api.js"></script>
     <script src="js/vehicles.js"></script>

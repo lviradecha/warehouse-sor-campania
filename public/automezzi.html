@@ -101,5 +101,56 @@
     <script src="js/auth.js"></script>
     <script src="js/api.js"></script>
     <script src="js/vehicles.js"></script>
+    
+    <!-- Initialize VehiclesPage -->
+    <script>
+        // Inizializza VehiclesPage appena il DOM è pronto
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initVehicles);
+        } else {
+            // DOM già caricato
+            initVehicles();
+        }
+        
+        function initVehicles() {
+            console.log('🚀 Inizializzo VehiclesPage...');
+            
+            if (typeof VehiclesPage === 'undefined') {
+                console.error('❌ VehiclesPage non definito! Verifica che js/vehicles.js sia caricato.');
+                document.getElementById('vehiclesPage').innerHTML = `
+                    <div class="card">
+                        <div class="p-3 text-center" style="color: #d32f2f;">
+                            <h3>❌ Errore Caricamento</h3>
+                            <p>Il file vehicles.js non è stato caricato correttamente.</p>
+                            <p>Verifica che il file sia presente in /js/vehicles.js</p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            if (typeof AuthManager === 'undefined') {
+                console.error('❌ AuthManager non definito!');
+                return;
+            }
+            
+            if (typeof API === 'undefined' || typeof API.vehicles === 'undefined') {
+                console.error('❌ API.vehicles non definito! Verifica che api.js contenga la sezione vehicles.');
+                document.getElementById('vehiclesPage').innerHTML = `
+                    <div class="card">
+                        <div class="p-3 text-center" style="color: #d32f2f;">
+                            <h3>❌ Errore Configurazione</h3>
+                            <p>Le API per gli automezzi non sono configurate.</p>
+                            <p>Verifica che api.js contenga la sezione vehicles.</p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            console.log('✅ Tutti i moduli caricati, inizializzo interfaccia...');
+            VehiclesPage.init();
+        }
+    </script>
 </body>
 </html>

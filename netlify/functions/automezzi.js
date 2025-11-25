@@ -5,6 +5,7 @@
 
 const { query, queryOne, logActivity } = require('./utils/db');
 const { authenticate, requireOperator, successResponse, errorResponse, parsePath } = require('./utils/auth');
+const { sendVehicleAssignmentNotification, sendVehicleReturnNotification } = require('./utils/email');
 
 exports.handler = async (event) => {
     if (event.httpMethod === 'OPTIONS') {
@@ -357,6 +358,54 @@ async function handleAssignments(segments, event, user) {
             `Assegnazione automezzo per: ${data.motivo}`
         );
 
+        // Recupera dati completi per l'email
+        try {
+            const fullAssignment = await queryOne(
+                `SELECT va.*, 
+                        vh.tipo as vehicle_tipo, 
+                        vh.modello as vehicle_modello, 
+                        vh.targa as vehicle_targa, 
+                        vh.km_attuali as vehicle_km_attuali,
+                        v.nome as volunteer_nome, 
+                        v.cognome as volunteer_cognome,
+                        v.email as volunteer_email
+                 FROM vehicle_assignments va
+                 JOIN vehicles vh ON va.vehicle_id = vh.id
+                 JOIN volunteers v ON va.volunteer_id = v.id
+                 WHERE va.id = $1`,
+                [assignment.id]
+            );
+
+            // Invia email al volontario
+            if (fullAssignment.volunteer_email) {
+                const volunteerName = `${fullAssignment.volunteer_nome} ${fullAssignment.volunteer_cognome}`;
+                const vehicleData = {
+                    tipo: fullAssignment.vehicle_tipo,
+                    modello: fullAssignment.vehicle_modello,
+                    targa: fullAssignment.vehicle_targa,
+                    km_attuali: fullAssignment.vehicle_km_attuali
+                };
+                const assignmentData = {
+                    motivo: fullAssignment.motivo,
+                    data_uscita: fullAssignment.data_uscita,
+                    km_partenza: fullAssignment.km_partenza,
+                    note_uscita: fullAssignment.note_uscita,
+                    card_carburante: fullAssignment.card_carburante
+                };
+
+                await sendVehicleAssignmentNotification(
+                    fullAssignment.volunteer_email,
+                    volunteerName,
+                    vehicleData,
+                    assignmentData
+                );
+                console.log(`✅ Email assegnazione automezzo inviata a ${fullAssignment.volunteer_email}`);
+            }
+        } catch (emailError) {
+            console.error('Errore invio email assegnazione:', emailError);
+            // Non blocchiamo l'operazione se l'email fallisce
+        }
+
         return successResponse(assignment, 201);
     }
 
@@ -416,6 +465,51 @@ async function handleAssignments(segments, event, user) {
             assignmentId,
             `Rientro automezzo: ${km_percorsi} km percorsi`
         );
+
+        // Recupera dati completi per l'email
+        try {
+            const fullReturn = await queryOne(
+                `SELECT va.*, 
+                        vh.tipo as vehicle_tipo, 
+                        vh.targa as vehicle_targa,
+                        v.nome as volunteer_nome, 
+                        v.cognome as volunteer_cognome,
+                        v.email as volunteer_email
+                 FROM vehicle_assignments va
+                 JOIN vehicles vh ON va.vehicle_id = vh.id
+                 JOIN volunteers v ON va.volunteer_id = v.id
+                 WHERE va.id = $1`,
+                [assignmentId]
+            );
+
+            // Invia email al volontario
+            if (fullReturn.volunteer_email) {
+                const volunteerName = `${fullReturn.volunteer_nome} ${fullReturn.volunteer_cognome}`;
+                const vehicleData = {
+                    tipo: fullReturn.vehicle_tipo,
+                    targa: fullReturn.vehicle_targa
+                };
+                const returnData = {
+                    km_partenza: fullReturn.km_partenza,
+                    km_arrivo: fullReturn.km_arrivo,
+                    km_percorsi: fullReturn.km_percorsi,
+                    data_rientro: fullReturn.data_rientro,
+                    livello_carburante_rientro: fullReturn.livello_carburante_rientro,
+                    note_rientro: fullReturn.note_rientro
+                };
+
+                await sendVehicleReturnNotification(
+                    fullReturn.volunteer_email,
+                    volunteerName,
+                    vehicleData,
+                    returnData
+                );
+                console.log(`✅ Email rientro automezzo inviata a ${fullReturn.volunteer_email}`);
+            }
+        } catch (emailError) {
+            console.error('Errore invio email rientro:', emailError);
+            // Non blocchiamo l'operazione se l'email fallisce
+        }
 
         return successResponse(assignment);
     }

@@ -512,3 +512,384 @@ module.exports = {
     sendAssignmentNotification,
     sendReturnNotification
 };
+
+/**
+ * Email notifica assegnazione automezzo a volontario
+ */
+async function sendVehicleAssignmentNotification(volunteerEmail, volunteerName, vehicleData, assignmentData) {
+    const subject = '🚗 Assegnazione Automezzo - CRI SOR Campania';
+    
+    const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+                .header { 
+                    background: #d32f2f; 
+                    color: white; 
+                    padding: 30px 20px; 
+                    text-align: center; 
+                    border-radius: 5px 5px 0 0; 
+                }
+                .logo-circle {
+                    width: 80px;
+                    height: 80px;
+                    background: white;
+                    border-radius: 50%;
+                    margin: 0 auto 15px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                }
+                .logo-circle img {
+                    width: 60px;
+                    height: 60px;
+                }
+                .header h1 { margin: 10px 0 5px; font-size: 24px; }
+                .header p { margin: 0; font-size: 14px; opacity: 0.9; }
+                .content { background: white; padding: 30px; border: 1px solid #ddd; }
+                .vehicle-box { 
+                    background: #f9f9f9; 
+                    padding: 20px; 
+                    margin: 20px 0; 
+                    border-left: 4px solid #2196f3;
+                    border-radius: 4px;
+                }
+                .vehicle-box h3 { margin-top: 0; color: #2196f3; }
+                .vehicle-box code {
+                    background: white;
+                    padding: 5px 10px;
+                    border-radius: 3px;
+                    font-family: monospace;
+                    font-size: 16px;
+                    font-weight: bold;
+                    color: #2196f3;
+                }
+                .responsibility-box {
+                    background: #fff3cd;
+                    padding: 15px;
+                    border-left: 4px solid #ffc107;
+                    border-radius: 4px;
+                    margin: 20px 0;
+                }
+                .responsibility-box ul {
+                    margin: 10px 0 0 20px;
+                    padding: 0;
+                }
+                .responsibility-box li {
+                    margin: 5px 0;
+                }
+                .card-info {
+                    background: #e3f2fd;
+                    padding: 15px;
+                    border-left: 4px solid #2196f3;
+                    border-radius: 4px;
+                    margin: 20px 0;
+                }
+                .footer { 
+                    text-align: center; 
+                    margin-top: 20px; 
+                    padding-top: 20px;
+                    border-top: 1px solid #ddd;
+                    font-size: 12px; 
+                    color: #666; 
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <div class="logo-circle">
+                        <img src="https://warehouse-sor-campania.netlify.app/assets/logo-sor.png" alt="SOR Logo" onerror="this.style.display='none'">
+                    </div>
+                    <h1>Croce Rossa Italiana</h1>
+                    <p>Sala Operativa Regionale - Campania</p>
+                    <p style="font-size: 16px; margin-top: 10px;">Sistema Gestione Automezzi</p>
+                </div>
+                <div class="content">
+                    <h2 style="color: #d32f2f;">🚗 Assegnazione Automezzo</h2>
+                    <p>Ciao <strong>${volunteerName}</strong>, ti è stato assegnato un automezzo.</p>
+                    
+                    <div class="vehicle-box">
+                        <h3>🚗 Dettagli Automezzo:</h3>
+                        <p><strong>Tipo:</strong> ${vehicleData.tipo}</p>
+                        <p><strong>Modello:</strong> ${vehicleData.modello}</p>
+                        <p><strong>Targa:</strong> <code>${vehicleData.targa}</code></p>
+                        <p><strong>Km Attuali:</strong> ${(vehicleData.km_attuali || 0).toLocaleString()} km</p>
+                    </div>
+                    
+                    <div class="vehicle-box">
+                        <h3>📋 Dettagli Assegnazione:</h3>
+                        <p><strong>Motivo:</strong> ${assignmentData.motivo}</p>
+                        <p><strong>Data Uscita:</strong> ${new Date(assignmentData.data_uscita).toLocaleString('it-IT', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        })}</p>
+                        <p><strong>Km Partenza:</strong> ${assignmentData.km_partenza.toLocaleString()} km</p>
+                        ${assignmentData.note_uscita ? `<p><strong>Note:</strong> ${assignmentData.note_uscita}</p>` : ''}
+                    </div>
+                    
+                    ${assignmentData.card_carburante ? `
+                        <div class="card-info">
+                            <p style="margin: 0;"><strong>⛽ Card Carburante:</strong> È stata consegnata la card carburante per i rifornimenti.</p>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="responsibility-box">
+                        <p><strong>⚠️ RESPONSABILITÀ DEL CONDUCENTE:</strong></p>
+                        <ul>
+                            <li><strong>Verifica</strong> lo stato del veicolo prima della partenza</li>
+                            <li><strong>Controlla</strong> livelli olio, acqua e carburante</li>
+                            <li><strong>Segnala</strong> immediatamente eventuali problemi meccanici</li>
+                            <li><strong>Guida</strong> con prudenza rispettando il Codice della Strada</li>
+                            <li><strong>Registra</strong> eventuali rifornimenti e spese</li>
+                            <li><strong>Riconsegna</strong> il veicolo pulito e in ordine</li>
+                        </ul>
+                    </div>
+                    
+                    <p>Per qualsiasi problema o emergenza, contatta immediatamente la Sala Operativa Regionale:</p>
+                    <p style="text-align: center; font-size: 16px; color: #d32f2f;">
+                        <strong>📞 +39 081 7810011 (selezione 2)</strong>
+                    </p>
+                    
+                    <p style="color: #d32f2f; font-weight: bold; text-align: center; margin-top: 30px; font-size: 18px;">
+                        Buon viaggio e grazie per il tuo servizio! 🚗
+                    </p>
+                </div>
+                <div class="footer">
+                    <p><strong>© ${new Date().getFullYear()} Croce Rossa Italiana - SOR Campania</strong></p>
+                    <p>Questa è una email automatica, non rispondere.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+    `;
+    
+    const textContent = `
+Assegnazione Automezzo 🚗
+
+Ciao ${volunteerName}, ti è stato assegnato un automezzo.
+
+DETTAGLI AUTOMEZZO:
+Tipo: ${vehicleData.tipo}
+Modello: ${vehicleData.modello}
+Targa: ${vehicleData.targa}
+Km Attuali: ${(vehicleData.km_attuali || 0).toLocaleString()} km
+
+DETTAGLI ASSEGNAZIONE:
+Motivo: ${assignmentData.motivo}
+Data Uscita: ${new Date(assignmentData.data_uscita).toLocaleString('it-IT')}
+Km Partenza: ${assignmentData.km_partenza.toLocaleString()} km
+${assignmentData.note_uscita ? `Note: ${assignmentData.note_uscita}` : ''}
+${assignmentData.card_carburante ? '\n⛽ Card Carburante: Consegnata' : ''}
+
+RESPONSABILITÀ DEL CONDUCENTE:
+- Verifica lo stato del veicolo prima della partenza
+- Controlla livelli olio, acqua e carburante
+- Segnala immediatamente eventuali problemi meccanici
+- Guida con prudenza rispettando il Codice della Strada
+- Registra eventuali rifornimenti e spese
+- Riconsegna il veicolo pulito e in ordine
+
+Per emergenze: 📞 +39 081 7810011 (selezione 2)
+
+Buon viaggio e grazie per il tuo servizio!
+
+Croce Rossa Italiana - SOR Campania
+    `;
+    
+    return sendEmail(volunteerEmail, subject, htmlContent, textContent);
+}
+
+/**
+ * Email notifica restituzione automezzo
+ */
+async function sendVehicleReturnNotification(volunteerEmail, volunteerName, vehicleData, returnData) {
+    const subject = '✅ Conferma Restituzione Automezzo - CRI SOR Campania';
+    
+    const kmPercorsi = returnData.km_percorsi || (returnData.km_arrivo - returnData.km_partenza);
+    const livelloIcon = returnData.livello_carburante_rientro === 'pieno' ? '⛽' : 
+                        returnData.livello_carburante_rientro === 'vuoto' ? '🔴' : '🟠';
+    
+    const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+                .header { 
+                    background: #d32f2f; 
+                    color: white; 
+                    padding: 30px 20px; 
+                    text-align: center; 
+                    border-radius: 5px 5px 0 0; 
+                }
+                .logo-circle {
+                    width: 80px;
+                    height: 80px;
+                    background: white;
+                    border-radius: 50%;
+                    margin: 0 auto 15px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                }
+                .logo-circle img {
+                    width: 60px;
+                    height: 60px;
+                }
+                .header h1 { margin: 10px 0 5px; font-size: 24px; }
+                .header p { margin: 0; font-size: 14px; opacity: 0.9; }
+                .content { background: white; padding: 30px; border: 1px solid #ddd; }
+                .return-box { 
+                    background: #f9f9f9; 
+                    padding: 20px; 
+                    margin: 20px 0; 
+                    border-left: 4px solid #28a745;
+                    border-radius: 4px;
+                }
+                .return-box h3 { margin-top: 0; color: #28a745; }
+                .stats-grid {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 15px;
+                    margin: 20px 0;
+                }
+                .stat-box {
+                    background: #e3f2fd;
+                    padding: 15px;
+                    border-radius: 5px;
+                    text-align: center;
+                }
+                .stat-box h4 {
+                    margin: 0 0 5px;
+                    color: #1976d2;
+                    font-size: 14px;
+                }
+                .stat-box p {
+                    margin: 0;
+                    font-size: 24px;
+                    font-weight: bold;
+                    color: #1976d2;
+                }
+                .thank-you {
+                    background: #e8f5e9;
+                    padding: 20px;
+                    border-radius: 5px;
+                    text-align: center;
+                    margin: 20px 0;
+                }
+                .footer { 
+                    text-align: center; 
+                    margin-top: 20px; 
+                    padding-top: 20px;
+                    border-top: 1px solid #ddd;
+                    font-size: 12px; 
+                    color: #666; 
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <div class="logo-circle">
+                        <img src="https://warehouse-sor-campania.netlify.app/assets/logo-sor.png" alt="SOR Logo" onerror="this.style.display='none'">
+                    </div>
+                    <h1>Croce Rossa Italiana</h1>
+                    <p>Sala Operativa Regionale - Campania</p>
+                    <p style="font-size: 16px; margin-top: 10px;">Sistema Gestione Automezzi</p>
+                </div>
+                <div class="content">
+                    <h2 style="color: #d32f2f;">✅ Restituzione Automezzo Confermata</h2>
+                    <p>Ciao <strong>${volunteerName}</strong>, confermiamo la restituzione dell'automezzo.</p>
+                    
+                    <div class="return-box">
+                        <h3>🚗 Dettagli Veicolo:</h3>
+                        <p><strong>Tipo:</strong> ${vehicleData.tipo}</p>
+                        <p><strong>Targa:</strong> <code style="background: white; padding: 5px 10px; border-radius: 3px; font-family: monospace; font-weight: bold;">${vehicleData.targa}</code></p>
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <h4>📏 Km Percorsi</h4>
+                            <p>${kmPercorsi.toLocaleString()} km</p>
+                        </div>
+                        <div class="stat-box">
+                            <h4>${livelloIcon} Carburante</h4>
+                            <p>${returnData.livello_carburante_rientro.toUpperCase()}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="return-box">
+                        <h3>📋 Riepilogo Utilizzo:</h3>
+                        <p><strong>Km Partenza:</strong> ${returnData.km_partenza.toLocaleString()} km</p>
+                        <p><strong>Km Arrivo:</strong> ${returnData.km_arrivo.toLocaleString()} km</p>
+                        <p><strong>Data Rientro:</strong> ${new Date(returnData.data_rientro).toLocaleString('it-IT', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        })}</p>
+                        ${returnData.note_rientro ? `<p><strong>Note:</strong> ${returnData.note_rientro}</p>` : ''}
+                    </div>
+                    
+                    <div class="thank-you">
+                        <h3 style="color: #2e7d32; margin-top: 0;">✅ Grazie per la cura del veicolo!</h3>
+                        <p style="margin: 0;">L'automezzo è stato riconsegnato ed è nuovamente disponibile.</p>
+                    </div>
+                    
+                    <p style="color: #d32f2f; font-weight: bold; text-align: center; margin-top: 30px; font-size: 18px;">
+                        Grazie per il tuo servizio volontario! 🙏
+                    </p>
+                </div>
+                <div class="footer">
+                    <p><strong>© ${new Date().getFullYear()} Croce Rossa Italiana - SOR Campania</strong></p>
+                    <p>Questa è una email automatica, non rispondere.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+    `;
+    
+    const textContent = `
+Restituzione Automezzo Confermata ✅
+
+Ciao ${volunteerName}, confermiamo la restituzione dell'automezzo.
+
+DETTAGLI VEICOLO:
+Tipo: ${vehicleData.tipo}
+Targa: ${vehicleData.targa}
+
+RIEPILOGO UTILIZZO:
+Km Partenza: ${returnData.km_partenza.toLocaleString()} km
+Km Arrivo: ${returnData.km_arrivo.toLocaleString()} km
+Km Percorsi: ${kmPercorsi.toLocaleString()} km
+Carburante: ${returnData.livello_carburante_rientro.toUpperCase()}
+Data Rientro: ${new Date(returnData.data_rientro).toLocaleString('it-IT')}
+${returnData.note_rientro ? `Note: ${returnData.note_rientro}` : ''}
+
+Grazie per la cura del veicolo!
+L'automezzo è nuovamente disponibile.
+
+Grazie per il tuo servizio volontario! 🙏
+
+Croce Rossa Italiana - SOR Campania
+    `;
+    
+    return sendEmail(volunteerEmail, subject, htmlContent, textContent);
+}
+
+// ADD THESE TWO FUNCTIONS TO THE MODULE.EXPORTS:
+// sendVehicleAssignmentNotification,
+// sendVehicleReturnNotification

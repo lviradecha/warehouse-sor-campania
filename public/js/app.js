@@ -56,8 +56,9 @@ const App = {
                     return; // Permette automezzi.html di aprirsi
                 }
                 
-                // Se è interno ma non ha data-page, ignora
+                // Se è link interno (#) ma non ha data-page, ignora (non dovrebbe succedere)
                 if (!page) {
+                    console.warn('Link con href="#" ma senza data-page:', link);
                     return;
                 }
                 

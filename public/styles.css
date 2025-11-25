@@ -1066,6 +1066,45 @@ body.admin .admin-only {
 }
 
 /* ===================================
+   TAB NAVIGATION (Automezzi)
+   =================================== */
+
+.tabs-nav {
+    background: white;
+    border-radius: 8px;
+    padding: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.tab-btn {
+    padding: 12px 24px;
+    background: #f5f5f5;
+    color: #666;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tab-btn:hover {
+    background: #e8e8e8;
+    color: #333;
+}
+
+.tab-btn.active {
+    background: #d32f2f;
+    color: white;
+}
+
+/* ===================================
    SCROLL TABELLE
    =================================== */
 
@@ -1183,4 +1222,36 @@ body.admin .admin-only {
     color: white;
     font-size: 0.85em;
     font-weight: 600;
+}
+
+/* ===================================
+   BADGE STATO AUTOMEZZI
+   =================================== */
+
+.badge {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 12px;
+    font-size: 0.85em;
+    font-weight: 600;
+}
+
+.badge-disponibile {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.badge-assegnato {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.badge-manutenzione {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.badge-fuori_servizio {
+    background-color: #e2e3e5;
+    color: #383d41;
 }

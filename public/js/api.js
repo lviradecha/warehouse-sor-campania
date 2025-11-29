@@ -278,6 +278,28 @@ const API = {
             const params = new URLSearchParams(filters);
             return API.request(`/report/attivita?${params}`);
         }
+        ,
+
+        // Report Automezzi
+        getVehiclesUsageReport: (filters = {}) => {
+            const params = new URLSearchParams(filters);
+            return API.request(`/report/automezzi-utilizzo?${params}`);
+        },
+
+        getVehiclesAssignmentsReport: (filters = {}) => {
+            const params = new URLSearchParams(filters);
+            return API.request(`/report/automezzi-assegnazioni?${params}`);
+        },
+
+        getVehiclesMaintenanceReport: (filters = {}) => {
+            const params = new URLSearchParams(filters);
+            return API.request(`/report/automezzi-manutenzioni?${params}`);
+        },
+
+        getVehiclesRefuelingReport: (filters = {}) => {
+            const params = new URLSearchParams(filters);
+            return API.request(`/report/automezzi-rifornimenti?${params}`);
+        }
     }
 };
 

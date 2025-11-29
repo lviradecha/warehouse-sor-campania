@@ -505,14 +505,6 @@ Croce Rossa Italiana - SOR Campania
     
     return sendEmail(volunteerEmail, subject, htmlContent, textContent);
 }
-
-module.exports = {
-    sendEmail,
-    sendNewUserCredentials,
-    sendAssignmentNotification,
-    sendReturnNotification
-};
-
 /**
  * Email notifica assegnazione automezzo a volontario
  */
@@ -890,6 +882,11 @@ Croce Rossa Italiana - SOR Campania
     return sendEmail(volunteerEmail, subject, htmlContent, textContent);
 }
 
-// ADD THESE TWO FUNCTIONS TO THE MODULE.EXPORTS:
-// sendVehicleAssignmentNotification,
-// sendVehicleReturnNotification
+module.exports = {
+    sendEmail,
+    sendNewUserCredentials,
+    sendAssignmentNotification,
+    sendReturnNotification,
+    sendVehicleAssignmentNotification,
+    sendVehicleReturnNotification
+};

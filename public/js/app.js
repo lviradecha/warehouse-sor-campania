@@ -17,14 +17,21 @@ const App = {
         // Setup dashboard
         this.setupDashboard();
         
-        // Carica pagina iniziale
-        this.loadPage('dashboard');
+        // Carica pagina iniziale (controlla hash URL)
+        const initialPage = this.getPageFromHash() || 'dashboard';
+        this.loadPage(initialPage);
+        
+        // Aggiorna tab attivo in base alla pagina iniziale
+        this.updateActiveTab(initialPage);
         
         // Setup navigation
         this.setupNavigation();
         
         // Mostra/nascondi elementi admin
         this.setupRoleBasedUI();
+        
+        // Gestisci cambio hash (back/forward browser)
+        this.setupHashNavigation();
     },
 
     // Setup dashboard (non più show/hide)
@@ -40,6 +47,37 @@ const App = {
             }
             document.body.classList.add('admin');
         }
+    },
+
+    // Ottieni pagina da hash URL
+    getPageFromHash() {
+        const hash = window.location.hash.substring(1); // Rimuove il #
+        if (!hash) return null;
+        
+        // Mappa hash → pagina
+        const validPages = ['dashboard', 'materials', 'volunteers', 'assignments', 'maintenance', 'users', 'reports'];
+        return validPages.includes(hash) ? hash : null;
+    },
+
+    // Setup navigazione tramite hash
+    setupHashNavigation() {
+        window.addEventListener('hashchange', () => {
+            const page = this.getPageFromHash();
+            if (page) {
+                this.loadPage(page);
+                this.updateActiveTab(page);
+            }
+        });
+    },
+
+    // Aggiorna tab attivo nella navbar
+    updateActiveTab(pageName) {
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.classList.remove('active');
+            if (link.dataset.page === pageName) {
+                link.classList.add('active');
+            }
+        });
     },
 
     // Setup navigazione
@@ -64,11 +102,9 @@ const App = {
                 
                 // Link interno con data-page: gestisci con SPA routing
                 e.preventDefault();
-                this.loadPage(page);
                 
-                // Update active link
-                navLinks.forEach(l => l.classList.remove('active'));
-                link.classList.add('active');
+                // Aggiorna hash URL (triggerà hashchange)
+                window.location.hash = page;
             });
         });
     },
@@ -205,6 +241,104 @@ const App = {
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Statistiche Automezzi -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">🚗 Automezzi</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-icon red">🚗</div>
+                                <div class="stat-details">
+                                    <h3>${data.vehicles?.totale || 0}</h3>
+                                    <p>Automezzi Totali</p>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon green">✅</div>
+                                <div class="stat-details">
+                                    <h3>${data.vehicles?.disponibili || 0}</h3>
+                                    <p>Disponibili</p>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon yellow">🔑</div>
+                                <div class="stat-details">
+                                    <h3>${data.vehicles?.in_uso || 0}</h3>
+                                    <p>In Uso</p>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon blue">🔧</div>
+                                <div class="stat-details">
+                                    <h3>${data.vehicles?.in_manutenzione || 0}</h3>
+                                    <p>In Manutenzione</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="stats-grid" style="margin-top: 20px;">
+                            <div class="stat-card">
+                                <div class="stat-icon blue">📏</div>
+                                <div class="stat-details">
+                                    <h3>${(data.km_stats?.km_ultimo_mese || 0).toLocaleString()}</h3>
+                                    <p>Km Ultimo Mese</p>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon green">⛽</div>
+                                <div class="stat-details">
+                                    <h3>${data.refueling_stats?.rifornimenti_ultimo_mese || 0}</h3>
+                                    <p>Rifornimenti Ultimo Mese</p>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon yellow">💰</div>
+                                <div class="stat-details">
+                                    <h3>€ ${(data.refueling_stats?.spesa_totale || 0).toLocaleString('it-IT', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</h3>
+                                    <p>Spesa Carburante</p>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon red">⚠️</div>
+                                <div class="stat-details">
+                                    <h3>${data.upcoming_deadlines?.length || 0}</h3>
+                                    <p>Scadenze Prossime</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        ${data.upcoming_deadlines && data.upcoming_deadlines.length > 0 ? `
+                            <div style="margin-top: 20px;">
+                                <h4 style="color: #d32f2f; margin-bottom: 10px;">⚠️ Scadenze Imminenti (prossimi 30 giorni)</h4>
+                                <div class="table-container">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Veicolo</th>
+                                                <th>Tipo Scadenza</th>
+                                                <th>Data Scadenza</th>
+                                                <th>Giorni Rimanenti</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${data.upcoming_deadlines.map(d => `
+                                                <tr>
+                                                    <td><strong>${d.targa}</strong> (${d.tipo})</td>
+                                                    <td>${d.tipo}</td>
+                                                    <td>${UI.formatDate(d.data_scadenza)}</td>
+                                                    <td><span class="badge ${d.giorni_rimanenti <= 7 ? 'badge-danger' : 'badge-warning'}">${d.giorni_rimanenti} giorni</span></td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        ` : ''}
                     </div>
                 </div>
 

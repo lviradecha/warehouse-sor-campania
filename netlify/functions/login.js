@@ -52,6 +52,9 @@ exports.handler = async (event) => {
         // Log attività
         await logActivity(user.id, 'LOGIN', 'users', user.id, 'Login effettuato');
 
+        // Debug: verifica valore first_login dal database
+        console.log(`🔐 Login user ${user.username}: first_login DB value = ${user.first_login} (type: ${typeof user.first_login})`);
+
         // Genera token
         const token = generateToken(user);
 
@@ -63,7 +66,8 @@ exports.handler = async (event) => {
             nome: user.nome,
             cognome: user.cognome,
             email: user.email,
-            first_login: user.first_login || false
+            // Gestisce sia boolean che integer da PostgreSQL
+            first_login: user.first_login === true || user.first_login === 1 || user.first_login === '1'
         };
 
         return successResponse({

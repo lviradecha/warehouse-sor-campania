@@ -184,6 +184,14 @@ async function handleVehicles(segments, event, user) {
     if (event.httpMethod === 'PUT' && vehicleId) {
         const data = JSON.parse(event.body);
 
+        // Converti km_attuali in numero se presente
+        if (data.km_attuali !== undefined && data.km_attuali !== null && data.km_attuali !== '') {
+            data.km_attuali = parseInt(data.km_attuali, 10);
+            if (isNaN(data.km_attuali)) {
+                return errorResponse('I km devono essere un numero valido', 400);
+            }
+        }
+
         // Verifica targa univoca (escludendo questo veicolo)
         if (data.targa) {
             const existing = await queryOne(
@@ -201,20 +209,20 @@ async function handleVehicles(segments, event, user) {
                 tipo = COALESCE($1, tipo),
                 modello = COALESCE($2, modello),
                 targa = UPPER(COALESCE($3, targa)),
-                anno_immatricolazione = COALESCE($4, anno_immatricolazione),
-                km_attuali = COALESCE($5, km_attuali),
+                anno_immatricolazione = $4,
+                km_attuali = $5,
                 stato = COALESCE($6, stato),
-                note = COALESCE($7, note)
+                note = $7
              WHERE id = $8
              RETURNING *`,
             [
-                data.tipo,
-                data.modello,
-                data.targa,
-                data.anno_immatricolazione,
-                data.km_attuali,
-                data.stato,
-                data.note,
+                data.tipo || null,
+                data.modello || null,
+                data.targa || null,
+                data.anno_immatricolazione || null,
+                data.km_attuali !== undefined ? data.km_attuali : null,
+                data.stato || null,
+                data.note || null,
                 vehicleId
             ]
         );

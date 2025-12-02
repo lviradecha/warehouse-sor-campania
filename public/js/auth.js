@@ -28,13 +28,23 @@ const AuthManager = {
             this.setUser(data.user);
 
             // ⚠️ CONTROLLO PRIMO ACCESSO ⚠️
+            // Debug: verifica valore ricevuto
+            console.log('🔐 Controllo primo accesso:', {
+                first_login: data.user.first_login,
+                type: typeof data.user.first_login,
+                is_true: data.user.first_login === true,
+                is_1: data.user.first_login === 1,
+                is_string_1: data.user.first_login === '1'
+            });
+
             // Se è il primo login, reindirizza al cambio password
-            if (data.user.first_login === true || data.user.first_login === 1) {
+            if (data.user.first_login === true || data.user.first_login === 1 || data.user.first_login === '1') {
                 console.log('🔐 Primo accesso rilevato - redirect a cambio password');
                 window.location.replace('cambio-password.html');
                 return data;
             }
 
+            console.log('✅ Login normale - primo accesso già completato');
             return data;
         } catch (error) {
             console.error('Errore login:', error);

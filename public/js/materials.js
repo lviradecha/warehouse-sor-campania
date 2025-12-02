@@ -15,8 +15,11 @@ const MaterialsPage = {
                     <p>Inventario completo magazzino</p>
                 </div>
                 <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-info" onclick="MaterialsImportUI.showImportModal()" title="Importa materiali da file CSV">
+                        📥 Importa CSV
+                    </button>
                     <button class="btn btn-success" onclick="MaterialsPage.exportCSV()">
-                        📥 Esporta CSV
+                        📤 Esporta CSV
                     </button>
                     <button class="btn btn-primary" onclick="MaterialsPage.showAddModal()">
                         <span>➕</span> Nuovo Materiale

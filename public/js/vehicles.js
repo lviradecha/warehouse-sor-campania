@@ -147,8 +147,8 @@ const VehiclesPage = {
                         <th>Tipo</th>
                         <th>Modello</th>
                         <th>Targa</th>
-                        <th>Anno</th>
-                        <th>Km Attuali</th>
+                        <th class="text-center">Anno</th>
+                        <th class="text-center">Km Attuali</th>
                         <th>Stato</th>
                         <th>Azioni</th>
                     </tr>
@@ -159,8 +159,8 @@ const VehiclesPage = {
                             <td><strong>${v.tipo}</strong></td>
                             <td>${v.modello}</td>
                             <td><span style="font-family: monospace; font-weight: bold;">${v.targa}</span></td>
-                            <td>${v.anno_immatricolazione || '-'}</td>
-                            <td style="text-align: right;">${(v.km_attuali || 0).toLocaleString()} km</td>
+                            <td class="text-center">${v.anno_immatricolazione || '-'}</td>
+                            <td style="text-align: center;">${(v.km_attuali || 0).toLocaleString()} km</td>
                             <td><span class="badge badge-${v.stato}">${v.stato}</span></td>
                             <td>
                                 <button class="btn btn-sm btn-secondary" onclick="VehiclesPage.showVehicleDetails(${v.id})" title="Dettagli">
@@ -252,6 +252,14 @@ const VehiclesPage = {
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData);
             data.targa = data.targa.toUpperCase();
+            
+            // Converti i campi numerici
+            if (data.km_attuali) {
+                data.km_attuali = parseInt(data.km_attuali, 10);
+            }
+            if (data.anno_immatricolazione) {
+                data.anno_immatricolazione = parseInt(data.anno_immatricolazione, 10);
+            }
             
             try {
                 UI.showLoading();
@@ -345,6 +353,14 @@ const VehiclesPage = {
                 const formData = new FormData(e.target);
                 const data = Object.fromEntries(formData);
                 data.targa = data.targa.toUpperCase();
+                
+                // Converti i campi numerici
+                if (data.km_attuali) {
+                    data.km_attuali = parseInt(data.km_attuali, 10);
+                }
+                if (data.anno_immatricolazione) {
+                    data.anno_immatricolazione = parseInt(data.anno_immatricolazione, 10);
+                }
                 
                 try {
                     UI.showLoading();
@@ -849,7 +865,7 @@ const VehiclesPage = {
                         <tr>
                             <td>${UI.formatDateTime(r.data_rifornimento)}</td>
                             <td><strong>${r.vehicle_targa}</strong></td>
-                            <td style="text-align: right;">${r.km_rifornimento.toLocaleString()} km</td>
+                            <td style="text-align: center;">${r.km_rifornimento.toLocaleString()} km</td>
                             <td style="text-align: right;"><strong>${r.litri}</strong> L</td>
                             <td style="text-align: right;">${r.importo ? UI.formatCurrency(r.importo) : '-'}</td>
                             <td style="text-align: right;">${prezzoLitro !== '-' ? '€' + prezzoLitro : '-'}</td>

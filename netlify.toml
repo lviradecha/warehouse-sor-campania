@@ -1,17 +1,148 @@
+# ===================================
+# NETLIFY CONFIGURATION
+# Warehouse SOR Campania - CRI
+# ===================================
+
 [build]
   command = "npm install"
   functions = "netlify/functions"
   publish = "public"
 
+# ===================================
+# API REDIRECTS
+# ===================================
+
+# Redirect generico per tutte le API
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
 
+# ===================================
+# SECURITY HEADERS
+# ===================================
+
 [[headers]]
   for = "/*"
   [headers.values]
+    # Sicurezza base
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     X-XSS-Protection = "1; mode=block"
     Referrer-Policy = "strict-origin-when-cross-origin"
+    
+    # Content Security Policy (opzionale - decommentare se necessario)
+    # Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.netlify.app"
+
+# Headers specifici per file statici
+[[headers]]
+  for = "*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.jpg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Headers per HTML - no cache per garantire aggiornamenti immediati
+[[headers]]
+  for = "*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# ===================================
+# SPA REDIRECTS
+# ===================================
+
+# Redirect per SPA - tutte le route non-file verso index.html
+# (commentato se non usi routing client-side)
+# [[redirects]]
+#   from = "/*"
+#   to = "/index.html"
+#   status = 200
+
+# ===================================
+# ENVIRONMENT VARIABLES (da configurare in Netlify Dashboard)
+# ===================================
+# Le seguenti variabili devono essere configurate nel Netlify Dashboard:
+# - JWT_SECRET: chiave segreta per JWT (es: generata con openssl rand -hex 32)
+# - DATABASE_URL: connection string PostgreSQL (Neon)
+# - SENDGRID_API_KEY: API key SendGrid per invio email
+# - SENDGRID_FROM_EMAIL: email mittente (es: noreply@sor-campania.it)
+
+# ===================================
+# FUNCTIONS CONFIGURATION
+# ===================================
+[functions]
+  # Timeout esteso per import CSV e operazioni lunghe
+  # Default è 10 secondi, aumentato a 26 secondi (max per Netlify Free)
+  # Per Pro account, può essere aumentato fino a 30 secondi
+  node_bundler = "esbuild"
+
+# ===================================
+# PLUGIN (opzionali)
+# ===================================
+# Decommenta se vuoi usare plugin Netlify
+
+# [[plugins]]
+#   package = "@netlify/plugin-lighthouse"
+
+# ===================================
+# CONTEXT-SPECIFIC SETTINGS
+# ===================================
+
+# Impostazioni per ambiente di produzione
+[context.production]
+  [context.production.environment]
+    NODE_ENV = "production"
+
+# Impostazioni per deploy previews (branch non-main)
+[context.deploy-preview]
+  [context.deploy-preview.environment]
+    NODE_ENV = "development"
+
+# Impostazioni per branch development
+[context.branch-deploy]
+  [context.branch-deploy.environment]
+    NODE_ENV = "development"
+
+# ===================================
+# REDIRECT RULES (aggiuntive se necessarie)
+# ===================================
+
+# Redirect da www a non-www (opzionale - sostituire con il tuo dominio)
+# [[redirects]]
+#   from = "https://www.warehouse-sor-campania.netlify.app/*"
+#   to = "https://warehouse-sor-campania.netlify.app/:splat"
+#   status = 301
+#   force = true
+
+# Redirect HTTP a HTTPS (automatico su Netlify, ma può essere forzato)
+# [[redirects]]
+#   from = "http://warehouse-sor-campania.netlify.app/*"
+#   to = "https://warehouse-sor-campania.netlify.app/:splat"
+#   status = 301
+#   force = true
+
+# ===================================
+# EDGE HANDLERS (Pro feature - opzionale)
+# ===================================
+# [edge_handlers]
+#   [edge_handlers."geolocation"]
+#     path = "/api/geo/*"

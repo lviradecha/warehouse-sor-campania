@@ -198,7 +198,7 @@ Croce Rossa Italiana - SOR Campania
 /**
  * Email notifica assegnazione materiale a volontario
  */
-async function sendAssignmentNotification(volunteerEmail, volunteerName, materialName, codice, evento, dataUscita, note) {
+async function sendAssignmentNotification(volunteerEmail, volunteerName, materialName, codice, evento, dataUscita, note, quantita = 1, dataRientroPrevista = null) {
     const subject = '📦 Assegnazione Materiale - CRI SOR Campania';
     
     const htmlContent = `
@@ -253,6 +253,16 @@ async function sendAssignmentNotification(volunteerEmail, volunteerName, materia
                     padding: 15px;
                     border: 2px dashed #d32f2f;
                     border-radius: 5px;
+                }
+                .quantity-badge {
+                    display: inline-block;
+                    background: #d32f2f;
+                    color: white;
+                    padding: 8px 16px;
+                    border-radius: 20px;
+                    font-size: 18px;
+                    font-weight: bold;
+                    margin: 10px 0;
                 }
                 .warning { 
                     background: #fff3cd; 
@@ -882,11 +892,129 @@ Croce Rossa Italiana - SOR Campania
     return sendEmail(volunteerEmail, subject, htmlContent, textContent);
 }
 
+
+/**
+ * Email assegnazione MULTIPLA materiali (lista)
+ */
+async function sendBulkAssignmentNotification(volunteerEmail, volunteerName, materials, evento, dataUscita, note, dataRientroPrevista = null) {
+    const subject = '📦 Assegnazione Materiali - CRI SOR Campania';
+    
+    const totalQuantity = materials.reduce((sum, m) => sum + m.quantita, 0);
+    
+    const materialsListHTML = materials.map(m => `
+        <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #eee;">
+                <strong>${m.nome}</strong>
+            </td>
+            <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">
+                <span style="background: #d32f2f; color: white; padding: 5px 10px; border-radius: 15px; font-weight: bold;">
+                    ${m.quantita}
+                </span>
+            </td>
+            <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center; font-family: monospace; color: #d32f2f;">
+                ${m.codice_barre}
+            </td>
+        </tr>
+    `).join('');
+
+    const materialsListText = materials.map(m => 
+        `- ${m.quantita}x ${m.nome} (Codice: ${m.codice_barre})`
+    ).join('\n');
+    
+    const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+                .header { background: #d32f2f; color: white; padding: 30px 20px; text-align: center; }
+                .header h1 { margin: 10px 0; font-size: 24px; }
+                .content { background: white; padding: 30px; }
+                .assignment-box { background: #f9f9f9; padding: 20px; margin: 20px 0; border-left: 4px solid #d32f2f; }
+                .materials-table { width: 100%; margin: 15px 0; border-collapse: collapse; }
+                .materials-table th { background: #d32f2f; color: white; padding: 12px; }
+                .total-badge { background: #d32f2f; color: white; padding: 10px 20px; border-radius: 25px; font-weight: bold; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>Croce Rossa Italiana</h1>
+                    <p>Sala Operativa Regionale - Campania</p>
+                </div>
+                <div class="content">
+                    <h2 style="color: #d32f2f;">Ciao ${volunteerName}! 👋</h2>
+                    <p>Ti sono stati assegnati <strong>${materials.length} materiali</strong> per l'evento <strong>"${evento}"</strong>.</p>
+                    
+                    <div style="text-align: center; margin: 20px 0;">
+                        <span class="total-badge">Totale: ${totalQuantity} unità</span>
+                    </div>
+                    
+                    <div class="assignment-box">
+                        <h3 style="color: #d32f2f;">📦 Materiali Assegnati:</h3>
+                        <table class="materials-table">
+                            <thead>
+                                <tr>
+                                    <th>Materiale</th>
+                                    <th style="text-align: center;">Quantità</th>
+                                    <th style="text-align: center;">Codice</th>
+                                </tr>
+                            </thead>
+                            <tbody>${materialsListHTML}</tbody>
+                        </table>
+                        <p><strong>Evento:</strong> ${evento}</p>
+                        <p><strong>Data Uscita:</strong> ${new Date(dataUscita).toLocaleString('it-IT')}</p>
+                        ${dataRientroPrevista ? `<p><strong>Rientro Previsto:</strong> ${new Date(dataRientroPrevista).toLocaleString('it-IT')}</p>` : ''}
+                        ${note ? `<p><strong>Note:</strong> ${note}</p>` : ''}
+                    </div>
+                    
+                    <div style="background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 15px 0;">
+                        <p><strong>⚠️ RESPONSABILITÀ:</strong></p>
+                        <ul>
+                            <li>Sei responsabile di <strong>${totalQuantity} unità</strong> di materiale</li>
+                            <li>Controlla lo stato di ogni materiale prima dell'uso</li>
+                            <li>Riconsegna tutti i materiali al termine dell'evento</li>
+                        </ul>
+                    </div>
+                    
+                    <p style="color: #d32f2f; font-weight: bold; text-align: center; margin-top: 20px;">
+                        Grazie per il tuo servizio volontario! 🙏
+                    </p>
+                </div>
+            </div>
+        </body>
+        </html>
+    `;
+
+    const textContent = `
+Croce Rossa Italiana - SOR Campania
+
+ASSEGNAZIONE MATERIALI
+
+Ciao ${volunteerName}!
+
+Ti sono stati assegnati ${materials.length} materiali (${totalQuantity} unità totali) per "${evento}".
+
+MATERIALI:
+${materialsListText}
+
+Data Uscita: ${new Date(dataUscita).toLocaleString('it-IT')}
+${dataRientroPrevista ? `Rientro Previsto: ${new Date(dataRientroPrevista).toLocaleString('it-IT')}` : ''}
+${note ? `Note: ${note}` : ''}
+
+Grazie per il tuo servizio! 🙏
+    `;
+    
+    return sendEmail(volunteerEmail, subject, htmlContent, textContent);
+}
 module.exports = {
     sendEmail,
     sendNewUserCredentials,
     sendAssignmentNotification,
     sendReturnNotification,
     sendVehicleAssignmentNotification,
-    sendVehicleReturnNotification
+    sendVehicleReturnNotification,
+    sendBulkAssignmentNotification
 };

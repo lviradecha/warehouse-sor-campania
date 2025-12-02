@@ -235,6 +235,52 @@ async function handleVehicles(segments, event, user) {
     }
 
     // DELETE - Elimina veicolo (SOLO ADMIN)
+    // I dati storici (rifornimenti, manutenzioni, assegnazioni) vengono mantenuti
+    if (event.httpMethod === 'DELETE' && vehicleId) {
+        // Verifica che il veicolo esista
+        const vehicle = await queryOne(
+            `SELECT * FROM vehicles WHERE id = $1`,
+            [vehicleId]
+        );
+
+        if (!vehicle) {
+            return errorResponse('Automezzo non trovato', 404);
+        }
+
+        // Verifica se ci sono assegnazioni attive
+        const activeAssignments = await queryOne(
+            `SELECT id FROM vehicle_assignments 
+             WHERE vehicle_id = $1 AND data_rientro IS NULL`,
+            [vehicleId]
+        );
+
+        if (activeAssignments) {
+            return errorResponse('Impossibile eliminare: il veicolo ha assegnazioni attive. Completa prima tutte le assegnazioni.', 400);
+        }
+
+        // Elimina il veicolo
+        // I dati storici nelle altre tabelle vengono mantenuti grazie alle foreign key ON DELETE SET NULL
+        await query(
+            `DELETE FROM vehicles WHERE id = $1`,
+            [vehicleId]
+        );
+
+        await logActivity(
+            user.id,
+            'DELETE',
+            'vehicles',
+            vehicleId,
+            `Automezzo eliminato: ${vehicle.targa} - Dati storici mantenuti`
+        );
+
+        return successResponse({ 
+            message: 'Automezzo eliminato con successo',
+            targa: vehicle.targa,
+            nota: 'I dati storici (rifornimenti, manutenzioni) sono stati mantenuti per le statistiche'
+        });
+    }
+
+    // DELETE - Elimina veicolo (SOLO ADMIN)
     if (event.httpMethod === 'DELETE' && vehicleId) {
         await query(`DELETE FROM vehicles WHERE id = $1`, [vehicleId]);
         await logActivity(user.id, 'DELETE', 'vehicles', vehicleId, 'Automezzo eliminato');

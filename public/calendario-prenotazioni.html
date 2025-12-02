@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendario Prenotazioni - SOR Campania</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+    <style>
+        /* Stili specifici per il calendario */
+        .calendar-wrapper {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            border: none;
+            background: #f0f0f0;
+            color: #333;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            background: #d32f2f;
+            color: white;
+        }
+
+        .tab:hover:not(.active) {
+            background: #e0e0e0;
+        }
+
+        .calendar-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .calendar-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .calendar-nav h2 {
+            color: #333;
+            font-size: 20px;
+            margin: 0;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            margin-bottom: 20px;
+        }
+
+        .calendar-header {
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            background: #f8f9fa;
+            border-radius: 5px;
+            color: #333;
+        }
+
+        .calendar-day {
+            min-height: 120px;
+            padding: 8px;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+        }
+
+        .calendar-day:hover {
+            background: #f8f9fa;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .calendar-day.other-month {
+            background: #f8f9fa;
+            opacity: 0.5;
+        }
+
+        .calendar-day.today {
+            border: 2px solid #d32f2f;
+            background: #fff5f5;
+        }
+
+        .day-number {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .prenotazione-badge {
+            font-size: 11px;
+            padding: 3px 6px;
+            margin: 2px 0;
+            border-radius: 3px;
+            background: #d32f2f;
+            color: white;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+        }
+
+        .prenotazione-badge:hover {
+            opacity: 0.8;
+        }
+
+        .prenotazione-badge.materiale {
+            background: #28a745;
+        }
+
+        .prenotazione-badge.mezzo {
+            background: #007bff;
+        }
+
+        .prenotazione-badge.confermata {
+            background: #ffc107;
+        }
+
+        .prenotazione-badge.in_corso {
+            background: #17a2b8;
+        }
+
+        .prenotazione-badge.completata {
+            background: #6c757d;
+        }
+
+        .prenotazione-badge.assegnazione {
+            background: #ff9800;
+            font-weight: bold;
+        }
+
+        .prenotazione-badge.assegnazione.completata {
+            background: #9e9e9e;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #d32f2f;
+        }
+
+        .modal-header h2 {
+            color: #d32f2f;
+            font-size: 22px;
+            margin: 0;
+        }
+
+        .close {
+            background: none;
+            border: none;
+            font-size: 30px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .disponibilita-info {
+            padding: 12px;
+            background: #e7f3ff;
+            border-left: 4px solid #007bff;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        .disponibilita-info.error {
+            background: #f8d7da;
+            border-left-color: #dc3545;
+        }
+
+        .lista-prenotazioni {
+            margin-top: 20px;
+        }
+
+        .prenotazione-card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: all 0.2s;
+        }
+
+        .prenotazione-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .prenotazione-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .prenotazione-title {
+            font-weight: bold;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .stato-badge {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .stato-badge.prenotata {
+            background: #d32f2f;
+            color: white;
+        }
+
+        .stato-badge.confermata {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .stato-badge.in_corso {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .stato-badge.completata {
+            background: #28a745;
+            color: white;
+        }
+
+        .prenotazione-details {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .prenotazione-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .calendar {
+                gap: 2px;
+            }
+
+            .calendar-day {
+                min-height: 80px;
+                padding: 5px;
+                font-size: 12px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .calendar-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Dashboard Container -->
+    <div id="dashboardContainer">
+        <!-- Banner Header con Logo -->
+        <header class="banner">
+            <div class="banner-content">
+                <div class="banner-logo">
+                    <img src="assets/logo-sor.png" alt="Logo SOR Campania" onerror="this.style.display='none'">
+                </div>
+                <div class="banner-text">
+                    <h1 class="banner-title">CROCE ROSSA ITALIANA</h1>
+                    <p class="banner-subtitle">Sala Operativa Regionale - Campania | Calendario Prenotazioni</p>
+                </div>
+                <button onclick="if(confirm('Vuoi uscire?')) AuthManager.logout()" class="btn-logout">🚪 Esci</button>
+                <div class="banner-version">v1.0</div>
+            </div>
+        </header>
+
+        <!-- Navigation Menu -->
+        <nav class="nav-menu">
+            <div class="nav-content">
+                <a href="index.html" class="nav-link">📊 Dashboard</a>
+                <a href="index.html#materials" class="nav-link">📦 Materiali</a>
+                <a href="index.html#volunteers" class="nav-link">👥 Volontari</a>
+                <a href="index.html#assignments" class="nav-link">📋 Assegnazioni</a>
+                <a href="automezzi.html" class="nav-link">🚗 Automezzi</a>
+                <a href="calendario-prenotazioni.html" class="nav-link active">📅 Prenotazioni</a>
+                <a href="index.html#maintenance" class="nav-link">🔧 Manutenzioni</a>
+                <a href="index.html#users" class="nav-link admin-only" id="linkAdmin" style="display: none;">⚙️ Utenti</a>
+                <a href="index.html#reports" class="nav-link">📈 Report</a>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="container">
+            <div class="page-header mb-3">
+                <div>
+                    <h2>Calendario Prenotazioni</h2>
+                    <p>Pianificazione prenotazioni materiali e mezzi</p>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('materiali')">📦 Materiali</button>
+                <button class="tab" onclick="switchTab('mezzi')">🚗 Mezzi</button>
+            </div>
+
+            <!-- Calendar Wrapper -->
+            <div class="calendar-wrapper">
+                <div class="calendar-controls">
+                    <button class="btn btn-primary" onclick="openNewPrenotazione()">➕ Nuova Prenotazione</button>
+                    <button class="btn btn-secondary" onclick="viewPrenotazioniLista()">📋 Vista Lista</button>
+                    <select id="viewType" onchange="changeView()" class="form-control" style="width: auto;">
+                        <option value="month">Vista Mensile</option>
+                        <option value="week">Vista Settimanale</option>
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; font-size: 13px;">
+                    <span><span style="display:inline-block; width:12px; height:12px; background:#28a745; border-radius:3px;"></span> Prenotazione Materiale</span>
+                    <span><span style="display:inline-block; width:12px; height:12px; background:#007bff; border-radius:3px;"></span> Prenotazione Mezzo</span>
+                    <span><span style="display:inline-block; width:12px; height:12px; background:#ff9800; border-radius:3px;"></span> Assegnazione Attiva</span>
+                    <span><span style="display:inline-block; width:12px; height:12px; background:#9e9e9e; border-radius:3px;"></span> Assegnazione Completata</span>
+                </div>
+
+                <div class="calendar-nav">
+                    <button class="btn btn-secondary" onclick="previousPeriod()">← Precedente</button>
+                    <h2 id="currentPeriod"></h2>
+                    <div class="nav-buttons">
+                        <button class="btn btn-secondary" onclick="today()">Oggi</button>
+                        <button class="btn btn-secondary" onclick="nextPeriod()">Successivo →</button>
+                    </div>
+                </div>
+
+                <div id="calendarView"></div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>📞 <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="c4b7abb6eaa7a5a9b4a5aaada584a7b6adeaadb0">[email&#160;protected]</a> | +39 081 7810011 (selezione 2)</p>
+            <p class="footer-small">© 2025 Croce Rossa Italiana - Comitato Regionale Campania</p>
+            <p class="footer-small">Sistema Gestione Magazzino Emergenze - Versione 1.0</p>
+        </footer>
+    </div>
+
+    <!-- Modal Nuova/Modifica Prenotazione -->
+    <div id="prenotazioneModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Nuova Prenotazione</h2>
+                <button class="close" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modalAlert"></div>
+            <div id="disponibilitaInfo"></div>
+            <form id="prenotazioneForm" onsubmit="savePrenotazione(event)">
+                <input type="hidden" id="prenotazioneId">
+                <input type="hidden" id="prenotazioneTipo">
+
+                <!-- Campi Materiali -->
+                <div id="campiMateriali">
+                    <div class="form-group">
+                        <label for="materiale">Materiale *</label>
+                        <select id="materiale" class="form-control" required>
+                            <option value="">Seleziona materiale...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="quantita">Quantità *</label>
+                        <input type="number" id="quantita" class="form-control" min="1" required>
+                    </div>
+                </div>
+
+                <!-- Campi Mezzi -->
+                <div id="campiMezzi" style="display:none;">
+                    <div class="form-group">
+                        <label for="veicolo">Veicolo *</label>
+                        <select id="veicolo" class="form-control" required>
+                            <option value="">Seleziona veicolo...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="conducente">Conducente</label>
+                        <input type="text" id="conducente" class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="destinazione">Destinazione</label>
+                        <input type="text" id="destinazione" class="form-control">
+                    </div>
+                </div>
+
+                <!-- Campi Comuni -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="dataInizio">Data/Ora Inizio *</label>
+                        <input type="datetime-local" id="dataInizio" class="form-control" required onchange="checkDisponibilita()">
+                    </div>
+                    <div class="form-group">
+                        <label for="dataFine">Data/Ora Fine *</label>
+                        <input type="datetime-local" id="dataFine" class="form-control" required onchange="checkDisponibilita()">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="eventoMissione" id="eventoMissioneLabel">Evento/Esercitazione *</label>
+                    <input type="text" id="eventoMissione" class="form-control" required>
+                </div>
+
+                <div class="form-group" id="richiedenteGroup">
+                    <label for="richiedente">Richiedente *</label>
+                    <input type="text" id="richiedente" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="note">Note</label>
+                    <textarea id="note" class="form-control"></textarea>
+                </div>
+
+                <div class="form-group" id="statoGroup" style="display:none;">
+                    <label for="stato">Stato</label>
+                    <select id="stato" class="form-control">
+                        <option value="prenotata">Prenotata</option>
+                        <option value="confermata">Confermata</option>
+                        <option value="in_corso">In Corso</option>
+                        <option value="completata">Completata</option>
+                        <option value="annullata">Annullata</option>
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Salva</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()" style="flex: 1;">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Lista Prenotazioni -->
+    <div id="listaModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Lista Prenotazioni</h2>
+                <button class="close" onclick="closeListaModal()">&times;</button>
+            </div>
+            <div id="listaPrenotazioni" class="lista-prenotazioni"></div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/auth.js"></script>
+    <script>
+        const API_BASE = '/.netlify/functions';
+        let currentDate = new Date();
+        let currentView = 'month';
+        let currentTab = 'materiali';
+        let prenotazioni = [];
+        let assegnazioni = [];
+        let materiali = [];
+        let veicoli = [];
+        let userRole = '';
+        let userId = null;
+
+        // Inizializzazione
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('Inizializzazione calendario prenotazioni...');
+            try {
+                checkAuth();
+                console.log('Auth OK');
+                await loadMateriali();
+                console.log('Materiali caricati:', materiali.length);
+                await loadVeicoli();
+                console.log('Veicoli caricati:', veicoli.length);
+                await loadAssegnazioni();
+                console.log('Assegnazioni caricate:', assegnazioni.length);
+                renderCalendar();
+                console.log('Calendario renderizzato');
+                await loadPrenotazioni();
+                console.log('Prenotazioni caricate:', prenotazioni.length);
+            } catch (error) {
+                console.error('Errore inizializzazione:', error);
+                alert('Errore caricamento pagina. Controlla la console (F12)');
+            }
+        });
+
+        function checkAuth() {
+            // Usa il sistema di auth esistente
+            if (sessionStorage.getItem('isLoggedIn') !== 'true') {
+                window.location.replace('login.html');
+                return;
+            }
+            
+            // Recupera dati utente dal localStorage (warehouse_user_data)
+            const userData = localStorage.getItem('warehouse_user_data');
+            if (userData) {
+                const user = JSON.parse(userData);
+                userRole = user.role || 'operatore';
+                userId = user.id;
+                console.log('✓ Utente autenticato:', user.username, '- Ruolo:', userRole);
+                
+                // Mostra link admin se necessario
+                if (userRole === 'admin') {
+                    const adminLink = document.getElementById('linkAdmin');
+                    if (adminLink) adminLink.style.display = '';
+                }
+            } else {
+                // Fallback a sessionStorage
+                userRole = sessionStorage.getItem('ruolo') || sessionStorage.getItem('role') || 'operatore';
+                const userIdSession = sessionStorage.getItem('userId');
+                if (userIdSession) {
+                    userId = parseInt(userIdSession);
+                }
+            }
+        }
+
+        function goBack() {
+            window.location.href = '/index.html';
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            loadPrenotazioni();
+            loadAssegnazioni();
+            renderCalendar();
+        }
+
+        function changeView() {
+            currentView = document.getElementById('viewType').value;
+            renderCalendar();
+            loadPrenotazioni();
+            loadAssegnazioni();
+        }
+
+        function previousPeriod() {
+            if (currentView === 'month') {
+                currentDate.setMonth(currentDate.getMonth() - 1);
+            } else {
+                currentDate.setDate(currentDate.getDate() - 7);
+            }
+            renderCalendar();
+            loadPrenotazioni();
+            loadAssegnazioni();
+        }
+
+        function nextPeriod() {
+            if (currentView === 'month') {
+                currentDate.setMonth(currentDate.getMonth() + 1);
+            } else {
+                currentDate.setDate(currentDate.getDate() + 7);
+            }
+            renderCalendar();
+            loadPrenotazioni();
+            loadAssegnazioni();
+        }
+
+        function today() {
+            currentDate = new Date();
+            renderCalendar();
+            loadPrenotazioni();
+            loadAssegnazioni();
+        }
+
+        async function loadMateriali() {
+            try {
+                const token = localStorage.getItem('warehouse_auth_token');
+                const response = await fetch(`${API_BASE}/materiali`, {
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    materiali = data.materials || [];
+                    updateMaterialiSelect();
+                    console.log('✓ Materiali caricati:', materiali.length);
+                } else {
+                    console.error('Errore caricamento materiali:', response.status);
+                    const error = await response.text();
+                    console.error('Dettaglio errore:', error);
+                }
+            } catch (error) {
+                console.error('Errore caricamento materiali:', error);
+            }
+        }
+
+        async function loadVeicoli() {
+            try {
+                const token = localStorage.getItem('warehouse_auth_token');
+                const response = await fetch(`${API_BASE}/automezzi`, {
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    veicoli = await response.json();
+                    updateVeicoliSelect();
+                    console.log('✓ Veicoli caricati:', veicoli.length);
+                } else {
+                    console.error('Errore caricamento veicoli:', response.status);
+                    const error = await response.text();
+                    console.error('Dettaglio errore:', error);
+                }
+            } catch (error) {
+                console.error('Errore caricamento veicoli:', error);
+            }
+        }
+
+        async function loadAssegnazioni() {
+            try {
+                const token = localStorage.getItem('warehouse_auth_token');
+                
+                // L'API assegnazioni non accetta filtri per data, carica tutto
+                const response = await fetch(`${API_BASE}/assegnazioni`, {
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    assegnazioni = await response.json();
+                    console.log('✓ Assegnazioni caricate:', assegnazioni.length);
+                    console.log('Prima assegnazione:', assegnazioni[0]); // Debug
+                } else {
+                    console.warn('Errore caricamento assegnazioni:', response.status);
+                    assegnazioni = [];
+                }
+            } catch (error) {
+                console.error('Errore caricamento assegnazioni:', error);
+                assegnazioni = [];
+            }
+        }
+
+        function updateMaterialiSelect() {
+            const select = document.getElementById('materiale');
+            select.innerHTML = '<option value="">Seleziona materiale...</option>';
+            materiali.forEach(m => {
+                const disponibile = (m.quantita || 0) - (m.quantita_assegnata || 0);
+                select.innerHTML += `<option value="${m.id}">${m.codice_barre || m.id} - ${m.nome} (Disp: ${disponibile})</option>`;
+            });
+        }
+
+        function updateVeicoliSelect() {
+            const select = document.getElementById('veicolo');
+            select.innerHTML = '<option value="">Seleziona veicolo...</option>';
+            veicoli.forEach(v => {
+                select.innerHTML += `<option value="${v.id}">${v.targa} - ${v.tipo} ${v.modello}</option>`;
+            });
+        }
+
+        async function loadPrenotazioni() {
+            try {
+                const token = localStorage.getItem('warehouse_auth_token');
+                const { startDate, endDate } = getPeriodDates();
+                
+                const endpoint = currentTab === 'materiali' ? 
+                    'prenotazioni-materiali' : 'prenotazioni-mezzi';
+                
+                const url = `${API_BASE}/${endpoint}?data_inizio=${startDate}&data_fine=${endDate}`;
+                
+                console.log('Caricamento prenotazioni da:', url);
+                
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    prenotazioni = await response.json();
+                    renderCalendar();
+                    console.log('✓ Prenotazioni caricate:', prenotazioni.length);
+                } else if (response.status === 404) {
+                    console.warn('Endpoint prenotazioni non trovato');
+                    prenotazioni = [];
+                    renderCalendar();
+                } else {
+                    console.error('Errore caricamento prenotazioni:', response.status);
+                    prenotazioni = [];
+                    renderCalendar();
+                }
+            } catch (error) {
+                console.error('Errore caricamento prenotazioni:', error);
+                prenotazioni = [];
+                renderCalendar();
+            }
+        }
+
+        function getPeriodDates() {
+            let startDate, endDate;
+            
+            if (currentView === 'month') {
+                startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+            } else {
+                const day = currentDate.getDay();
+                const diff = currentDate.getDate() - day + (day === 0 ? -6 : 1);
+                startDate = new Date(currentDate.setDate(diff));
+                endDate = new Date(startDate);
+                endDate.setDate(endDate.getDate() + 6);
+            }
+            
+            return {
+                startDate: startDate.toISOString().split('T')[0],
+                endDate: endDate.toISOString().split('T')[0]
+            };
+        }
+
+        function renderCalendar() {
+            const periodText = currentView === 'month' ?
+                currentDate.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' }) :
+                `Settimana del ${currentDate.toLocaleDateString('it-IT')}`;
+            
+            document.getElementById('currentPeriod').textContent = periodText;
+
+            const calendarView = document.getElementById('calendarView');
+            
+            if (currentView === 'month') {
+                renderMonthView(calendarView);
+            } else {
+                renderWeekView(calendarView);
+            }
+        }
+
+        function renderMonthView(container) {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            const startingDayOfWeek = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+
+            let html = '<div class="calendar">';
+            
+            // Header giorni settimana
+            ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'].forEach(day => {
+                html += `<div class="calendar-header">${day}</div>`;
+            });
+
+            // Giorni mese precedente
+            const prevMonthDays = new Date(year, month, 0).getDate();
+            for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+                const day = prevMonthDays - i;
+                html += `<div class="calendar-day other-month"><div class="day-number">${day}</div></div>`;
+            }
+
+            // Giorni mese corrente
+            const today = new Date();
+            for (let day = 1; day <= daysInMonth; day++) {
+                // Usa Date.UTC per evitare problemi di timezone
+                const date = new Date(Date.UTC(year, month, day));
+                const isToday = date.toISOString().split('T')[0] === today.toISOString().split('T')[0];
+                const dayPrenotazioni = getPrenotazioniForDay(date);
+                const dayAssegnazioni = getAssegnazioniForDay(date);
+                
+                html += `<div class="calendar-day ${isToday ? 'today' : ''}" onclick="openDayPrenotazioni('${date.toISOString()}')">`;
+                html += `<div class="day-number">${day}</div>`;
+                
+                // Mostra prenotazioni
+                dayPrenotazioni.forEach(p => {
+                    const classe = currentTab === 'materiali' ? 'materiale' : 'mezzo';
+                    const nome = currentTab === 'materiali' ? (p.materiale_nome || 'Materiale') : (p.targa || 'Veicolo');
+                    const quantita = currentTab === 'materiali' && p.quantita ? `${p.quantita}x ` : '';
+                    html += `<div class="prenotazione-badge ${classe} ${p.stato}" onclick="event.stopPropagation(); editPrenotazione(${p.id})" title="Prenotazione: ${quantita}${nome}">${quantita}${nome}</div>`;
+                });
+                
+                // Mostra assegnazioni (solo per materiali)
+                if (currentTab === 'materiali') {
+                    dayAssegnazioni.forEach(a => {
+                        const nome = a.material_nome || 'Materiale';
+                        const quantita = a.quantita ? `${a.quantita}x ` : '';
+                        const statoAssegnazione = a.data_rientro ? 'completata' : 'in_corso';
+                        const volontario = a.volunteer_nome ? `${a.volunteer_nome} ${a.volunteer_cognome || ''}`.trim() : 'Volontario';
+                        console.log(`Rendering assegnazione per ${date.toISOString().split('T')[0]}: ${quantita}${nome} - ${volontario}`);
+                        html += `<div class="prenotazione-badge assegnazione ${statoAssegnazione}" title="Assegnazione: ${quantita}${nome} - ${volontario}">${quantita}${nome} (Ass.)</div>`;
+                    });
+                }
+                
+                html += '</div>';
+            }
+
+            // Giorni mese successivo
+            const remainingDays = 42 - (startingDayOfWeek + daysInMonth);
+            for (let day = 1; day <= remainingDays; day++) {
+                html += `<div class="calendar-day other-month"><div class="day-number">${day}</div></div>`;
+            }
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function renderWeekView(container) {
+            container.innerHTML = '<div class="alert alert-info">Vista settimanale in sviluppo...</div>';
+        }
+
+        function getPrenotazioniForDay(date) {
+            const dateStr = date.toISOString().split('T')[0];
+            return prenotazioni.filter(p => {
+                const start = new Date(p.data_inizio).toISOString().split('T')[0];
+                const end = new Date(p.data_fine).toISOString().split('T')[0];
+                return dateStr >= start && dateStr <= end;
+            });
+        }
+
+        function getAssegnazioniForDay(date) {
+            const dateStr = date.toISOString().split('T')[0];
+            const risultato = assegnazioni.filter(a => {
+                const dataUscita = new Date(a.data_uscita).toISOString().split('T')[0];
+                const dataRientro = a.data_rientro ? 
+                    new Date(a.data_rientro).toISOString().split('T')[0] : 
+                    (a.data_rientro_prevista ? new Date(a.data_rientro_prevista).toISOString().split('T')[0] : null);
+                
+                // Se c'è data rientro, mostra nel range uscita-rientro
+                if (dataRientro) {
+                    return dateStr >= dataUscita && dateStr <= dataRientro;
+                }
+                // Se non c'è data rientro, mostra solo dalla data uscita in poi
+                return dateStr >= dataUscita;
+            });
+            
+            if (risultato.length > 0) {
+                console.log(`Trovate ${risultato.length} assegnazioni per ${dateStr}:`, risultato);
+            }
+            
+            return risultato;
+        }
+
+        function openNewPrenotazione() {
+            document.getElementById('prenotazioneForm').reset();
+            document.getElementById('prenotazioneId').value = '';
+            document.getElementById('prenotazioneTipo').value = currentTab;
+            document.getElementById('modalTitle').textContent = `Nuova Prenotazione ${currentTab === 'materiali' ? 'Materiale' : 'Mezzo'}`;
+            document.getElementById('statoGroup').style.display = 'none';
+            document.getElementById('modalAlert').innerHTML = '';
+            document.getElementById('disponibilitaInfo').innerHTML = '';
+            
+            if (currentTab === 'materiali') {
+                document.getElementById('campiMateriali').style.display = 'block';
+                document.getElementById('campiMezzi').style.display = 'none';
+                document.getElementById('eventoMissioneLabel').textContent = 'Evento/Esercitazione *';
+                document.getElementById('richiedenteGroup').style.display = 'block';
+                document.getElementById('dataInizio').type = 'date';
+                document.getElementById('dataFine').type = 'date';
+            } else {
+                document.getElementById('campiMateriali').style.display = 'none';
+                document.getElementById('campiMezzi').style.display = 'block';
+                document.getElementById('eventoMissioneLabel').textContent = 'Missione *';
+                document.getElementById('richiedenteGroup').style.display = 'none';
+                document.getElementById('dataInizio').type = 'datetime-local';
+                document.getElementById('dataFine').type = 'datetime-local';
+            }
+            
+            document.getElementById('prenotazioneModal').classList.add('show');
+        }
+
+        function openDayPrenotazioni(dateStr) {
+            const date = new Date(dateStr);
+            const prenotazioniDay = getPrenotazioniForDay(date);
+            
+            if (prenotazioniDay.length === 0) {
+                openNewPrenotazione();
+                document.getElementById('dataInizio').value = date.toISOString().split('T')[0];
+                document.getElementById('dataFine').value = date.toISOString().split('T')[0];
+            } else {
+                viewPrenotazioniLista(prenotazioniDay);
+            }
+        }
+
+        async function editPrenotazione(id) {
+            try {
+                const token = localStorage.getItem('warehouse_auth_token');
+                const endpoint = currentTab === 'materiali' ? 
+                    'prenotazioni-materiali' : 'prenotazioni-mezzi';
+                
+                const response = await fetch(`${API_BASE}/${endpoint}/${id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    const prenotazione = await response.json();
+                    
+                    document.getElementById('prenotazioneId').value = prenotazione.id;
+                    document.getElementById('prenotazioneTipo').value = currentTab;
+                    document.getElementById('modalTitle').textContent = `Modifica Prenotazione`;
+                    document.getElementById('statoGroup').style.display = 'block';
+                    
+                    if (currentTab === 'materiali') {
+                        document.getElementById('campiMateriali').style.display = 'block';
+                        document.getElementById('campiMezzi').style.display = 'none';
+                        document.getElementById('materiale').value = prenotazione.materiale_id;
+                        document.getElementById('quantita').value = prenotazione.quantita;
+                        document.getElementById('richiedente').value = prenotazione.richiedente;
+                        document.getElementById('dataInizio').type = 'date';
+                        document.getElementById('dataFine').type = 'date';
+                        document.getElementById('dataInizio').value = prenotazione.data_inizio;
+                        document.getElementById('dataFine').value = prenotazione.data_fine;
+                        document.getElementById('eventoMissione').value = prenotazione.evento;
+                    } else {
+                        document.getElementById('campiMateriali').style.display = 'none';
+                        document.getElementById('campiMezzi').style.display = 'block';
+                        document.getElementById('veicolo').value = prenotazione.veicolo_id;
+                        document.getElementById('conducente').value = prenotazione.conducente || '';
+                        document.getElementById('destinazione').value = prenotazione.destinazione || '';
+                        document.getElementById('dataInizio').type = 'datetime-local';
+                        document.getElementById('dataFine').type = 'datetime-local';
+                        document.getElementById('dataInizio').value = prenotazione.data_inizio.substring(0, 16);
+                        document.getElementById('dataFine').value = prenotazione.data_fine.substring(0, 16);
+                        document.getElementById('eventoMissione').value = prenotazione.missione;
+                    }
+                    
+                    document.getElementById('note').value = prenotazione.note || '';
+                    document.getElementById('stato').value = prenotazione.stato;
+                    
+                    document.getElementById('prenotazioneModal').classList.add('show');
+                }
+            } catch (error) {
+                console.error('Errore caricamento prenotazione:', error);
+            }
+        }
+
+        async function checkDisponibilita() {
+            const dataInizio = document.getElementById('dataInizio').value;
+            const dataFine = document.getElementById('dataFine').value;
+            const infoDiv = document.getElementById('disponibilitaInfo');
+            
+            if (!dataInizio || !dataFine) {
+                infoDiv.innerHTML = '';
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('warehouse_auth_token');
+                const tipo = document.getElementById('prenotazioneTipo').value;
+                const endpoint = tipo === 'materiali' ? 'prenotazioni-materiali' : 'prenotazioni-mezzi';
+                
+                let url = `${API_BASE}/${endpoint}/check-disponibilita?data_inizio=${dataInizio}&data_fine=${dataFine}`;
+                
+                if (tipo === 'materiali') {
+                    const materialeId = document.getElementById('materiale').value;
+                    const quantita = document.getElementById('quantita').value;
+                    if (materialeId && quantita) {
+                        url += `&materiale_id=${materialeId}&quantita=${quantita}`;
+                        const excludeId = document.getElementById('prenotazioneId').value;
+                        if (excludeId) url += `&exclude_id=${excludeId}`;
+                    } else {
+                        infoDiv.innerHTML = '';
+                        return;
+                    }
+                } else {
+                    const veicoloId = document.getElementById('veicolo').value;
+                    if (veicoloId) {
+                        url += `&veicolo_id=${veicoloId}`;
+                        const excludeId = document.getElementById('prenotazioneId').value;
+                        if (excludeId) url += `&exclude_id=${excludeId}`;
+                    } else {
+                        infoDiv.innerHTML = '';
+                        return;
+                    }
+                }
+                
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    
+                    if (result.disponibile) {
+                        infoDiv.innerHTML = `
+                            <div class="disponibilita-info">
+                                ✅ ${tipo === 'materiali' ? 
+                                    `Disponibili ${result.quantita_disponibile} unità` : 
+                                    'Veicolo disponibile'}
+                            </div>
+                        `;
+                    } else {
+                        infoDiv.innerHTML = `
+                            <div class="disponibilita-info error">
+                                ❌ ${tipo === 'materiali' ? 
+                                    `Solo ${result.quantita_disponibile} unità disponibili (richieste: ${result.quantita_richiesta})` : 
+                                    result.motivo}
+                            </div>
+                        `;
+                    }
+                }
+            } catch (error) {
+                console.error('Errore verifica disponibilità:', error);
+            }
+        }
+
+        async function savePrenotazione(event) {
+            event.preventDefault();
+            
+            const id = document.getElementById('prenotazioneId').value;
+            const tipo = document.getElementById('prenotazioneTipo').value;
+            const token = localStorage.getItem('warehouse_auth_token');
+            const endpoint = tipo === 'materiali' ? 'prenotazioni-materiali' : 'prenotazioni-mezzi';
+            
+            let data = {
+                data_inizio: document.getElementById('dataInizio').value,
+                data_fine: document.getElementById('dataFine').value,
+                note: document.getElementById('note').value,
+                created_by: userId
+            };
+            
+            if (tipo === 'materiali') {
+                data.materiale_id = parseInt(document.getElementById('materiale').value);
+                data.quantita = parseInt(document.getElementById('quantita').value);
+                data.evento = document.getElementById('eventoMissione').value;
+                data.richiedente = document.getElementById('richiedente').value;
+            } else {
+                data.veicolo_id = parseInt(document.getElementById('veicolo').value);
+                data.missione = document.getElementById('eventoMissione').value;
+                data.conducente = document.getElementById('conducente').value;
+                data.destinazione = document.getElementById('destinazione').value;
+            }
+            
+            if (id) {
+                data.stato = document.getElementById('stato').value;
+            }
+            
+            try {
+                const url = id ? `${API_BASE}/${endpoint}/${id}` : `${API_BASE}/${endpoint}`;
+                const method = id ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    showAlert('Prenotazione salvata con successo!', 'success');
+                    closeModal();
+                    loadPrenotazioni();
+                } else {
+                    const error = await response.json();
+                    showAlert(error.error || 'Errore nel salvataggio', 'error');
+                }
+            } catch (error) {
+                console.error('Errore salvataggio:', error);
+                showAlert('Errore di connessione', 'error');
+            }
+        }
+
+        async function deletePrenotazione(id) {
+            if (!confirm('Sei sicuro di voler eliminare questa prenotazione?')) return;
+            
+            try {
+                const token = localStorage.getItem('warehouse_auth_token');
+                const endpoint = currentTab === 'materiali' ? 
+                    'prenotazioni-materiali' : 'prenotazioni-mezzi';
+                
+                const response = await fetch(`${API_BASE}/${endpoint}/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    loadPrenotazioni();
+                    closeListaModal();
+                }
+            } catch (error) {
+                console.error('Errore eliminazione:', error);
+            }
+        }
+
+        function viewPrenotazioniLista(filteredPrenotazioni = null) {
+            const lista = filteredPrenotazioni || prenotazioni;
+            const container = document.getElementById('listaPrenotazioni');
+            
+            if (lista.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#666;">Nessuna prenotazione trovata</p>';
+            } else {
+                container.innerHTML = lista.map(p => {
+                    const isAdmin = userRole === 'admin';
+                    return `
+                        <div class="prenotazione-card">
+                            <div class="prenotazione-header">
+                                <div class="prenotazione-title">
+                                    ${currentTab === 'materiali' ? 
+                                        `${p.materiale_codice} - ${p.materiale_nome} (${p.quantita} pz)` : 
+                                        `${p.targa} - ${p.tipo} ${p.modello}`}
+                                </div>
+                                <span class="stato-badge ${p.stato}">${p.stato.toUpperCase()}</span>
+                            </div>
+                            <div class="prenotazione-details">
+                                <strong>${currentTab === 'materiali' ? 'Evento' : 'Missione'}:</strong> ${currentTab === 'materiali' ? p.evento : p.missione}<br>
+                                <strong>Periodo:</strong> ${new Date(p.data_inizio).toLocaleDateString('it-IT')} - ${new Date(p.data_fine).toLocaleDateString('it-IT')}<br>
+                                ${currentTab === 'materiali' ? `<strong>Richiedente:</strong> ${p.richiedente}<br>` : ''}
+                                ${currentTab === 'mezzi' && p.conducente ? `<strong>Conducente:</strong> ${p.conducente}<br>` : ''}
+                                ${currentTab === 'mezzi' && p.destinazione ? `<strong>Destinazione:</strong> ${p.destinazione}<br>` : ''}
+                                ${p.note ? `<strong>Note:</strong> ${p.note}<br>` : ''}
+                                <strong>Creata da:</strong> ${p.creato_da_username || 'N/A'}
+                            </div>
+                            ${isAdmin ? `
+                                <div class="prenotazione-actions">
+                                    <button class="btn btn-primary btn-sm" onclick="editPrenotazione(${p.id})">✏️ Modifica</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="deletePrenotazione(${p.id})">🗑️ Elimina</button>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            document.getElementById('listaModal').classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('prenotazioneModal').classList.remove('show');
+        }
+
+        function closeListaModal() {
+            document.getElementById('listaModal').classList.remove('show');
+        }
+
+        function showAlert(message, type) {
+            const alertDiv = document.getElementById('modalAlert');
+            alertDiv.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            setTimeout(() => alertDiv.innerHTML = '', 3000);
+        }
+
+        // Listeners
+        document.getElementById('materiale')?.addEventListener('change', checkDisponibilita);
+        document.getElementById('quantita')?.addEventListener('input', checkDisponibilita);
+        document.getElementById('veicolo')?.addEventListener('change', checkDisponibilita);
+    </script>
+</body>
+</html>

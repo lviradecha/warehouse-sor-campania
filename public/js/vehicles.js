@@ -170,6 +170,9 @@ const VehiclesPage = {
                                     <button class="btn btn-sm btn-primary" onclick="VehiclesPage.showEditVehicleModal(${v.id})" title="Modifica">
                                         ✏️
                                     </button>
+                                    <button class="btn btn-sm btn-danger" onclick="VehiclesPage.showDeleteVehicleModal(${v.id}, '${v.targa}')" title="Elimina">
+                                        🗑️
+                                    </button>
                                 ` : ''}
                                 ${v.stato === 'disponibile' ? `
                                     <button class="btn btn-sm btn-success" onclick="VehiclesPage.showAssignVehicleModal(${v.id})" title="Assegna">
@@ -433,6 +436,61 @@ const VehiclesPage = {
             UI.showModal(modalContent);
         } catch (error) {
             UI.showToast(error.message, 'error');
+        } finally {
+            UI.hideLoading();
+        }
+    },
+    
+    async showDeleteVehicleModal(id, targa) {
+        if (!this.isAdmin) {
+            UI.showToast('Solo gli amministratori possono eliminare automezzi', 'error');
+            return;
+        }
+        
+        const modalContent = `
+            <h3 style="color: #d32f2f;">⚠️ Elimina Automezzo</h3>
+            <div class="alert alert-warning mb-3">
+                <strong>Attenzione!</strong> Stai per eliminare l'automezzo:
+                <div style="font-size: 1.2em; margin-top: 10px;">
+                    <strong>${targa}</strong>
+                </div>
+            </div>
+            
+            <div class="alert alert-info mb-3">
+                <strong>ℹ️ Informazioni importanti:</strong>
+                <ul style="margin-top: 10px; margin-bottom: 0;">
+                    <li>L'automezzo verrà rimosso dal sistema</li>
+                    <li>I dati storici (rifornimenti, manutenzioni) verranno <strong>mantenuti</strong> per le statistiche</li>
+                    <li>Non sarà possibile eliminare se ci sono assegnazioni attive</li>
+                    <li>Questa operazione <strong>non può essere annullata</strong></li>
+                </ul>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <p><strong>Sei sicuro di voler procedere con l'eliminazione?</strong></p>
+                <div class="d-flex gap-2 mt-3">
+                    <button type="button" class="btn btn-danger" onclick="VehiclesPage.confirmDeleteVehicle(${id}, '${targa}')">
+                        🗑️ Sì, Elimina Definitivamente
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="UI.closeModal()">
+                        Annulla
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        UI.showModal(modalContent);
+    },
+    
+    async confirmDeleteVehicle(id, targa) {
+        try {
+            UI.showLoading();
+            await API.vehicles.delete(id);
+            UI.closeModal();
+            UI.showToast(`Automezzo ${targa} eliminato con successo. I dati storici sono stati mantenuti.`, 'success');
+            await this.loadVehicles();
+        } catch (error) {
+            UI.showToast(error.message || 'Errore durante l\'eliminazione dell\'automezzo', 'error');
         } finally {
             UI.hideLoading();
         }
@@ -910,14 +968,414 @@ const VehiclesPage = {
         
         container.innerHTML = `
             <div class="card">
-                <div class="card-header">
-                    <h3>Manutenzioni Automezzi</h3>
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3>🔧 Manutenzioni Automezzi</h3>
+                    <div style="display: flex; gap: 10px;">
+                        <select id="maintenanceStatusFilter" class="form-control" style="width: 200px;">
+                            <option value="">Tutti gli stati</option>
+                            <option value="programmata">Programmata</option>
+                            <option value="in_corso">In Corso</option>
+                            <option value="completata">Completata</option>
+                            <option value="annullata">Annullata</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="VehiclesPage.showAddMaintenanceModal()">
+                            ➕ Nuova Manutenzione
+                        </button>
+                    </div>
                 </div>
-                <div class="p-3 text-center text-muted">
-                    📋 Funzionalità manutenzioni in sviluppo
-                </div>
+                <div id="maintenanceTableContainer"></div>
             </div>
         `;
+        
+        // Aggiungi event listener per il filtro
+        document.getElementById('maintenanceStatusFilter').addEventListener('change', (e) => {
+            this.loadMaintenance(e.target.value);
+        });
+        
+        await this.loadMaintenance();
+    },
+    
+    async loadMaintenance(statoFilter = '') {
+        try {
+            UI.showLoading();
+            const params = statoFilter ? { stato: statoFilter } : {};
+            
+            // Chiamata API - usa l'endpoint corretto
+            const response = await fetch(`/api/automezzi/manutenzioni?${new URLSearchParams(params)}`, {
+                headers: AuthManager.getAuthHeaders()
+            });
+            
+            if (!response.ok) throw new Error('Errore nel caricamento');
+            
+            const maintenance = await response.json();
+            this.renderMaintenanceTable(maintenance);
+        } catch (error) {
+            UI.showToast('Errore nel caricamento delle manutenzioni', 'error');
+            document.getElementById('maintenanceTableContainer').innerHTML = 
+                '<div class="p-3 text-center text-danger">Errore nel caricamento</div>';
+        } finally {
+            UI.hideLoading();
+        }
+    },
+    
+    renderMaintenanceTable(maintenance) {
+        const container = document.getElementById('maintenanceTableContainer');
+        
+        if (maintenance.length === 0) {
+            container.innerHTML = '<div class="p-3 text-center">Nessuna manutenzione trovata</div>';
+            return;
+        }
+        
+        container.innerHTML = `
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Automezzo</th>
+                        <th>Tipo</th>
+                        <th>Descrizione</th>
+                        <th>Data Programmata</th>
+                        <th>Km Manutenzione</th>
+                        <th>Stato</th>
+                        <th>Costo</th>
+                        <th>Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${maintenance.map(m => {
+                        const statoBadge = this.getMaintenanceStateBadge(m.stato);
+                        return `
+                            <tr>
+                                <td><strong>${m.vehicle_targa}</strong><br><small>${m.vehicle_tipo}</small></td>
+                                <td>${m.tipo}</td>
+                                <td>${m.descrizione || '-'}</td>
+                                <td>${m.data_programmata ? UI.formatDate(m.data_programmata) : '-'}</td>
+                                <td>${m.km_manutenzione ? m.km_manutenzione.toLocaleString() + ' km' : '-'}</td>
+                                <td>${statoBadge}</td>
+                                <td>${m.costo ? UI.formatCurrency(m.costo) : '-'}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-secondary" onclick="VehiclesPage.showMaintenanceDetails(${m.id})" title="Dettagli">
+                                        👁️
+                                    </button>
+                                    ${m.stato === 'programmata' ? `
+                                        <button class="btn btn-sm btn-warning" onclick="VehiclesPage.showStartMaintenanceModal(${m.id})" title="Inizia">
+                                            ▶️
+                                        </button>
+                                    ` : ''}
+                                    ${m.stato === 'in_corso' ? `
+                                        <button class="btn btn-sm btn-success" onclick="VehiclesPage.showCompleteMaintenanceModal(${m.id})" title="Completa">
+                                            ✓
+                                        </button>
+                                    ` : ''}
+                                </td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        `;
+    },
+    
+    getMaintenanceStateBadge(stato) {
+        const badges = {
+            'programmata': '<span class="badge badge-info">Programmata</span>',
+            'in_corso': '<span class="badge badge-warning">In Corso</span>',
+            'completata': '<span class="badge badge-success">Completata</span>',
+            'annullata': '<span class="badge badge-danger">Annullata</span>'
+        };
+        return badges[stato] || '<span class="badge badge-secondary">-</span>';
+    },
+    
+    async showAddMaintenanceModal() {
+        try {
+            UI.showLoading();
+            const vehicles = await API.vehicles.getAll();
+            UI.hideLoading();
+            
+            const modalContent = `
+                <h3>Nuova Manutenzione</h3>
+                <form id="addMaintenanceForm">
+                    <div class="form-group">
+                        <label>Automezzo *</label>
+                        <select name="vehicle_id" required class="form-control">
+                            <option value="">Seleziona automezzo...</option>
+                            ${vehicles.map(v => `
+                                <option value="${v.id}">${v.targa} - ${v.tipo} ${v.modello}</option>
+                            `).join('')}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Tipo Manutenzione *</label>
+                        <select name="tipo" required class="form-control">
+                            <option value="">Seleziona tipo...</option>
+                            <option value="Ordinaria">🔧 Ordinaria</option>
+                            <option value="Straordinaria">⚠️ Straordinaria</option>
+                            <option value="Revisione">📋 Revisione</option>
+                            <option value="Tagliando">🛠️ Tagliando</option>
+                            <option value="Riparazione">🔨 Riparazione</option>
+                            <option value="Pneumatici">🛞 Pneumatici</option>
+                            <option value="Carrozzeria">🚗 Carrozzeria</option>
+                            <option value="Altro">📦 Altro</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Descrizione *</label>
+                        <textarea name="descrizione" required class="form-control" rows="3" 
+                                  placeholder="Descrivi l'intervento di manutenzione"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Data Programmata</label>
+                        <input type="date" name="data_programmata" class="form-control">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Km Manutenzione</label>
+                        <input type="number" name="km_manutenzione" class="form-control" 
+                               min="0" step="1" placeholder="Es: 50000">
+                        <small class="text-muted">Chilometraggio previsto per la manutenzione</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Fornitore/Officina</label>
+                        <input type="text" name="fornitore" class="form-control" 
+                               placeholder="Es: Officina Auto CRI">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Note</label>
+                        <textarea name="note" class="form-control" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="d-flex gap-2 mt-3">
+                        <button type="submit" class="btn btn-primary">Crea Manutenzione</button>
+                        <button type="button" class="btn btn-secondary" onclick="UI.closeModal()">Annulla</button>
+                    </div>
+                </form>
+            `;
+            
+            UI.showModal(modalContent);
+            
+            document.getElementById('addMaintenanceForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const data = Object.fromEntries(formData);
+                
+                try {
+                    UI.showLoading();
+                    const response = await fetch('/api/automezzi/manutenzioni', {
+                        method: 'POST',
+                        headers: AuthManager.getAuthHeaders(),
+                        body: JSON.stringify(data)
+                    });
+                    
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Errore nella creazione');
+                    }
+                    
+                    UI.closeModal();
+                    UI.showToast('Manutenzione creata con successo', 'success');
+                    await this.loadMaintenance();
+                } catch (error) {
+                    UI.showToast(error.message, 'error');
+                } finally {
+                    UI.hideLoading();
+                }
+            });
+        } catch (error) {
+            UI.showToast(error.message, 'error');
+            UI.hideLoading();
+        }
+    },
+    
+    async showMaintenanceDetails(id) {
+        try {
+            UI.showLoading();
+            const response = await fetch(`/api/automezzi/manutenzioni/${id}`, {
+                headers: AuthManager.getAuthHeaders()
+            });
+            
+            if (!response.ok) throw new Error('Errore nel caricamento');
+            
+            const maintenance = await response.json();
+            UI.hideLoading();
+            
+            const modalContent = `
+                <h3>Dettagli Manutenzione</h3>
+                <div class="maintenance-details">
+                    <table class="table-details">
+                        <tr>
+                            <th>Automezzo:</th>
+                            <td><strong>${maintenance.vehicle_targa}</strong> - ${maintenance.vehicle_tipo}</td>
+                        </tr>
+                        <tr>
+                            <th>Tipo:</th>
+                            <td>${maintenance.tipo}</td>
+                        </tr>
+                        <tr>
+                            <th>Descrizione:</th>
+                            <td>${maintenance.descrizione}</td>
+                        </tr>
+                        <tr>
+                            <th>Data Programmata:</th>
+                            <td>${maintenance.data_programmata ? UI.formatDate(maintenance.data_programmata) : '-'}</td>
+                        </tr>
+                        <tr>
+                            <th>Km Manutenzione:</th>
+                            <td>${maintenance.km_manutenzione ? maintenance.km_manutenzione.toLocaleString() + ' km' : '-'}</td>
+                        </tr>
+                        <tr>
+                            <th>Stato:</th>
+                            <td>${this.getMaintenanceStateBadge(maintenance.stato)}</td>
+                        </tr>
+                        <tr>
+                            <th>Fornitore:</th>
+                            <td>${maintenance.fornitore || '-'}</td>
+                        </tr>
+                        <tr>
+                            <th>Data Inizio:</th>
+                            <td>${maintenance.data_inizio ? UI.formatDate(maintenance.data_inizio) : '-'}</td>
+                        </tr>
+                        <tr>
+                            <th>Data Completamento:</th>
+                            <td>${maintenance.data_completamento ? UI.formatDate(maintenance.data_completamento) : '-'}</td>
+                        </tr>
+                        <tr>
+                            <th>Costo:</th>
+                            <td>${maintenance.costo ? UI.formatCurrency(maintenance.costo) : '-'}</td>
+                        </tr>
+                        <tr>
+                            <th>Note:</th>
+                            <td>${maintenance.note || '-'}</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <button type="button" class="btn btn-secondary mt-3" onclick="UI.closeModal()">Chiudi</button>
+            `;
+            
+            UI.showModal(modalContent);
+        } catch (error) {
+            UI.showToast(error.message, 'error');
+            UI.hideLoading();
+        }
+    },
+    
+    async showStartMaintenanceModal(id) {
+        const modalContent = `
+            <h3>Inizia Manutenzione</h3>
+            <form id="startMaintenanceForm">
+                <div class="form-group">
+                    <label>Data Inizio *</label>
+                    <input type="date" name="data_inizio" required class="form-control" 
+                           value="${new Date().toISOString().split('T')[0]}">
+                </div>
+                
+                <div class="form-group">
+                    <label>Note Inizio</label>
+                    <textarea name="note" class="form-control" rows="3"></textarea>
+                </div>
+                
+                <div class="d-flex gap-2 mt-3">
+                    <button type="submit" class="btn btn-warning">Inizia Manutenzione</button>
+                    <button type="button" class="btn btn-secondary" onclick="UI.closeModal()">Annulla</button>
+                </div>
+            </form>
+        `;
+        
+        UI.showModal(modalContent);
+        
+        document.getElementById('startMaintenanceForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData);
+            data.stato = 'in_corso';
+            
+            try {
+                UI.showLoading();
+                const response = await fetch(`/api/automezzi/manutenzioni/${id}`, {
+                    method: 'PATCH',
+                    headers: AuthManager.getAuthHeaders(),
+                    body: JSON.stringify(data)
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Errore nell\'avvio');
+                }
+                
+                UI.closeModal();
+                UI.showToast('Manutenzione avviata', 'success');
+                await this.loadMaintenance();
+            } catch (error) {
+                UI.showToast(error.message, 'error');
+            } finally {
+                UI.hideLoading();
+            }
+        });
+    },
+    
+    async showCompleteMaintenanceModal(id) {
+        const modalContent = `
+            <h3>Completa Manutenzione</h3>
+            <form id="completeMaintenanceForm">
+                <div class="form-group">
+                    <label>Data Completamento *</label>
+                    <input type="date" name="data_completamento" required class="form-control" 
+                           value="${new Date().toISOString().split('T')[0]}">
+                </div>
+                
+                <div class="form-group">
+                    <label>Costo (€) *</label>
+                    <input type="number" name="costo" required class="form-control" 
+                           min="0" step="0.01" placeholder="Es: 250.00">
+                </div>
+                
+                <div class="form-group">
+                    <label>Note Completamento</label>
+                    <textarea name="note" class="form-control" rows="3" 
+                              placeholder="Lavori eseguiti, parti sostituite, etc."></textarea>
+                </div>
+                
+                <div class="d-flex gap-2 mt-3">
+                    <button type="submit" class="btn btn-success">Completa Manutenzione</button>
+                    <button type="button" class="btn btn-secondary" onclick="UI.closeModal()">Annulla</button>
+                </div>
+            </form>
+        `;
+        
+        UI.showModal(modalContent);
+        
+        document.getElementById('completeMaintenanceForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData);
+            data.stato = 'completata';
+            
+            try {
+                UI.showLoading();
+                const response = await fetch(`/api/automezzi/manutenzioni/${id}`, {
+                    method: 'PATCH',
+                    headers: AuthManager.getAuthHeaders(),
+                    body: JSON.stringify(data)
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Errore nel completamento');
+                }
+                
+                UI.closeModal();
+                UI.showToast('Manutenzione completata con successo', 'success');
+                await this.loadMaintenance();
+            } catch (error) {
+                UI.showToast(error.message, 'error');
+            } finally {
+                UI.hideLoading();
+            }
+        });
     }
 };
 

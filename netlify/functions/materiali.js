@@ -158,6 +158,11 @@ exports.handler = async (event) => {
                 return errorResponse('Codice a barre già esistente');
             }
 
+            // Gestione data_acquisto: converti stringa vuota in NULL
+            const dataAcquistoValue = data.data_acquisto && data.data_acquisto.trim() !== '' 
+                ? data.data_acquisto 
+                : null;
+
             // Inserimento materiale
             const material = await queryOne(
                 `INSERT INTO materials (
@@ -173,7 +178,7 @@ exports.handler = async (event) => {
                     data.quantita || 1,
                     0, // quantita_assegnata iniziale = 0
                     data.stato || 'disponibile',
-                    data.data_acquisto || null,
+                    dataAcquistoValue,
                     data.fornitore || null,
                     data.costo || null,
                     data.posizione_magazzino || null,
@@ -215,6 +220,11 @@ exports.handler = async (event) => {
                 }
             }
 
+            // Gestione data_acquisto: converti stringa vuota in NULL
+            const dataAcquistoValue = data.data_acquisto && data.data_acquisto.trim() !== '' 
+                ? data.data_acquisto 
+                : null;
+
             // Aggiornamento
             const material = await queryOne(
                 `UPDATE materials SET
@@ -237,7 +247,7 @@ exports.handler = async (event) => {
                     data.descrizione,
                     data.categoria_id,
                     data.quantita,
-                    data.data_acquisto,
+                    dataAcquistoValue,
                     data.fornitore,
                     data.costo,
                     data.posizione_magazzino,

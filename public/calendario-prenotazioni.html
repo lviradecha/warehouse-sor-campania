@@ -958,6 +958,12 @@
                 document.getElementById('richiedenteGroup').style.display = 'block';
                 document.getElementById('dataInizio').type = 'date';
                 document.getElementById('dataFine').type = 'date';
+                
+                // Abilita required per materiali
+                document.getElementById('materiale').required = true;
+                document.getElementById('quantita').required = true;
+                // Disabilita required per mezzi
+                document.getElementById('veicolo').required = false;
             } else {
                 document.getElementById('campiMateriali').style.display = 'none';
                 document.getElementById('campiMezzi').style.display = 'block';
@@ -965,6 +971,12 @@
                 document.getElementById('richiedenteGroup').style.display = 'none';
                 document.getElementById('dataInizio').type = 'datetime-local';
                 document.getElementById('dataFine').type = 'datetime-local';
+                
+                // Abilita required per mezzi
+                document.getElementById('veicolo').required = true;
+                // Disabilita required per materiali
+                document.getElementById('materiale').required = false;
+                document.getElementById('quantita').required = false;
             }
             
             document.getElementById('prenotazioneModal').classList.add('show');
@@ -1012,6 +1024,12 @@
                         document.getElementById('dataInizio').value = prenotazione.data_inizio;
                         document.getElementById('dataFine').value = prenotazione.data_fine;
                         document.getElementById('eventoMissione').value = prenotazione.evento;
+                        
+                        // Abilita required per materiali
+                        document.getElementById('materiale').required = true;
+                        document.getElementById('quantita').required = true;
+                        // Disabilita required per mezzi
+                        document.getElementById('veicolo').required = false;
                     } else {
                         document.getElementById('campiMateriali').style.display = 'none';
                         document.getElementById('campiMezzi').style.display = 'block';
@@ -1023,6 +1041,12 @@
                         document.getElementById('dataInizio').value = prenotazione.data_inizio.substring(0, 16);
                         document.getElementById('dataFine').value = prenotazione.data_fine.substring(0, 16);
                         document.getElementById('eventoMissione').value = prenotazione.missione;
+                        
+                        // Abilita required per mezzi
+                        document.getElementById('veicolo').required = true;
+                        // Disabilita required per materiali
+                        document.getElementById('materiale').required = false;
+                        document.getElementById('quantita').required = false;
                     }
                     
                     document.getElementById('note').value = prenotazione.note || '';

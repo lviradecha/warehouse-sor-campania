@@ -346,6 +346,58 @@
             gap: 10px;
         }
 
+        /* Stili lista materiali */
+        .materiale-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            margin-bottom: 8px;
+        }
+
+        .materiale-item-info {
+            flex: 1;
+        }
+
+        .materiale-item-nome {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .materiale-item-dettagli {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .materiale-item-remove {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .materiale-item-remove:hover {
+            background: #c82333;
+        }
+
+        #materialiSelezionati:empty::before {
+            content: 'Nessun materiale selezionato';
+            display: block;
+            padding: 20px;
+            text-align: center;
+            color: #999;
+            font-style: italic;
+            border: 2px dashed #ddd;
+            border-radius: 5px;
+        }
+
         @media (max-width: 768px) {
             .calendar {
                 gap: 2px;
@@ -469,19 +521,22 @@
                 <input type="hidden" id="prenotazioneTipo">
 
                 <!-- Campi Materiali -->
-                <div id="campiMateriali">
-                    <div class="form-group">
-                        <label for="materiale">Materiale *</label>
-                        <select id="materiale" class="form-control" required>
-                            <option value="">Seleziona materiale...</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="quantita">Quantità *</label>
-                        <input type="number" id="quantita" class="form-control" min="1" required>
-                    </div>
-                </div>
+<div id="campiMateriali">
+    <div class="form-group">
+        <label>Materiali da Prenotare</label>
+        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+            <select id="materialeSelect" class="form-control" style="flex: 1;">
+                <option value="">Seleziona materiale...</option>
+            </select>
+            <input type="number" id="quantitaInput" class="form-control" 
+                   placeholder="Quantità" min="1" style="width: 120px;">
+            <button type="button" class="btn btn-secondary" onclick="aggiungiMateriale()">
+                + Aggiungi
+            </button>
+        </div>
+        <div id="materialiSelezionati"></div>
+    </div>
+</div>
 
                 <!-- Campi Mezzi -->
                 <div id="campiMezzi" style="display:none;">
@@ -573,6 +628,7 @@
         let veicoli = [];
         let userRole = '';
         let userId = null;
+        let materialiSelezionati = []; // Array per materiali selezionati nella prenotazione
 
         // Inizializzazione
         document.addEventListener('DOMContentLoaded', async () => {
@@ -751,11 +807,14 @@
         }
 
         function updateMaterialiSelect() {
-            const select = document.getElementById('materiale');
+            const select = document.getElementById('materialeSelect');
+            if (!select) return;
             select.innerHTML = '<option value="">Seleziona materiale...</option>';
             materiali.forEach(m => {
                 const disponibile = (m.quantita || 0) - (m.quantita_assegnata || 0);
-                select.innerHTML += `<option value="${m.id}">${m.codice_barre || m.id} - ${m.nome} (Disp: ${disponibile})</option>`;
+                select.innerHTML += `<option value="${m.id}" data-nome="${m.nome}" data-codice="${m.codice_barre || m.id}" data-disponibile="${disponibile}">
+                    ${m.codice_barre || m.id} - ${m.nome} (Disp: ${disponibile})
+                </option>`;
             });
         }
 
@@ -765,6 +824,88 @@
             veicoli.forEach(v => {
                 select.innerHTML += `<option value="${v.id}">${v.targa} - ${v.tipo} ${v.modello}</option>`;
             });
+        }
+
+        // Funzioni gestione materiali multipli
+        function aggiungiMateriale() {
+            const selectElement = document.getElementById('materialeSelect');
+            const quantitaInput = document.getElementById('quantitaInput');
+            
+            const materialeId = selectElement.value;
+            const quantita = parseInt(quantitaInput.value);
+            
+            if (!materialeId) {
+                alert('Seleziona un materiale');
+                return;
+            }
+            
+            if (!quantita || quantita < 1) {
+                alert('Inserisci una quantità valida');
+                return;
+            }
+            
+            // Controlla se già presente
+            const esistente = materialiSelezionati.find(m => m.id === materialeId);
+            if (esistente) {
+                alert('Materiale già aggiunto. Rimuovilo prima se vuoi modificare la quantità.');
+                return;
+            }
+            
+            // Prendi i dati dal select
+            const option = selectElement.options[selectElement.selectedIndex];
+            const nome = option.getAttribute('data-nome');
+            const codice = option.getAttribute('data-codice');
+            const disponibile = parseInt(option.getAttribute('data-disponibile'));
+            
+            // Verifica disponibilità
+            if (quantita > disponibile) {
+                alert(`Quantità non disponibile. Disponibili: ${disponibile}`);
+                return;
+            }
+            
+            // Aggiungi alla lista
+            materialiSelezionati.push({
+                id: materialeId,
+                nome: nome,
+                codice: codice,
+                quantita: quantita,
+                disponibile: disponibile
+            });
+            
+            // Reset input
+            selectElement.value = '';
+            quantitaInput.value = '';
+            
+            // Aggiorna visualizzazione
+            renderMaterialiSelezionati();
+        }
+
+        function rimuoviMateriale(materialeId) {
+            materialiSelezionati = materialiSelezionati.filter(m => m.id !== materialeId);
+            renderMaterialiSelezionati();
+        }
+
+        function renderMaterialiSelezionati() {
+            const container = document.getElementById('materialiSelezionati');
+            
+            if (materialiSelezionati.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+            
+            container.innerHTML = materialiSelezionati.map(m => `
+                <div class="materiale-item">
+                    <div class="materiale-item-info">
+                        <div class="materiale-item-nome">${m.codice} - ${m.nome}</div>
+                        <div class="materiale-item-dettagli">
+                            Quantità: ${m.quantita} | Disponibili: ${m.disponibile}
+                        </div>
+                    </div>
+                    <button type="button" class="materiale-item-remove" onclick="rimuoviMateriale('${m.id}')">
+                        ✕ Rimuovi
+                    </button>
+                </div>
+            `).join('');
         }
 
         async function loadPrenotazioni() {
@@ -951,6 +1092,10 @@
             document.getElementById('modalAlert').innerHTML = '';
             document.getElementById('disponibilitaInfo').innerHTML = '';
             
+            // Reset lista materiali
+            materialiSelezionati = [];
+            renderMaterialiSelezionati();
+            
             if (currentTab === 'materiali') {
                 document.getElementById('campiMateriali').style.display = 'block';
                 document.getElementById('campiMezzi').style.display = 'none';
@@ -959,9 +1104,6 @@
                 document.getElementById('dataInizio').type = 'date';
                 document.getElementById('dataFine').type = 'date';
                 
-                // Abilita required per materiali
-                document.getElementById('materiale').required = true;
-                document.getElementById('quantita').required = true;
                 // Disabilita required per mezzi
                 document.getElementById('veicolo').required = false;
             } else {
@@ -974,9 +1116,6 @@
                 
                 // Abilita required per mezzi
                 document.getElementById('veicolo').required = true;
-                // Disabilita required per materiali
-                document.getElementById('materiale').required = false;
-                document.getElementById('quantita').required = false;
             }
             
             document.getElementById('prenotazioneModal').classList.add('show');
@@ -1016,8 +1155,17 @@
                     if (currentTab === 'materiali') {
                         document.getElementById('campiMateriali').style.display = 'block';
                         document.getElementById('campiMezzi').style.display = 'none';
-                        document.getElementById('materiale').value = prenotazione.materiale_id;
-                        document.getElementById('quantita').value = prenotazione.quantita;
+                        
+                        // Carica il materiale nella lista
+                        materialiSelezionati = [{
+                            id: String(prenotazione.materiale_id),
+                            nome: prenotazione.materiale_nome || 'Materiale',
+                            codice: prenotazione.materiale_codice || '',
+                            quantita: prenotazione.quantita,
+                            disponibile: prenotazione.quantita // Per modifica non serve validare
+                        }];
+                        renderMaterialiSelezionati();
+                        
                         document.getElementById('richiedente').value = prenotazione.richiedente;
                         document.getElementById('dataInizio').type = 'date';
                         document.getElementById('dataFine').type = 'date';
@@ -1025,9 +1173,6 @@
                         document.getElementById('dataFine').value = prenotazione.data_fine;
                         document.getElementById('eventoMissione').value = prenotazione.evento;
                         
-                        // Abilita required per materiali
-                        document.getElementById('materiale').required = true;
-                        document.getElementById('quantita').required = true;
                         // Disabilita required per mezzi
                         document.getElementById('veicolo').required = false;
                     } else {
@@ -1044,9 +1189,6 @@
                         
                         // Abilita required per mezzi
                         document.getElementById('veicolo').required = true;
-                        // Disabilita required per materiali
-                        document.getElementById('materiale').required = false;
-                        document.getElementById('quantita').required = false;
                     }
                     
                     document.getElementById('note').value = prenotazione.note || '';
@@ -1137,6 +1279,12 @@
             const token = localStorage.getItem('warehouse_auth_token');
             const endpoint = tipo === 'materiali' ? 'prenotazioni-materiali' : 'prenotazioni-mezzi';
             
+            // Validazione materiali multipli
+            if (tipo === 'materiali' && !id && materialiSelezionati.length === 0) {
+                showAlert('Aggiungi almeno un materiale alla prenotazione', 'error');
+                return;
+            }
+            
             let data = {
                 data_inizio: document.getElementById('dataInizio').value,
                 data_fine: document.getElementById('dataFine').value,
@@ -1145,10 +1293,14 @@
             };
             
             if (tipo === 'materiali') {
-                data.materiale_id = parseInt(document.getElementById('materiale').value);
-                data.quantita = parseInt(document.getElementById('quantita').value);
                 data.evento = document.getElementById('eventoMissione').value;
                 data.richiedente = document.getElementById('richiedente').value;
+                
+                // Se modifica, usa il primo materiale selezionato
+                if (id && materialiSelezionati.length > 0) {
+                    data.materiale_id = parseInt(materialiSelezionati[0].id);
+                    data.quantita = materialiSelezionati[0].quantita;
+                }
             } else {
                 data.veicolo_id = parseInt(document.getElementById('veicolo').value);
                 data.missione = document.getElementById('eventoMissione').value;
@@ -1161,25 +1313,70 @@
             }
             
             try {
-                const url = id ? `${API_BASE}/${endpoint}/${id}` : `${API_BASE}/${endpoint}`;
-                const method = id ? 'PUT' : 'POST';
-                
-                const response = await fetch(url, {
-                    method: method,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify(data)
-                });
-                
-                if (response.ok) {
-                    showAlert('Prenotazione salvata con successo!', 'success');
-                    closeModal();
-                    loadPrenotazioni();
+                // Se è materiali e non è modifica, salva materiali multipli
+                if (tipo === 'materiali' && !id) {
+                    let successCount = 0;
+                    let errors = [];
+                    
+                    for (const materiale of materialiSelezionati) {
+                        const materialeData = {
+                            ...data,
+                            materiale_id: parseInt(materiale.id),
+                            quantita: materiale.quantita
+                        };
+                        
+                        try {
+                            const response = await fetch(`${API_BASE}/${endpoint}`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${token}`
+                                },
+                                body: JSON.stringify(materialeData)
+                            });
+                            
+                            if (response.ok) {
+                                successCount++;
+                            } else {
+                                const error = await response.json();
+                                errors.push(`${materiale.nome}: ${error.error || 'Errore'}`);
+                            }
+                        } catch (err) {
+                            errors.push(`${materiale.nome}: Errore di connessione`);
+                        }
+                    }
+                    
+                    if (successCount > 0) {
+                        showAlert(`${successCount} prenotazioni create con successo!`, 'success');
+                        closeModal();
+                        loadPrenotazioni();
+                    }
+                    
+                    if (errors.length > 0) {
+                        showAlert(`Errori: ${errors.join(', ')}`, 'error');
+                    }
                 } else {
-                    const error = await response.json();
-                    showAlert(error.error || 'Errore nel salvataggio', 'error');
+                    // Modifica o prenotazione mezzo (singola)
+                    const url = id ? `${API_BASE}/${endpoint}/${id}` : `${API_BASE}/${endpoint}`;
+                    const method = id ? 'PUT' : 'POST';
+                    
+                    const response = await fetch(url, {
+                        method: method,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify(data)
+                    });
+                    
+                    if (response.ok) {
+                        showAlert('Prenotazione salvata con successo!', 'success');
+                        closeModal();
+                        loadPrenotazioni();
+                    } else {
+                        const error = await response.json();
+                        showAlert(error.error || 'Errore nel salvataggio', 'error');
+                    }
                 }
             } catch (error) {
                 console.error('Errore salvataggio:', error);

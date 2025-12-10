@@ -320,16 +320,11 @@ const AssignmentsPage = {
         try {
             UI.showLoading();
             
-            // Crea le assegnazioni (una per ogni materiale)
-            const promises = materials.map(mat => {
-                return API.assignments.create({
-                    ...commonData,
-                    material_id: mat.material_id,
-                    quantita: mat.quantita
-                });
+            // Crea UN'UNICA assegnazione con TUTTI i materiali (per email consolidata)
+            const result = await API.assignments.create({
+                ...commonData,
+                materials: materials // Invia array di materiali
             });
-            
-            await Promise.all(promises);
             
             UI.closeModal();
             UI.showToast(`${materials.length} assegnazione/i creata/e con successo`, 'success');

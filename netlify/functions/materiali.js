@@ -158,9 +158,22 @@ exports.handler = async (event) => {
                 return errorResponse('Codice a barre già esistente');
             }
 
-            // Gestione data_acquisto: converti stringa vuota in NULL
-            const dataAcquistoValue = data.data_acquisto && data.data_acquisto.trim() !== '' 
+            // Gestione data_acquisto: converti stringa vuota/undefined in NULL
+            const dataAcquistoValue = (data.data_acquisto && String(data.data_acquisto).trim() !== '') 
                 ? data.data_acquisto 
+                : null;
+
+            // Gestione campi numerici: converti stringhe vuote in NULL
+            const categoriaIdValue = (data.categoria_id && String(data.categoria_id).trim() !== '') 
+                ? data.categoria_id 
+                : null;
+            
+            const quantitaValue = (data.quantita && String(data.quantita).trim() !== '') 
+                ? parseInt(data.quantita) 
+                : 1; // default = 1 per POST
+            
+            const costoValue = (data.costo && String(data.costo).trim() !== '') 
+                ? parseFloat(data.costo) 
                 : null;
 
             // Inserimento materiale
@@ -174,13 +187,13 @@ exports.handler = async (event) => {
                     data.codice_barre,
                     data.nome,
                     data.descrizione || null,
-                    data.categoria_id || null,
-                    data.quantita || 1,
+                    categoriaIdValue,
+                    quantitaValue,
                     0, // quantita_assegnata iniziale = 0
                     data.stato || 'disponibile',
                     dataAcquistoValue,
                     data.fornitore || null,
-                    data.costo || null,
+                    costoValue,
                     data.posizione_magazzino || null,
                     data.note || null
                 ]
@@ -220,9 +233,22 @@ exports.handler = async (event) => {
                 }
             }
 
-            // Gestione data_acquisto: converti stringa vuota in NULL
-            const dataAcquistoValue = data.data_acquisto && data.data_acquisto.trim() !== '' 
+            // Gestione data_acquisto: converti stringa vuota/undefined in NULL
+            const dataAcquistoValue = (data.data_acquisto && String(data.data_acquisto).trim() !== '') 
                 ? data.data_acquisto 
+                : null;
+
+            // Gestione campi numerici: converti stringhe vuote in NULL
+            const categoriaIdValue = (data.categoria_id && String(data.categoria_id).trim() !== '') 
+                ? data.categoria_id 
+                : null;
+            
+            const quantitaValue = (data.quantita && String(data.quantita).trim() !== '') 
+                ? parseInt(data.quantita) 
+                : null;
+            
+            const costoValue = (data.costo && String(data.costo).trim() !== '') 
+                ? parseFloat(data.costo) 
                 : null;
 
             // Aggiornamento
@@ -245,11 +271,11 @@ exports.handler = async (event) => {
                     data.codice_barre,
                     data.nome,
                     data.descrizione,
-                    data.categoria_id,
-                    data.quantita,
+                    categoriaIdValue,
+                    quantitaValue,
                     dataAcquistoValue,
                     data.fornitore,
-                    data.costo,
+                    costoValue,
                     data.posizione_magazzino,
                     data.note,
                     materialId
@@ -339,11 +365,15 @@ exports.handler = async (event) => {
 
     } catch (error) {
         console.error('Errore API materiali:', error);
+        console.error('Stack trace:', error.stack);
+        console.error('Request path:', event.path);
+        console.error('Request method:', event.httpMethod);
+        console.error('Request body:', event.body);
         
         if (error.message.includes('Token') || error.message.includes('Accesso negato')) {
             return errorResponse(error.message, 401);
         }
         
-        return errorResponse('Errore interno del server', 500);
+        return errorResponse(`Errore interno del server: ${error.message}`, 500);
     }
 };

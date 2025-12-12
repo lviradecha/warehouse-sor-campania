@@ -225,7 +225,71 @@
             opacity: 0.8;
         }
 
-        /* Prenotazioni */
+        /* Badge raggruppati - nuova versione */
+        .prenotazione-badge-gruppo {
+            font-size: 12px;
+            padding: 6px 8px;
+            margin: 3px 0;
+            border-radius: 4px;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+            border-left: 4px solid #0056b3;
+            transition: all 0.2s;
+        }
+
+        .prenotazione-badge-gruppo:hover {
+            transform: translateX(2px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .prenotazione-badge-gruppo .badge-title {
+            font-weight: 600;
+            margin-bottom: 2px;
+            font-size: 11px;
+        }
+
+        .prenotazione-badge-gruppo .badge-subtitle {
+            font-size: 10px;
+            opacity: 0.9;
+            font-weight: normal;
+        }
+
+        /* Prenotazioni materiali */
+        .prenotazione-badge-gruppo.materiale {
+            background: #007bff;
+            border-left-color: #0056b3;
+        }
+
+        /* Prenotazioni mezzi */
+        .prenotazione-badge-gruppo.mezzo {
+            background: #dc3545;
+            border-left-color: #a71d2a;
+        }
+
+        /* Assegnazioni */
+        .prenotazione-badge-gruppo.assegnazione {
+            background: #28a745;
+            border-left-color: #1e7e34;
+        }
+
+        .prenotazione-badge-gruppo.assegnazione.in_corso {
+            background: #28a745;
+            border-left-color: #1e7e34;
+        }
+
+        .prenotazione-badge-gruppo.assegnazione.completata {
+            background: #6c757d;
+            border-left-color: #545b62;
+        }
+
+        .prenotazione-badge-gruppo.assegnazione.danneggiato {
+            background: #ffc107;
+            border-left-color: #ff9800;
+            color: #000;
+        }
+
+        /* Vecchi badge - manteniamo per compatibilità con modale dettaglio */
         .prenotazione-badge.materiale {
             background: #007bff;  /* Blu per materiali prenotati */
             border-left: 3px solid #0056b3;
@@ -258,9 +322,21 @@
             border-left: 3px solid #1e7e34;
         }
 
+        .prenotazione-badge.assegnazione.in_corso {
+            background: #28a745;  /* Verde per assegnazioni in corso */
+            font-weight: 600;
+            border-left: 3px solid #1e7e34;
+        }
+
         .prenotazione-badge.assegnazione.completata {
             background: #6c757d;  /* Grigio per completate */
             border-left: 3px solid #545b62;
+        }
+
+        .prenotazione-badge.assegnazione.danneggiato {
+            background: #ffc107;  /* Giallo/arancione per materiali danneggiati */
+            border-left: 3px solid #ff9800;
+            color: #000;
         }
 
         .prenotazione-badge.assegnazione::before {
@@ -436,6 +512,12 @@
             color: white;
         }
 
+        .stato-badge.danneggiato {
+            background: #ffc107;
+            color: #000;
+            font-weight: bold;
+        }
+
         .prenotazione-details {
             color: #666;
             font-size: 14px;
@@ -446,6 +528,33 @@
             margin-top: 10px;
             display: flex;
             gap: 10px;
+        }
+
+        /* Tabella dettaglio gruppo */
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .table th {
+            background: #f8f9fa;
+            padding: 10px;
+            text-align: left;
+            border-bottom: 2px solid #dee2e6;
+            font-weight: 600;
+            color: #333;
+            font-size: 13px;
+        }
+
+        .table td {
+            padding: 10px;
+            border-bottom: 1px solid #dee2e6;
+            font-size: 13px;
+        }
+
+        .table tr:hover {
+            background: #f8f9fa;
         }
 
         /* Stili lista materiali */
@@ -700,6 +809,9 @@
                     </span>
                     <span class="legend-item">
                         <span class="legend-color" style="background:#6c757d;"></span> Completata
+                    </span>
+                    <span class="legend-item">
+                        <span class="legend-color" style="background:#ffc107;"></span> Danneggiato
                     </span>
                 </div>
 
@@ -1265,36 +1377,95 @@
                 const dayPrenotazioni = getPrenotazioniForDay(date);
                 const dayAssegnazioni = getAssegnazioniForDay(date);
                 
-                html += `<div class="calendar-day ${isToday ? 'today' : ''}" onclick="openDayPrenotazioni('${date.toISOString()}')">`;
+                html += `<div class="calendar-day ${isToday ? 'today' : ''}">`;
                 html += `<div class="day-number">${day}</div>`;
                 
-                // Mostra prenotazioni (con filtri)
+                // RAGGRUPPA PRENOTAZIONI PER EVENTO/MISSIONE
                 if (showPrenotazioni) {
+                    const gruppiPrenotazioni = {};
+                    
                     dayPrenotazioni.forEach(p => {
                         // Applica filtri tipo risorsa
                         if (p.tipo === 'materiale' && !showMateriali) return;
                         if (p.tipo === 'mezzo' && !showMezzi) return;
                         
-                        const classe = p.tipo === 'materiale' ? 'materiale' : 'mezzo';
-                        const nome = p.tipo === 'materiale' ? (p.materiale_nome || 'Materiale') : (p.targa || 'Veicolo');
-                        const quantita = p.tipo === 'materiale' && p.quantita ? `${p.quantita}x ` : '';
-                        html += `<div class="prenotazione-badge ${classe} ${p.stato}" onclick="event.stopPropagation(); editPrenotazione(${p.id}, '${p.tipo}')" title="Prenotazione: ${quantita}${nome}">${quantita}${nome}</div>`;
+                        // Raggruppa per evento/missione
+                        const chiaveGruppo = p.tipo === 'materiale' ? 
+                            `mat_${p.evento}_${p.richiedente}` : 
+                            `mez_${p.missione}_${p.conducente}`;
+                        
+                        if (!gruppiPrenotazioni[chiaveGruppo]) {
+                            gruppiPrenotazioni[chiaveGruppo] = {
+                                tipo: p.tipo,
+                                evento: p.tipo === 'materiale' ? p.evento : p.missione,
+                                richiedente: p.tipo === 'materiale' ? p.richiedente : p.conducente,
+                                items: [],
+                                classe: p.tipo === 'materiale' ? 'materiale' : 'mezzo'
+                            };
+                        }
+                        gruppiPrenotazioni[chiaveGruppo].items.push(p);
+                    });
+                    
+                    // Mostra badge raggruppati
+                    Object.values(gruppiPrenotazioni).forEach(gruppo => {
+                        const count = gruppo.items.length;
+                        const label = gruppo.tipo === 'materiale' ? 
+                            `📦 ${gruppo.evento || 'Evento'}` :
+                            `🚗 ${gruppo.evento || 'Missione'}`;
+                        const sottotitolo = gruppo.tipo === 'materiale' ?
+                            (count > 1 ? ` (${count} materiali)` : '') :
+                            (gruppo.richiedente ? ` - ${gruppo.richiedente}` : '');
+                        
+                        html += `<div class="prenotazione-badge-gruppo ${gruppo.classe}" 
+                                     onclick="event.stopPropagation(); viewDettaglioGruppo('prenotazione', '${date.toISOString()}', '${gruppo.tipo}', '${(gruppo.evento || '').replace(/'/g, "\\'")}', '${(gruppo.richiedente || '').replace(/'/g, "\\'")}')">
+                                    <div class="badge-title">${label}</div>
+                                    <div class="badge-subtitle">${sottotitolo}</div>
+                                 </div>`;
                     });
                 }
                 
-                // Mostra assegnazioni (con filtri)
+                // RAGGRUPPA ASSEGNAZIONI PER EVENTO
                 if (showAssegnazioni) {
+                    const gruppiAssegnazioni = {};
+                    
                     dayAssegnazioni.forEach(a => {
                         // Applica filtri tipo risorsa
                         if (a.tipo === 'material' && !showMateriali) return;
                         if (a.tipo === 'vehicle' && !showMezzi) return;
                         
-                        const nome = a.material_nome || a.vehicle_targa || 'Risorsa';
-                        const quantita = a.quantita ? `${a.quantita}x ` : '';
-                        const statoAssegnazione = a.data_rientro ? 'completata' : 'in_corso';
-                        const volontario = a.volunteer_nome ? `${a.volunteer_nome} ${a.volunteer_cognome || ''}`.trim() : 'Volontario';
-                        console.log(`Rendering assegnazione per ${date.toISOString().split('T')[0]}: ${quantita}${nome} - ${volontario}`);
-                        html += `<div class="prenotazione-badge assegnazione ${statoAssegnazione}" title="Assegnazione: ${quantita}${nome} - ${volontario}">${quantita}${nome} (Ass.)</div>`;
+                        // Raggruppa per evento
+                        const chiaveGruppo = `ass_${a.evento}_${a.volunteer_id}`;
+                        
+                        if (!gruppiAssegnazioni[chiaveGruppo]) {
+                            // Determina stato del gruppo (usa il più critico)
+                            let statoClass = 'in_corso';
+                            if (a.stato === 'rientrato' || a.stato === 'completata') {
+                                statoClass = 'completata';
+                            } else if (a.stato === 'danneggiato') {
+                                statoClass = 'danneggiato';
+                            }
+                            
+                            gruppiAssegnazioni[chiaveGruppo] = {
+                                evento: a.evento || 'Assegnazione',
+                                volontario: a.volunteer_nome ? `${a.volunteer_nome} ${a.volunteer_cognome || ''}`.trim() : 'Volontario',
+                                items: [],
+                                statoClass: statoClass
+                            };
+                        }
+                        gruppiAssegnazioni[chiaveGruppo].items.push(a);
+                    });
+                    
+                    // Mostra badge raggruppati
+                    Object.values(gruppiAssegnazioni).forEach(gruppo => {
+                        const count = gruppo.items.length;
+                        const label = `📤 ${gruppo.evento}`;
+                        const sottotitolo = `${gruppo.volontario}${count > 1 ? ` (${count} item)` : ''}`;
+                        
+                        html += `<div class="prenotazione-badge-gruppo assegnazione ${gruppo.statoClass}" 
+                                     onclick="event.stopPropagation(); viewDettaglioGruppo('assegnazione', '${date.toISOString()}', '', '${gruppo.evento.replace(/'/g, "\\'")}', '${gruppo.volontario.replace(/'/g, "\\'")}')">
+                                    <div class="badge-title">${label}</div>
+                                    <div class="badge-subtitle">${sottotitolo}</div>
+                                 </div>`;
                     });
                 }
                 
@@ -1829,6 +2000,150 @@
             const alertDiv = document.getElementById('modalAlert');
             alertDiv.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
             setTimeout(() => alertDiv.innerHTML = '', 3000);
+        }
+
+        // Mostra dettaglio gruppo (quando clicchi su badge raggruppato)
+        function viewDettaglioGruppo(tipoGruppo, dateStr, tipoRisorsa, evento, richiedente) {
+            const date = new Date(dateStr);
+            
+            if (tipoGruppo === 'prenotazione') {
+                // Filtra prenotazioni per evento/richiedente
+                const prenotazioniFiltrate = getPrenotazioniForDay(date).filter(p => {
+                    if (tipoRisorsa === 'materiale') {
+                        return p.tipo === 'materiale' && 
+                               p.evento === evento && 
+                               p.richiedente === richiedente;
+                    } else {
+                        return p.tipo === 'mezzo' && 
+                               p.missione === evento;
+                    }
+                });
+                
+                // Mostra dettaglio con tabella materiali/mezzi
+                const isAdmin = userRole === 'admin';
+                const container = document.getElementById('listaPrenotazioni');
+                
+                const intestazione = tipoRisorsa === 'materiale' ?
+                    `<h3>📦 ${evento}</h3><p><strong>Richiedente:</strong> ${richiedente}</p>` :
+                    `<h3>🚗 ${evento}</h3><p><strong>Conducente:</strong> ${richiedente}</p>`;
+                
+                container.innerHTML = `
+                    ${intestazione}
+                    <table class="table" style="margin-top: 15px; background: white;">
+                        <thead>
+                            <tr>
+                                ${tipoRisorsa === 'materiale' ? 
+                                    '<th>Codice</th><th>Materiale</th><th>Quantità</th>' :
+                                    '<th>Targa</th><th>Tipo</th><th>Modello</th>'
+                                }
+                                <th>Periodo</th>
+                                <th>Stato</th>
+                                ${isAdmin ? '<th>Azioni</th>' : ''}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${prenotazioniFiltrate.map(p => {
+                                const periodo = `${new Date(p.data_inizio).toLocaleDateString('it-IT')} - ${new Date(p.data_fine).toLocaleDateString('it-IT')}`;
+                                
+                                return tipoRisorsa === 'materiale' ? `
+                                    <tr>
+                                        <td><strong>${p.materiale_codice || '-'}</strong></td>
+                                        <td>${p.materiale_nome || '-'}</td>
+                                        <td style="text-align:center;">${p.quantita || 1}</td>
+                                        <td>${periodo}</td>
+                                        <td><span class="stato-badge ${p.stato}">${p.stato.toUpperCase()}</span></td>
+                                        ${isAdmin ? `<td>
+                                            <button class="btn btn-primary btn-sm" onclick="editPrenotazione(${p.id}, 'materiale')">✏️</button>
+                                            <button class="btn btn-secondary btn-sm" onclick="deletePrenotazione(${p.id})">🗑️</button>
+                                        </td>` : ''}
+                                    </tr>
+                                ` : `
+                                    <tr>
+                                        <td><strong>${p.targa || '-'}</strong></td>
+                                        <td>${p.tipo || '-'}</td>
+                                        <td>${p.modello || '-'}</td>
+                                        <td>${periodo}</td>
+                                        <td><span class="stato-badge ${p.stato}">${p.stato.toUpperCase()}</span></td>
+                                        ${isAdmin ? `<td>
+                                            <button class="btn btn-primary btn-sm" onclick="editPrenotazione(${p.id}, 'mezzo')">✏️</button>
+                                            <button class="btn btn-secondary btn-sm" onclick="deletePrenotazione(${p.id})">🗑️</button>
+                                        </td>` : ''}
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                `;
+                
+                document.getElementById('listaModal').classList.add('show');
+                
+            } else if (tipoGruppo === 'assegnazione') {
+                // Filtra assegnazioni per evento/volontario
+                const assegnazioniFiltrate = getAssegnazioniForDay(date).filter(a => {
+                    return a.evento === evento && 
+                           `${a.volunteer_nome} ${a.volunteer_cognome || ''}`.trim() === richiedente;
+                });
+                
+                const isAdmin = userRole === 'admin';
+                const container = document.getElementById('listaPrenotazioni');
+                
+                container.innerHTML = `
+                    <h3>📤 ${evento}</h3>
+                    <p><strong>Volontario:</strong> ${richiedente}</p>
+                    <table class="table" style="margin-top: 15px; background: white;">
+                        <thead>
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Codice/Targa</th>
+                                <th>Nome</th>
+                                <th>Quantità</th>
+                                <th>Data Uscita</th>
+                                <th>Rientro Previsto</th>
+                                <th>Stato</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${assegnazioniFiltrate.map(a => {
+                                const tipo = a.material_nome ? '📦 Materiale' : '🚗 Veicolo';
+                                const codice = a.codice_barre || a.vehicle_targa || '-';
+                                const nome = a.material_nome || a.vehicle_tipo || '-';
+                                const dataUscita = new Date(a.data_uscita).toLocaleDateString('it-IT');
+                                const dataRientro = a.data_rientro_prevista ? 
+                                    new Date(a.data_rientro_prevista).toLocaleDateString('it-IT') : '-';
+                                
+                                let statoClass = 'in_corso';
+                                let statoLabel = 'IN CORSO';
+                                if (a.stato === 'rientrato') {
+                                    statoClass = 'completata';
+                                    statoLabel = 'RIENTRATO';
+                                } else if (a.stato === 'danneggiato') {
+                                    statoClass = 'danneggiato';
+                                    statoLabel = 'DANNEGGIATO';
+                                }
+                                
+                                return `
+                                    <tr>
+                                        <td>${tipo}</td>
+                                        <td><strong>${codice}</strong></td>
+                                        <td>${nome}</td>
+                                        <td style="text-align:center;">${a.quantita || 1}</td>
+                                        <td>${dataUscita}</td>
+                                        <td>${dataRientro}</td>
+                                        <td><span class="stato-badge ${statoClass}">${statoLabel}</span></td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                    ${assegnazioniFiltrate[0]?.note_uscita ? `
+                        <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                            <strong>Note:</strong> ${assegnazioniFiltrate[0].note_uscita}
+                        </div>
+                    ` : ''}
+                `;
+                
+                document.getElementById('listaModal').classList.add('show');
+            }
         }
 
         // Listeners

@@ -1389,6 +1389,9 @@
                         if (p.tipo === 'materiale' && !showMateriali) return;
                         if (p.tipo === 'mezzo' && !showMezzi) return;
                         
+                        // NON MOSTRARE prenotazioni già assegnate (sono visibili come assegnazioni verdi)
+                        if (p.stato === 'assegnata') return;
+                        
                         // Raggruppa per evento/missione
                         const chiaveGruppo = p.tipo === 'materiale' ? 
                             `mat_${p.evento}_${p.richiedente}` : 

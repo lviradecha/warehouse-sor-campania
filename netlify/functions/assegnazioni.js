@@ -38,10 +38,14 @@ exports.handler = async (event) => {
                 `SELECT a.*, 
                         m.nome as material_nome, m.codice_barre,
                         v.nome as volunteer_nome, v.cognome as volunteer_cognome, v.gruppo as volunteer_gruppo,
-                        a.email_inviata, a.email_inviata_at, a.quantita, a.data_rientro_prevista
+                        a.email_inviata, a.email_inviata_at, a.quantita, a.data_rientro_prevista,
+                        p.evento as prenotazione_evento,
+                        p.richiedente as prenotazione_richiedente,
+                        p.stato as prenotazione_stato
                  FROM assignments a
                  JOIN materials m ON a.material_id = m.id
                  JOIN volunteers v ON a.volunteer_id = v.id
+                 LEFT JOIN prenotazioni_materiali p ON a.prenotazione_materiale_id = p.id
                  ${whereClause}
                  ORDER BY a.data_uscita DESC`,
                 values
@@ -56,10 +60,14 @@ exports.handler = async (event) => {
                 `SELECT a.*, 
                         m.nome as material_nome, m.codice_barre,
                         v.nome as volunteer_nome, v.cognome as volunteer_cognome,
-                        a.quantita, a.data_rientro_prevista
+                        a.quantita, a.data_rientro_prevista,
+                        p.evento as prenotazione_evento,
+                        p.richiedente as prenotazione_richiedente,
+                        p.stato as prenotazione_stato
                  FROM assignments a
                  JOIN materials m ON a.material_id = m.id
                  JOIN volunteers v ON a.volunteer_id = v.id
+                 LEFT JOIN prenotazioni_materiali p ON a.prenotazione_materiale_id = p.id
                  WHERE a.id = $1`,
                 [assignmentId]
             );
@@ -89,6 +97,7 @@ exports.handler = async (event) => {
             const data_rientro_prevista = data.data_rientro_prevista || null;
             const note_uscita = data.note_uscita || null;
             const inviaEmail = data.invia_email === 'true' || data.invia_email === true;
+            const prenotazione_materiale_id = data.prenotazione_materiale_id || null; // <-- NUOVO CAMPO
 
             if (!volunteer_id || !evento || !data_uscita || materials.length === 0) {
                 return errorResponse('Dati obbligatori mancanti');
@@ -129,8 +138,8 @@ exports.handler = async (event) => {
                     `INSERT INTO assignments (
                         material_id, volunteer_id, evento, quantita, 
                         data_uscita, data_rientro_prevista, note_uscita, 
-                        user_id, stato, email_inviata
-                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'in_corso', false)
+                        user_id, stato, email_inviata, prenotazione_materiale_id
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'in_corso', false, $9)
                     RETURNING *`,
                     [
                         material_id,
@@ -140,7 +149,8 @@ exports.handler = async (event) => {
                         data_uscita,
                         data_rientro_prevista,
                         note_uscita,
-                        user.id
+                        user.id,
+                        prenotazione_materiale_id  // <-- NUOVO PARAMETRO
                     ]
                 );
 
@@ -173,6 +183,23 @@ exports.handler = async (event) => {
                     codice_barre: material.codice_barre,
                     quantita: quantita
                 });
+            }
+
+            // Se le assegnazioni sono collegate a una prenotazione, aggiorna il suo stato
+            if (prenotazione_materiale_id && createdAssignments.length > 0) {
+                try {
+                    await query(
+                        `UPDATE prenotazioni_materiali
+                         SET stato = 'assegnata',
+                             updated_at = CURRENT_TIMESTAMP
+                         WHERE id = $1`,
+                        [prenotazione_materiale_id]
+                    );
+                    console.log(`✅ Prenotazione ${prenotazione_materiale_id} aggiornata a stato 'assegnata'`);
+                } catch (error) {
+                    console.error(`⚠️ Errore aggiornamento prenotazione ${prenotazione_materiale_id}:`, error.message);
+                    // Non blocchiamo l'assegnazione se l'update della prenotazione fallisce
+                }
             }
 
             // Invia UNA SOLA email con tutti i materiali
@@ -283,6 +310,23 @@ exports.handler = async (event) => {
                  WHERE id = $3`,
                 [nuovaQuantitaAssegnata, newMaterialStatus, assignment.material_id]
             );
+
+            // Se l'assegnazione era collegata a una prenotazione, aggiorna anche quella
+            if (assignment.prenotazione_materiale_id) {
+                try {
+                    await query(
+                        `UPDATE prenotazioni_materiali
+                         SET stato = 'completata',
+                             updated_at = CURRENT_TIMESTAMP
+                         WHERE id = $1`,
+                        [assignment.prenotazione_materiale_id]
+                    );
+                    console.log(`✅ Prenotazione ${assignment.prenotazione_materiale_id} aggiornata a stato 'completata'`);
+                } catch (error) {
+                    console.error(`⚠️ Errore aggiornamento prenotazione ${assignment.prenotazione_materiale_id}:`, error.message);
+                    // Non blocchiamo il rientro se l'update della prenotazione fallisce
+                }
+            }
 
             if (stato === 'danneggiato' && note_rientro) {
                 await query(

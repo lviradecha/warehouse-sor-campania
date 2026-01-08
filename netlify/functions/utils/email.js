@@ -1,45 +1,42 @@
 // ===================================
-// EMAIL UTILITY - SendGrid
+// EMAIL UTILITY - Resend
 // Gestione invio email notifiche
 // ===================================
 
-const sgMail = require('@sendgrid/mail');
+const { Resend } = require('resend');
 
-// Inizializza SendGrid
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
+// Inizializza Resend
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@sor-campania.it';
 const FROM_NAME = process.env.FROM_NAME || 'CRI SOR Campania - Sistema Magazzino';
 
-if (SENDGRID_API_KEY) {
-    sgMail.setApiKey(SENDGRID_API_KEY);
+let resend = null;
+if (RESEND_API_KEY) {
+    resend = new Resend(RESEND_API_KEY);
 }
 
 /**
  * Invia email generica
  */
 async function sendEmail(to, subject, htmlContent, textContent) {
-    if (!SENDGRID_API_KEY) {
-        console.warn('SendGrid non configurato, email non inviata:', to);
-        return { success: false, message: 'SendGrid non configurato' };
+    if (!RESEND_API_KEY || !resend) {
+        console.warn('Resend non configurato, email non inviata:', to);
+        return { success: false, message: 'Resend non configurato' };
     }
 
     try {
-        const msg = {
-            to,
-            from: {
-                email: FROM_EMAIL,
-                name: FROM_NAME
-            },
+        const result = await resend.emails.send({
+            from: `${FROM_NAME} <${FROM_EMAIL}>`,
+            to: [to],
             subject,
-            text: textContent,
-            html: htmlContent
-        };
+            html: htmlContent,
+            text: textContent
+        });
 
-        await sgMail.send(msg);
-        console.log('Email inviata a:', to);
-        return { success: true };
+        console.log('✅ Email inviata a:', to);
+        return { success: true, id: result.id };
     } catch (error) {
-        console.error('Errore invio email:', error);
+        console.error('❌ Errore invio email:', error);
         return { success: false, message: error.message };
     }
 }
@@ -187,7 +184,9 @@ URL: ${process.env.URL || 'https://warehouse-sor-campania.netlify.app'}
 IMPORTANTE:
 - Al primo accesso dovrai cambiare la password
 - Conserva questa email in modo sicuro
-- Non condividere le credenziali
+- Non condividere le tue credenziali
+
+Grazie per il tuo servizio volontario! 🙏
 
 Croce Rossa Italiana - SOR Campania
     `;
@@ -196,9 +195,9 @@ Croce Rossa Italiana - SOR Campania
 }
 
 /**
- * Email notifica assegnazione materiale a volontario
+ * Email assegnazione materiale singolo
  */
-async function sendAssignmentNotification(volunteerEmail, volunteerName, materialName, codice, evento, dataUscita, note, quantita = 1, dataRientroPrevista = null) {
+async function sendAssignmentNotification(volunteerEmail, volunteerName, materialName, materialCode, quantity, evento, dataUscita, note, dataRientroPrevista = null) {
     const subject = '📦 Assegnazione Materiale - CRI SOR Campania';
     
     const htmlContent = `
@@ -207,171 +206,71 @@ async function sendAssignmentNotification(volunteerEmail, volunteerName, materia
         <head>
             <meta charset="UTF-8">
             <style>
-                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
                 .container { max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
-                .header { 
-                    background: #d32f2f; 
-                    color: white; 
-                    padding: 30px 20px; 
-                    text-align: center; 
-                    border-radius: 5px 5px 0 0; 
-                }
-                .logo-circle {
-                    width: 80px;
-                    height: 80px;
-                    background: white;
-                    border-radius: 50%;
-                    margin: 0 auto 15px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-                }
-                .logo-circle img {
-                    width: 60px;
-                    height: 60px;
-                }
-                .header h1 { margin: 10px 0 5px; font-size: 24px; }
-                .header p { margin: 0; font-size: 14px; opacity: 0.9; }
-                .content { background: white; padding: 30px; border: 1px solid #ddd; }
-                .assignment-box { 
-                    background: #f9f9f9; 
-                    padding: 20px; 
-                    margin: 20px 0; 
-                    border-left: 4px solid #d32f2f;
-                    border-radius: 4px;
-                }
-                .assignment-box h3 { margin-top: 0; color: #d32f2f; }
-                .barcode { 
-                    text-align: center; 
-                    font-size: 28px; 
-                    font-weight: bold; 
-                    color: #d32f2f; 
-                    margin: 15px 0; 
-                    letter-spacing: 3px;
-                    background: white;
-                    padding: 15px;
-                    border: 2px dashed #d32f2f;
-                    border-radius: 5px;
-                }
-                .quantity-badge {
-                    display: inline-block;
-                    background: #d32f2f;
-                    color: white;
-                    padding: 8px 16px;
-                    border-radius: 20px;
-                    font-size: 18px;
-                    font-weight: bold;
-                    margin: 10px 0;
-                }
-                .warning { 
-                    background: #fff3cd; 
-                    padding: 15px; 
-                    border-left: 4px solid #ffc107; 
-                    margin: 15px 0;
-                    border-radius: 4px;
-                }
-                .warning strong { color: #856404; }
-                .footer { 
-                    text-align: center; 
-                    margin-top: 20px; 
-                    padding-top: 20px;
-                    border-top: 1px solid #ddd;
-                    font-size: 12px; 
-                    color: #666; 
-                }
+                .header { background: #d32f2f; color: white; padding: 30px 20px; text-align: center; }
+                .header h1 { margin: 10px 0; font-size: 24px; }
+                .content { background: white; padding: 30px; }
+                .assignment-box { background: #f9f9f9; padding: 20px; margin: 20px 0; border-left: 4px solid #d32f2f; }
             </style>
         </head>
         <body>
             <div class="container">
                 <div class="header">
-                    <div class="logo-circle">
-                        <img src="https://warehouse-sor-campania.netlify.app/assets/logo-sor.png" alt="SOR Logo" onerror="this.style.display='none'">
-                    </div>
                     <h1>Croce Rossa Italiana</h1>
                     <p>Sala Operativa Regionale - Campania</p>
-                    <p style="font-size: 16px; margin-top: 10px;">Sistema Gestione Magazzino</p>
                 </div>
                 <div class="content">
                     <h2 style="color: #d32f2f;">Ciao ${volunteerName}! 👋</h2>
-                    <p>Ti è stato assegnato del materiale per l'evento <strong style="color: #d32f2f;">"${evento}"</strong>.</p>
+                    <p>Ti è stato assegnato del materiale per l'evento <strong>"${evento}"</strong>.</p>
                     
                     <div class="assignment-box">
-                        <h3>📦 Dettagli Materiale:</h3>
+                        <h3 style="color: #d32f2f;">📦 Materiale Assegnato:</h3>
                         <p><strong>Materiale:</strong> ${materialName}</p>
-                        <div class="barcode">${codice}</div>
-                        <p style="text-align: center; color: #666; font-size: 12px; margin-top: -5px;">Codice a Barre</p>
+                        <p><strong>Quantità:</strong> ${quantity}</p>
+                        <p><strong>Codice:</strong> ${materialCode}</p>
                         <p><strong>Evento:</strong> ${evento}</p>
-                        <p><strong>Data Uscita:</strong> ${new Date(dataUscita).toLocaleString('it-IT', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        })}</p>
+                        <p><strong>Data Uscita:</strong> ${new Date(dataUscita).toLocaleString('it-IT')}</p>
+                        ${dataRientroPrevista ? `<p><strong>Rientro Previsto:</strong> ${new Date(dataRientroPrevista).toLocaleString('it-IT')}</p>` : ''}
                         ${note ? `<p><strong>Note:</strong> ${note}</p>` : ''}
                     </div>
-                    
-                    <div class="warning">
-                        <p><strong>⚠️ RESPONSABILITÀ:</strong></p>
-                        <ul style="margin: 10px 0;">
-                            <li>Sei responsabile del materiale assegnato</li>
-                            <li>Controlla lo stato del materiale prima dell'uso</li>
-                            <li>Segnala immediatamente eventuali danni</li>
-                            <li>Riconsegna il materiale al termine dell'evento</li>
-                        </ul>
-                    </div>
-                    
-                    <p>Per qualsiasi problema o domanda, contatta la Sala Operativa Regionale.</p>
                     
                     <p style="color: #d32f2f; font-weight: bold; text-align: center; margin-top: 20px;">
                         Grazie per il tuo servizio volontario! 🙏
                     </p>
                 </div>
-                <div class="footer">
-                    <p><strong>© ${new Date().getFullYear()} Croce Rossa Italiana - SOR Campania</strong></p>
-                    <p>Questa è una email automatica, non rispondere.</p>
-                </div>
             </div>
         </body>
         </html>
     `;
-    
+
     const textContent = `
+Croce Rossa Italiana - SOR Campania
+
+ASSEGNAZIONE MATERIALE
+
 Ciao ${volunteerName}!
 
-Ti è stato assegnato del materiale per l'evento "${evento}".
+Ti è stato assegnato materiale per "${evento}".
 
-DETTAGLI MATERIALE:
 Materiale: ${materialName}
-Codice: ${codice}
-Evento: ${evento}
+Quantità: ${quantity}
+Codice: ${materialCode}
 Data Uscita: ${new Date(dataUscita).toLocaleString('it-IT')}
+${dataRientroPrevista ? `Rientro Previsto: ${new Date(dataRientroPrevista).toLocaleString('it-IT')}` : ''}
 ${note ? `Note: ${note}` : ''}
 
-RESPONSABILITÀ:
-- Sei responsabile del materiale assegnato
-- Controlla lo stato prima dell'uso
-- Segnala immediatamente eventuali danni
-- Riconsegna al termine dell'evento
-
-Grazie per il tuo servizio volontario!
-
-Croce Rossa Italiana - SOR Campania
+Grazie per il tuo servizio! 🙏
     `;
     
     return sendEmail(volunteerEmail, subject, htmlContent, textContent);
 }
 
 /**
- * Email notifica rientro materiale
+ * Email restituzione materiale
  */
-async function sendReturnNotification(volunteerEmail, volunteerName, materialName, codice, evento, dataRientro, stato) {
-    const subject = '✅ Conferma Rientro Materiale - CRI SOR Campania';
-    
-    const statoIcon = stato === 'rientrato' ? '✅' : '⚠️';
-    const statoText = stato === 'rientrato' ? 'in buone condizioni' : 'DANNEGGIATO';
-    const statoColor = stato === 'rientrato' ? '#28a745' : '#ffc107';
+async function sendReturnNotification(volunteerEmail, volunteerName, materialName, materialCode, quantity, evento, dataRientro, noteRientro) {
+    const subject = '✅ Restituzione Materiale Confermata - CRI SOR Campania';
     
     const htmlContent = `
         <!DOCTYPE html>
@@ -379,146 +278,64 @@ async function sendReturnNotification(volunteerEmail, volunteerName, materialNam
         <head>
             <meta charset="UTF-8">
             <style>
-                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
                 .container { max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
-                .header { 
-                    background: #d32f2f; 
-                    color: white; 
-                    padding: 30px 20px; 
-                    text-align: center; 
-                    border-radius: 5px 5px 0 0; 
-                }
-                .logo-circle {
-                    width: 80px;
-                    height: 80px;
-                    background: white;
-                    border-radius: 50%;
-                    margin: 0 auto 15px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-                }
-                .logo-circle img {
-                    width: 60px;
-                    height: 60px;
-                }
-                .header h1 { margin: 10px 0 5px; font-size: 24px; }
-                .header p { margin: 0; font-size: 14px; opacity: 0.9; }
-                .content { background: white; padding: 30px; border: 1px solid #ddd; }
-                .return-box { 
-                    background: #f9f9f9; 
-                    padding: 20px; 
-                    margin: 20px 0; 
-                    border-left: 4px solid ${statoColor};
-                    border-radius: 4px;
-                }
-                .return-box h3 { margin-top: 0; color: ${statoColor}; }
-                .status-badge {
-                    display: inline-block;
-                    padding: 8px 16px;
-                    background: ${statoColor};
-                    color: white;
-                    border-radius: 20px;
-                    font-weight: bold;
-                    font-size: 16px;
-                }
-                .thank-you {
-                    background: #e8f5e9;
-                    padding: 20px;
-                    border-radius: 5px;
-                    text-align: center;
-                    margin: 20px 0;
-                }
-                .footer { 
-                    text-align: center; 
-                    margin-top: 20px; 
-                    padding-top: 20px;
-                    border-top: 1px solid #ddd;
-                    font-size: 12px; 
-                    color: #666; 
-                }
+                .header { background: #2e7d32; color: white; padding: 30px 20px; text-align: center; }
+                .content { background: white; padding: 30px; }
+                .return-box { background: #f9f9f9; padding: 20px; margin: 20px 0; border-left: 4px solid #2e7d32; }
             </style>
         </head>
         <body>
             <div class="container">
                 <div class="header">
-                    <div class="logo-circle">
-                        <img src="https://warehouse-sor-campania.netlify.app/assets/logo-sor.png" alt="SOR Logo" onerror="this.style.display='none'">
-                    </div>
                     <h1>Croce Rossa Italiana</h1>
                     <p>Sala Operativa Regionale - Campania</p>
-                    <p style="font-size: 16px; margin-top: 10px;">Sistema Gestione Magazzino</p>
                 </div>
                 <div class="content">
-                    <h2 style="color: #d32f2f;">Rientro Materiale ${statoIcon}</h2>
-                    <p>Ciao <strong>${volunteerName}</strong>, confermiamo il rientro del materiale.</p>
+                    <h2 style="color: #2e7d32;">Restituzione Confermata ✅</h2>
+                    <p>Ciao ${volunteerName}, confermiamo la restituzione del materiale.</p>
                     
                     <div class="return-box">
-                        <h3>📦 Dettagli Rientro:</h3>
+                        <h3>📦 Materiale Restituito:</h3>
                         <p><strong>Materiale:</strong> ${materialName}</p>
-                        <p><strong>Codice:</strong> <code style="background: white; padding: 5px 10px; border-radius: 3px;">${codice}</code></p>
+                        <p><strong>Quantità:</strong> ${quantity}</p>
+                        <p><strong>Codice:</strong> ${materialCode}</p>
                         <p><strong>Evento:</strong> ${evento}</p>
-                        <p><strong>Data Rientro:</strong> ${new Date(dataRientro).toLocaleString('it-IT', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        })}</p>
-                        <p><strong>Stato:</strong> <span class="status-badge">${statoIcon} ${statoText}</span></p>
+                        <p><strong>Data Rientro:</strong> ${new Date(dataRientro).toLocaleString('it-IT')}</p>
+                        ${noteRientro ? `<p><strong>Note:</strong> ${noteRientro}</p>` : ''}
                     </div>
                     
-                    ${stato === 'danneggiato' ? `
-                        <div style="background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; border-radius: 4px;">
-                            <p><strong>⚠️ Il materiale è stato segnalato come danneggiato.</strong><br>
-                            Verrà avviata una procedura di manutenzione/riparazione.</p>
-                        </div>
-                    ` : `
-                        <div class="thank-you">
-                            <h3 style="color: #2e7d32; margin-top: 0;">✅ Grazie per la cura del materiale!</h3>
-                            <p style="margin: 0;">Il materiale è rientrato in perfette condizioni.</p>
-                        </div>
-                    `}
-                    
-                    <p style="color: #d32f2f; font-weight: bold; text-align: center; margin-top: 30px; font-size: 18px;">
-                        Grazie per il tuo servizio volontario! 🙏
+                    <p style="color: #2e7d32; font-weight: bold; text-align: center;">
+                        Grazie per il tuo servizio! 🙏
                     </p>
-                </div>
-                <div class="footer">
-                    <p><strong>© ${new Date().getFullYear()} Croce Rossa Italiana - SOR Campania</strong></p>
-                    <p>Questa è una email automatica, non rispondere.</p>
                 </div>
             </div>
         </body>
         </html>
     `;
-    
+
     const textContent = `
-Rientro Materiale ${statoIcon}
+Restituzione Materiale Confermata ✅
 
-Ciao ${volunteerName}, confermiamo il rientro del materiale.
+Ciao ${volunteerName}, confermiamo la restituzione del materiale.
 
-DETTAGLI RIENTRO:
 Materiale: ${materialName}
-Codice: ${codice}
+Quantità: ${quantity}
+Codice: ${materialCode}
 Evento: ${evento}
 Data Rientro: ${new Date(dataRientro).toLocaleString('it-IT')}
-Stato: ${statoText}
+${noteRientro ? `Note: ${noteRientro}` : ''}
 
-${stato === 'danneggiato' ? 'Il materiale è stato segnalato come danneggiato. Verrà avviata una procedura di manutenzione.' : 'Grazie per la cura del materiale!'}
-
-Grazie per il tuo servizio volontario!
-
-Croce Rossa Italiana - SOR Campania
+Grazie per il tuo servizio! 🙏
     `;
     
     return sendEmail(volunteerEmail, subject, htmlContent, textContent);
 }
+
 /**
- * Email notifica assegnazione automezzo a volontario
+ * Email assegnazione automezzo
  */
-async function sendVehicleAssignmentNotification(volunteerEmail, volunteerName, vehicleData, assignmentData) {
+async function sendVehicleAssignmentNotification(volunteerEmail, volunteerName, vehicleData, evento, dataUscita, note, dataRientroPrevista = null) {
     const subject = '🚗 Assegnazione Automezzo - CRI SOR Campania';
     
     const htmlContent = `
@@ -530,67 +347,43 @@ async function sendVehicleAssignmentNotification(volunteerEmail, volunteerName, 
                 body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
                 .container { max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
                 .header { 
-                    background: #d32f2f; 
+                    background: #1565c0; 
                     color: white; 
                     padding: 30px 20px; 
                     text-align: center; 
-                    border-radius: 5px 5px 0 0; 
-                }
-                .logo-circle {
-                    width: 80px;
-                    height: 80px;
-                    background: white;
-                    border-radius: 50%;
-                    margin: 0 auto 15px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-                }
-                .logo-circle img {
-                    width: 60px;
-                    height: 60px;
+                    border-radius: 5px 5px 0 0;
                 }
                 .header h1 { margin: 10px 0 5px; font-size: 24px; }
                 .header p { margin: 0; font-size: 14px; opacity: 0.9; }
                 .content { background: white; padding: 30px; border: 1px solid #ddd; }
                 .vehicle-box { 
-                    background: #f9f9f9; 
+                    background: #e3f2fd; 
                     padding: 20px; 
                     margin: 20px 0; 
-                    border-left: 4px solid #2196f3;
+                    border-left: 4px solid #1565c0; 
                     border-radius: 4px;
                 }
-                .vehicle-box h3 { margin-top: 0; color: #2196f3; }
-                .vehicle-box code {
-                    background: white;
-                    padding: 5px 10px;
-                    border-radius: 3px;
-                    font-family: monospace;
-                    font-size: 16px;
-                    font-weight: bold;
-                    color: #2196f3;
+                .vehicle-box h3 { margin-top: 0; color: #1565c0; }
+                .vehicle-icon { font-size: 48px; text-align: center; margin: 20px 0; }
+                .info-grid { 
+                    display: grid; 
+                    grid-template-columns: 1fr 1fr; 
+                    gap: 15px; 
+                    margin: 15px 0;
                 }
-                .responsibility-box {
-                    background: #fff3cd;
-                    padding: 15px;
-                    border-left: 4px solid #ffc107;
-                    border-radius: 4px;
+                .info-item { 
+                    background: white; 
+                    padding: 12px; 
+                    border-radius: 5px;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                }
+                .info-item strong { color: #1565c0; display: block; margin-bottom: 5px; }
+                .warning { 
+                    background: #fff3cd; 
+                    padding: 15px; 
+                    border-left: 4px solid #ffc107; 
                     margin: 20px 0;
-                }
-                .responsibility-box ul {
-                    margin: 10px 0 0 20px;
-                    padding: 0;
-                }
-                .responsibility-box li {
-                    margin: 5px 0;
-                }
-                .card-info {
-                    background: #e3f2fd;
-                    padding: 15px;
-                    border-left: 4px solid #2196f3;
                     border-radius: 4px;
-                    margin: 20px 0;
                 }
                 .footer { 
                     text-align: center; 
@@ -605,64 +398,69 @@ async function sendVehicleAssignmentNotification(volunteerEmail, volunteerName, 
         <body>
             <div class="container">
                 <div class="header">
-                    <div class="logo-circle">
-                        <img src="https://warehouse-sor-campania.netlify.app/assets/logo-sor.png" alt="SOR Logo" onerror="this.style.display='none'">
-                    </div>
-                    <h1>Croce Rossa Italiana</h1>
-                    <p>Sala Operativa Regionale - Campania</p>
-                    <p style="font-size: 16px; margin-top: 10px;">Sistema Gestione Automezzi</p>
+                    <h1>🚗 Assegnazione Automezzo</h1>
+                    <p>Croce Rossa Italiana - SOR Campania</p>
                 </div>
                 <div class="content">
-                    <h2 style="color: #d32f2f;">🚗 Assegnazione Automezzo</h2>
-                    <p>Ciao <strong>${volunteerName}</strong>, ti è stato assegnato un automezzo.</p>
+                    <h2 style="color: #1565c0;">Ciao ${volunteerName}! 👋</h2>
+                    <p>Ti è stato assegnato un automezzo per l'evento <strong>"${evento}"</strong>.</p>
+                    
+                    <div class="vehicle-icon">🚙</div>
                     
                     <div class="vehicle-box">
                         <h3>🚗 Dettagli Automezzo:</h3>
-                        <p><strong>Tipo:</strong> ${vehicleData.tipo}</p>
-                        <p><strong>Modello:</strong> ${vehicleData.modello}</p>
-                        <p><strong>Targa:</strong> <code>${vehicleData.targa}</code></p>
-                        <p><strong>Km Attuali:</strong> ${(vehicleData.km_attuali || 0).toLocaleString()} km</p>
-                    </div>
-                    
-                    <div class="vehicle-box">
-                        <h3>📋 Dettagli Assegnazione:</h3>
-                        <p><strong>Motivo:</strong> ${assignmentData.motivo}</p>
-                        <p><strong>Data Uscita:</strong> ${new Date(assignmentData.data_uscita).toLocaleString('it-IT', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        })}</p>
-                        <p><strong>Km Partenza:</strong> ${assignmentData.km_partenza.toLocaleString()} km</p>
-                        ${assignmentData.note_uscita ? `<p><strong>Note:</strong> ${assignmentData.note_uscita}</p>` : ''}
-                    </div>
-                    
-                    ${assignmentData.card_carburante ? `
-                        <div class="card-info">
-                            <p style="margin: 0;"><strong>⛽ Card Carburante:</strong> È stata consegnata la card carburante per i rifornimenti.</p>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <strong>Tipo</strong>
+                                ${vehicleData.tipo}
+                            </div>
+                            <div class="info-item">
+                                <strong>Targa</strong>
+                                ${vehicleData.targa}
+                            </div>
+                            <div class="info-item">
+                                <strong>Evento</strong>
+                                ${evento}
+                            </div>
+                            <div class="info-item">
+                                <strong>Data Uscita</strong>
+                                ${new Date(dataUscita).toLocaleString('it-IT', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                })}
+                            </div>
+                            ${dataRientroPrevista ? `
+                            <div class="info-item" style="grid-column: 1 / -1;">
+                                <strong>Rientro Previsto</strong>
+                                ${new Date(dataRientroPrevista).toLocaleString('it-IT', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                })}
+                            </div>
+                            ` : ''}
                         </div>
-                    ` : ''}
+                        ${note ? `<p style="margin-top: 15px;"><strong>Note:</strong> ${note}</p>` : ''}
+                    </div>
                     
-                    <div class="responsibility-box">
-                        <p><strong>⚠️ RESPONSABILITÀ DEL CONDUCENTE:</strong></p>
-                        <ul>
-                            <li><strong>Verifica</strong> lo stato del veicolo prima della partenza</li>
-                            <li><strong>Controlla</strong> livelli olio, acqua e carburante</li>
-                            <li><strong>Segnala</strong> immediatamente eventuali problemi meccanici</li>
-                            <li><strong>Guida</strong> con prudenza rispettando il Codice della Strada</li>
-                            <li><strong>Registra</strong> eventuali rifornimenti e spese</li>
-                            <li><strong>Riconsegna</strong> il veicolo pulito e in ordine</li>
+                    <div class="warning">
+                        <p><strong>⚠️ RESPONSABILITÀ AUTOMEZZO:</strong></p>
+                        <ul style="margin: 10px 0;">
+                            <li>Controlla lo stato del veicolo prima della partenza</li>
+                            <li>Annota i chilometri di partenza</li>
+                            <li>Rispetta il codice della strada e le norme CRI</li>
+                            <li>Segnala immediatamente eventuali problemi</li>
+                            <li>Riconsegna il veicolo pulito e in ordine</li>
                         </ul>
                     </div>
                     
-                    <p>Per qualsiasi problema o emergenza, contatta immediatamente la Sala Operativa Regionale:</p>
-                    <p style="text-align: center; font-size: 16px; color: #d32f2f;">
-                        <strong>📞 +39 081 7810011 (selezione 2)</strong>
-                    </p>
-                    
-                    <p style="color: #d32f2f; font-weight: bold; text-align: center; margin-top: 30px; font-size: 18px;">
-                        Buon viaggio e grazie per il tuo servizio! 🚗
+                    <p style="color: #1565c0; font-weight: bold; text-align: center; margin-top: 30px; font-size: 18px;">
+                        Buon viaggio e grazie per il tuo servizio! 🙏
                     </p>
                 </div>
                 <div class="footer">
@@ -673,52 +471,46 @@ async function sendVehicleAssignmentNotification(volunteerEmail, volunteerName, 
         </body>
         </html>
     `;
-    
+
     const textContent = `
 Assegnazione Automezzo 🚗
 
-Ciao ${volunteerName}, ti è stato assegnato un automezzo.
+Croce Rossa Italiana - SOR Campania
+
+Ciao ${volunteerName}!
+
+Ti è stato assegnato un automezzo per "${evento}".
 
 DETTAGLI AUTOMEZZO:
 Tipo: ${vehicleData.tipo}
-Modello: ${vehicleData.modello}
 Targa: ${vehicleData.targa}
-Km Attuali: ${(vehicleData.km_attuali || 0).toLocaleString()} km
+Evento: ${evento}
+Data Uscita: ${new Date(dataUscita).toLocaleString('it-IT')}
+${dataRientroPrevista ? `Rientro Previsto: ${new Date(dataRientroPrevista).toLocaleString('it-IT')}` : ''}
+${note ? `Note: ${note}` : ''}
 
-DETTAGLI ASSEGNAZIONE:
-Motivo: ${assignmentData.motivo}
-Data Uscita: ${new Date(assignmentData.data_uscita).toLocaleString('it-IT')}
-Km Partenza: ${assignmentData.km_partenza.toLocaleString()} km
-${assignmentData.note_uscita ? `Note: ${assignmentData.note_uscita}` : ''}
-${assignmentData.card_carburante ? '\n⛽ Card Carburante: Consegnata' : ''}
-
-RESPONSABILITÀ DEL CONDUCENTE:
-- Verifica lo stato del veicolo prima della partenza
-- Controlla livelli olio, acqua e carburante
-- Segnala immediatamente eventuali problemi meccanici
-- Guida con prudenza rispettando il Codice della Strada
-- Registra eventuali rifornimenti e spese
+RESPONSABILITÀ:
+- Controlla lo stato del veicolo prima della partenza
+- Annota i chilometri di partenza
+- Rispetta il codice della strada
+- Segnala problemi immediatamente
 - Riconsegna il veicolo pulito e in ordine
 
-Per emergenze: 📞 +39 081 7810011 (selezione 2)
-
-Buon viaggio e grazie per il tuo servizio!
+Buon viaggio e grazie per il tuo servizio! 🙏
 
 Croce Rossa Italiana - SOR Campania
     `;
-    
+
     return sendEmail(volunteerEmail, subject, htmlContent, textContent);
 }
 
 /**
- * Email notifica restituzione automezzo
+ * Email restituzione automezzo
  */
 async function sendVehicleReturnNotification(volunteerEmail, volunteerName, vehicleData, returnData) {
-    const subject = '✅ Conferma Restituzione Automezzo - CRI SOR Campania';
+    const subject = '✅ Restituzione Automezzo Confermata - CRI SOR Campania';
     
-    const kmPercorsi = returnData.km_percorsi || (returnData.km_arrivo - returnData.km_partenza);
-    const livelloIcon = returnData.livello_carburante_rientro === 'pieno' ? '⛽' : 
-                        returnData.livello_carburante_rientro === 'vuoto' ? '🔴' : '🟠';
+    const kmPercorsi = returnData.km_arrivo - returnData.km_partenza;
     
     const htmlContent = `
         <!DOCTYPE html>
@@ -729,65 +521,50 @@ async function sendVehicleReturnNotification(volunteerEmail, volunteerName, vehi
                 body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
                 .container { max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
                 .header { 
-                    background: #d32f2f; 
+                    background: #2e7d32; 
                     color: white; 
                     padding: 30px 20px; 
                     text-align: center; 
-                    border-radius: 5px 5px 0 0; 
-                }
-                .logo-circle {
-                    width: 80px;
-                    height: 80px;
-                    background: white;
-                    border-radius: 50%;
-                    margin: 0 auto 15px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-                }
-                .logo-circle img {
-                    width: 60px;
-                    height: 60px;
+                    border-radius: 5px 5px 0 0;
                 }
                 .header h1 { margin: 10px 0 5px; font-size: 24px; }
-                .header p { margin: 0; font-size: 14px; opacity: 0.9; }
                 .content { background: white; padding: 30px; border: 1px solid #ddd; }
+                .vehicle-icon { font-size: 48px; text-align: center; margin: 20px 0; }
                 .return-box { 
-                    background: #f9f9f9; 
+                    background: #f1f8e9; 
                     padding: 20px; 
                     margin: 20px 0; 
-                    border-left: 4px solid #28a745;
+                    border-left: 4px solid #2e7d32; 
                     border-radius: 4px;
                 }
-                .return-box h3 { margin-top: 0; color: #28a745; }
-                .stats-grid {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 15px;
-                    margin: 20px 0;
+                .return-box h3 { margin-top: 0; color: #2e7d32; }
+                .info-grid { 
+                    display: grid; 
+                    grid-template-columns: 1fr 1fr; 
+                    gap: 15px; 
+                    margin: 15px 0;
                 }
-                .stat-box {
-                    background: #e3f2fd;
-                    padding: 15px;
+                .info-item { 
+                    background: white; 
+                    padding: 12px; 
                     border-radius: 5px;
-                    text-align: center;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
                 }
-                .stat-box h4 {
-                    margin: 0 0 5px;
-                    color: #1976d2;
-                    font-size: 14px;
-                }
-                .stat-box p {
-                    margin: 0;
-                    font-size: 24px;
+                .info-item strong { color: #2e7d32; display: block; margin-bottom: 5px; }
+                .km-badge {
+                    background: #2e7d32;
+                    color: white;
+                    padding: 15px 25px;
+                    border-radius: 25px;
+                    font-size: 20px;
                     font-weight: bold;
-                    color: #1976d2;
+                    display: inline-block;
+                    margin: 20px 0;
                 }
                 .thank-you {
                     background: #e8f5e9;
                     padding: 20px;
-                    border-radius: 5px;
+                    border-radius: 8px;
                     text-align: center;
                     margin: 20px 0;
                 }
@@ -804,32 +581,33 @@ async function sendVehicleReturnNotification(volunteerEmail, volunteerName, vehi
         <body>
             <div class="container">
                 <div class="header">
-                    <div class="logo-circle">
-                        <img src="https://warehouse-sor-campania.netlify.app/assets/logo-sor.png" alt="SOR Logo" onerror="this.style.display='none'">
-                    </div>
-                    <h1>Croce Rossa Italiana</h1>
-                    <p>Sala Operativa Regionale - Campania</p>
-                    <p style="font-size: 16px; margin-top: 10px;">Sistema Gestione Automezzi</p>
+                    <h1>✅ Restituzione Automezzo</h1>
+                    <p>Croce Rossa Italiana - SOR Campania</p>
                 </div>
                 <div class="content">
-                    <h2 style="color: #d32f2f;">✅ Restituzione Automezzo Confermata</h2>
-                    <p>Ciao <strong>${volunteerName}</strong>, confermiamo la restituzione dell'automezzo.</p>
+                    <h2 style="color: #2e7d32;">Ciao ${volunteerName}! 👋</h2>
+                    <p>Confermiamo la restituzione dell'automezzo.</p>
+                    
+                    <div class="vehicle-icon">🚙✅</div>
                     
                     <div class="return-box">
                         <h3>🚗 Dettagli Veicolo:</h3>
-                        <p><strong>Tipo:</strong> ${vehicleData.tipo}</p>
-                        <p><strong>Targa:</strong> <code style="background: white; padding: 5px 10px; border-radius: 3px; font-family: monospace; font-weight: bold;">${vehicleData.targa}</code></p>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <strong>Tipo</strong>
+                                ${vehicleData.tipo}
+                            </div>
+                            <div class="info-item">
+                                <strong>Targa</strong>
+                                ${vehicleData.targa}
+                            </div>
+                        </div>
                     </div>
                     
-                    <div class="stats-grid">
-                        <div class="stat-box">
-                            <h4>📏 Km Percorsi</h4>
-                            <p>${kmPercorsi.toLocaleString()} km</p>
-                        </div>
-                        <div class="stat-box">
-                            <h4>${livelloIcon} Carburante</h4>
-                            <p>${returnData.livello_carburante_rientro.toUpperCase()}</p>
-                        </div>
+                    <div style="text-align: center;">
+                        <span class="km-badge">
+                            📏 ${kmPercorsi.toLocaleString()} km percorsi
+                        </span>
                     </div>
                     
                     <div class="return-box">
@@ -851,7 +629,7 @@ async function sendVehicleReturnNotification(volunteerEmail, volunteerName, vehi
                         <p style="margin: 0;">L'automezzo è stato riconsegnato ed è nuovamente disponibile.</p>
                     </div>
                     
-                    <p style="color: #d32f2f; font-weight: bold; text-align: center; margin-top: 30px; font-size: 18px;">
+                    <p style="color: #2e7d32; font-weight: bold; text-align: center; margin-top: 30px; font-size: 18px;">
                         Grazie per il tuo servizio volontario! 🙏
                     </p>
                 </div>
@@ -1009,6 +787,7 @@ Grazie per il tuo servizio! 🙏
     
     return sendEmail(volunteerEmail, subject, htmlContent, textContent);
 }
+
 module.exports = {
     sendEmail,
     sendNewUserCredentials,

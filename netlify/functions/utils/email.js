@@ -1,4 +1,5 @@
 // ===================================
+<<<<<<< Updated upstream
 // EMAIL UTILITY - Gmail API
 // Gestione invio email notifiche tramite Google Cloud
 // ===================================
@@ -82,12 +83,29 @@ function createRFC2822Message(to, subject, htmlContent, textContent) {
         .replace(/=+$/, '');
 
     return encodedMessage;
+=======
+// EMAIL UTILITY - Resend
+// Gestione invio email notifiche
+// ===================================
+
+const { Resend } = require('resend');
+
+// Inizializza Resend
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@sor-campania.it';
+const FROM_NAME = process.env.FROM_NAME || 'CRI SOR Campania - Sistema Magazzino';
+
+let resend = null;
+if (RESEND_API_KEY) {
+    resend = new Resend(RESEND_API_KEY);
+>>>>>>> Stashed changes
 }
 
 /**
  * Invia email generica
  */
 async function sendEmail(to, subject, htmlContent, textContent) {
+<<<<<<< Updated upstream
     // Inizializza Gmail API se non già fatto
     if (!gmail) {
         gmail = await initializeGmailAPI();
@@ -137,6 +155,27 @@ async function sendEmail(to, subject, htmlContent, textContent) {
             message: error.message, 
             code: error.code 
         };
+=======
+    if (!RESEND_API_KEY || !resend) {
+        console.warn('Resend non configurato, email non inviata:', to);
+        return { success: false, message: 'Resend non configurato' };
+    }
+
+    try {
+        const result = await resend.emails.send({
+            from: `${FROM_NAME} <${FROM_EMAIL}>`,
+            to: [to],
+            subject,
+            html: htmlContent,
+            text: textContent
+        });
+
+        console.log('✅ Email inviata a:', to);
+        return { success: true, id: result.id };
+    } catch (error) {
+        console.error('❌ Errore invio email:', error);
+        return { success: false, message: error.message };
+>>>>>>> Stashed changes
     }
 }
 
@@ -443,9 +482,59 @@ async function sendVehicleAssignmentNotification(volunteerEmail, volunteerName, 
             <style>
                 body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
                 .container { max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+<<<<<<< Updated upstream
                 .header { background: #1565c0; color: white; padding: 30px 20px; text-align: center; border-radius: 5px 5px 0 0; }
                 .content { background: white; padding: 30px; border: 1px solid #ddd; }
                 .vehicle-box { background: #e3f2fd; padding: 20px; margin: 20px 0; border-left: 4px solid #1565c0; }
+=======
+                .header { 
+                    background: #1565c0; 
+                    color: white; 
+                    padding: 30px 20px; 
+                    text-align: center; 
+                    border-radius: 5px 5px 0 0;
+                }
+                .header h1 { margin: 10px 0 5px; font-size: 24px; }
+                .header p { margin: 0; font-size: 14px; opacity: 0.9; }
+                .content { background: white; padding: 30px; border: 1px solid #ddd; }
+                .vehicle-box { 
+                    background: #e3f2fd; 
+                    padding: 20px; 
+                    margin: 20px 0; 
+                    border-left: 4px solid #1565c0; 
+                    border-radius: 4px;
+                }
+                .vehicle-box h3 { margin-top: 0; color: #1565c0; }
+                .vehicle-icon { font-size: 48px; text-align: center; margin: 20px 0; }
+                .info-grid { 
+                    display: grid; 
+                    grid-template-columns: 1fr 1fr; 
+                    gap: 15px; 
+                    margin: 15px 0;
+                }
+                .info-item { 
+                    background: white; 
+                    padding: 12px; 
+                    border-radius: 5px;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                }
+                .info-item strong { color: #1565c0; display: block; margin-bottom: 5px; }
+                .warning { 
+                    background: #fff3cd; 
+                    padding: 15px; 
+                    border-left: 4px solid #ffc107; 
+                    margin: 20px 0;
+                    border-radius: 4px;
+                }
+                .footer { 
+                    text-align: center; 
+                    margin-top: 20px; 
+                    padding-top: 20px;
+                    border-top: 1px solid #ddd;
+                    font-size: 12px; 
+                    color: #666; 
+                }
+>>>>>>> Stashed changes
             </style>
         </head>
         <body>
@@ -457,6 +546,7 @@ async function sendVehicleAssignmentNotification(volunteerEmail, volunteerName, 
                 <div class="content">
                     <h2 style="color: #1565c0;">Ciao ${volunteerName}! 👋</h2>
                     <p>Ti è stato assegnato un automezzo per l'evento <strong>"${evento}"</strong>.</p>
+<<<<<<< Updated upstream
                     
                     <div class="vehicle-box">
                         <h3 style="color: #1565c0;">🚗 Dettagli Automezzo:</h3>
@@ -471,6 +561,70 @@ async function sendVehicleAssignmentNotification(volunteerEmail, volunteerName, 
                     <p style="color: #1565c0; font-weight: bold; text-align: center;">
                         Buon viaggio e grazie per il tuo servizio! 🙏
                     </p>
+=======
+                    
+                    <div class="vehicle-icon">🚙</div>
+                    
+                    <div class="vehicle-box">
+                        <h3>🚗 Dettagli Automezzo:</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <strong>Tipo</strong>
+                                ${vehicleData.tipo}
+                            </div>
+                            <div class="info-item">
+                                <strong>Targa</strong>
+                                ${vehicleData.targa}
+                            </div>
+                            <div class="info-item">
+                                <strong>Evento</strong>
+                                ${evento}
+                            </div>
+                            <div class="info-item">
+                                <strong>Data Uscita</strong>
+                                ${new Date(dataUscita).toLocaleString('it-IT', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                })}
+                            </div>
+                            ${dataRientroPrevista ? `
+                            <div class="info-item" style="grid-column: 1 / -1;">
+                                <strong>Rientro Previsto</strong>
+                                ${new Date(dataRientroPrevista).toLocaleString('it-IT', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                })}
+                            </div>
+                            ` : ''}
+                        </div>
+                        ${note ? `<p style="margin-top: 15px;"><strong>Note:</strong> ${note}</p>` : ''}
+                    </div>
+                    
+                    <div class="warning">
+                        <p><strong>⚠️ RESPONSABILITÀ AUTOMEZZO:</strong></p>
+                        <ul style="margin: 10px 0;">
+                            <li>Controlla lo stato del veicolo prima della partenza</li>
+                            <li>Annota i chilometri di partenza</li>
+                            <li>Rispetta il codice della strada e le norme CRI</li>
+                            <li>Segnala immediatamente eventuali problemi</li>
+                            <li>Riconsegna il veicolo pulito e in ordine</li>
+                        </ul>
+                    </div>
+                    
+                    <p style="color: #1565c0; font-weight: bold; text-align: center; margin-top: 30px; font-size: 18px;">
+                        Buon viaggio e grazie per il tuo servizio! 🙏
+                    </p>
+                </div>
+                <div class="footer">
+                    <p><strong>© ${new Date().getFullYear()} Croce Rossa Italiana - SOR Campania</strong></p>
+                    <p>Questa è una email automatica, non rispondere.</p>
+>>>>>>> Stashed changes
                 </div>
             </div>
         </body>
@@ -494,7 +648,20 @@ Data Uscita: ${new Date(dataUscita).toLocaleString('it-IT')}
 ${dataRientroPrevista ? `Rientro Previsto: ${new Date(dataRientroPrevista).toLocaleString('it-IT')}` : ''}
 ${note ? `Note: ${note}` : ''}
 
+<<<<<<< Updated upstream
 Buon viaggio e grazie! 🙏
+=======
+RESPONSABILITÀ:
+- Controlla lo stato del veicolo prima della partenza
+- Annota i chilometri di partenza
+- Rispetta il codice della strada
+- Segnala problemi immediatamente
+- Riconsegna il veicolo pulito e in ordine
+
+Buon viaggio e grazie per il tuo servizio! 🙏
+
+Croce Rossa Italiana - SOR Campania
+>>>>>>> Stashed changes
     `;
 
     return sendEmail(volunteerEmail, subject, htmlContent, textContent);
@@ -516,9 +683,68 @@ async function sendVehicleReturnNotification(volunteerEmail, volunteerName, vehi
             <style>
                 body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
                 .container { max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+<<<<<<< Updated upstream
                 .header { background: #2e7d32; color: white; padding: 30px 20px; text-align: center; }
                 .content { background: white; padding: 30px; }
                 .return-box { background: #f1f8e9; padding: 20px; margin: 20px 0; border-left: 4px solid #2e7d32; }
+=======
+                .header { 
+                    background: #2e7d32; 
+                    color: white; 
+                    padding: 30px 20px; 
+                    text-align: center; 
+                    border-radius: 5px 5px 0 0;
+                }
+                .header h1 { margin: 10px 0 5px; font-size: 24px; }
+                .content { background: white; padding: 30px; border: 1px solid #ddd; }
+                .vehicle-icon { font-size: 48px; text-align: center; margin: 20px 0; }
+                .return-box { 
+                    background: #f1f8e9; 
+                    padding: 20px; 
+                    margin: 20px 0; 
+                    border-left: 4px solid #2e7d32; 
+                    border-radius: 4px;
+                }
+                .return-box h3 { margin-top: 0; color: #2e7d32; }
+                .info-grid { 
+                    display: grid; 
+                    grid-template-columns: 1fr 1fr; 
+                    gap: 15px; 
+                    margin: 15px 0;
+                }
+                .info-item { 
+                    background: white; 
+                    padding: 12px; 
+                    border-radius: 5px;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                }
+                .info-item strong { color: #2e7d32; display: block; margin-bottom: 5px; }
+                .km-badge {
+                    background: #2e7d32;
+                    color: white;
+                    padding: 15px 25px;
+                    border-radius: 25px;
+                    font-size: 20px;
+                    font-weight: bold;
+                    display: inline-block;
+                    margin: 20px 0;
+                }
+                .thank-you {
+                    background: #e8f5e9;
+                    padding: 20px;
+                    border-radius: 8px;
+                    text-align: center;
+                    margin: 20px 0;
+                }
+                .footer { 
+                    text-align: center; 
+                    margin-top: 20px; 
+                    padding-top: 20px;
+                    border-top: 1px solid #ddd;
+                    font-size: 12px; 
+                    color: #666; 
+                }
+>>>>>>> Stashed changes
             </style>
         </head>
         <body>
@@ -530,6 +756,7 @@ async function sendVehicleReturnNotification(volunteerEmail, volunteerName, vehi
                 <div class="content">
                     <h2 style="color: #2e7d32;">Ciao ${volunteerName}! 👋</h2>
                     <p>Confermiamo la restituzione dell'automezzo.</p>
+<<<<<<< Updated upstream
                     
                     <div class="return-box">
                         <h3 style="color: #2e7d32;">🚗 Dettagli Veicolo:</h3>
@@ -542,6 +769,52 @@ async function sendVehicleReturnNotification(volunteerEmail, volunteerName, vehi
                     
                     <p style="color: #2e7d32; font-weight: bold; text-align: center;">
                         Grazie per la cura del veicolo! 🙏
+=======
+                    
+                    <div class="vehicle-icon">🚙✅</div>
+                    
+                    <div class="return-box">
+                        <h3>🚗 Dettagli Veicolo:</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <strong>Tipo</strong>
+                                ${vehicleData.tipo}
+                            </div>
+                            <div class="info-item">
+                                <strong>Targa</strong>
+                                ${vehicleData.targa}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center;">
+                        <span class="km-badge">
+                            📏 ${kmPercorsi.toLocaleString()} km percorsi
+                        </span>
+                    </div>
+                    
+                    <div class="return-box">
+                        <h3>📋 Riepilogo Utilizzo:</h3>
+                        <p><strong>Km Partenza:</strong> ${returnData.km_partenza.toLocaleString()} km</p>
+                        <p><strong>Km Arrivo:</strong> ${returnData.km_arrivo.toLocaleString()} km</p>
+                        <p><strong>Data Rientro:</strong> ${new Date(returnData.data_rientro).toLocaleString('it-IT', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        })}</p>
+                        ${returnData.note_rientro ? `<p><strong>Note:</strong> ${returnData.note_rientro}</p>` : ''}
+                    </div>
+                    
+                    <div class="thank-you">
+                        <h3 style="color: #2e7d32; margin-top: 0;">✅ Grazie per la cura del veicolo!</h3>
+                        <p style="margin: 0;">L'automezzo è stato riconsegnato ed è nuovamente disponibile.</p>
+                    </div>
+                    
+                    <p style="color: #2e7d32; font-weight: bold; text-align: center; margin-top: 30px; font-size: 18px;">
+                        Grazie per il tuo servizio volontario! 🙏
+>>>>>>> Stashed changes
                     </p>
                 </div>
             </div>

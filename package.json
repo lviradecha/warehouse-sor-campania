@@ -19,6 +19,7 @@
   "dependencies": {
     "@neondatabase/serverless": "^0.9.0",
     "bcryptjs": "^2.4.3",
+    "googleapis": "^170.0.0",
     "jsbarcode": "^3.11.6",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.16.3",

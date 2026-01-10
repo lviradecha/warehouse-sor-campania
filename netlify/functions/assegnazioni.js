@@ -385,16 +385,33 @@ exports.handler = async (event) => {
 
             if (assignment) {
                 const material = await queryOne(
-                    `SELECT quantita_assegnata FROM materials WHERE id = $1`,
+                    `SELECT quantita, quantita_assegnata FROM materials WHERE id = $1`,
                     [assignment.material_id]
                 );
 
                 if (material) {
-                    const nuovaQuantitaAssegnata = Math.max(0, (material.quantita_assegnata || 0) - (assignment.quantita || 1));
+                    const quantitaRilasciata = assignment.quantita || 1;
+                    const nuovaQuantitaAssegnata = Math.max(0, (material.quantita_assegnata || 0) - quantitaRilasciata);
+                    
+                    // Determina il nuovo stato
+                    let nuovoStato;
+                    if (nuovaQuantitaAssegnata === 0) {
+                        nuovoStato = 'disponibile';
+                    } else if (nuovaQuantitaAssegnata >= material.quantita) {
+                        nuovoStato = 'assegnato';
+                    } else {
+                        nuovoStato = 'disponibile';
+                    }
+                    
                     await query(
-                        `UPDATE materials SET quantita_assegnata = $1 WHERE id = $2`,
-                        [nuovaQuantitaAssegnata, assignment.material_id]
+                        `UPDATE materials 
+                         SET quantita_assegnata = $1,
+                             stato = $2
+                         WHERE id = $3`,
+                        [nuovaQuantitaAssegnata, nuovoStato, assignment.material_id]
                     );
+                    
+                    console.log(`✅ Materiale ${assignment.material_id}: quantità rilasciata ${quantitaRilasciata}, nuovo stato: ${nuovoStato}`);
                 }
             }
 

@@ -447,13 +447,18 @@ async function handleAssignments(segments, event, user) {
                     card_carburante: fullAssignment.card_carburante
                 };
 
-                await sendVehicleAssignmentNotification(
+                const emailResult = await sendVehicleAssignmentNotification(
                     fullAssignment.volunteer_email,
                     volunteerName,
                     vehicleData,
                     assignmentData
                 );
-                console.log(`✅ Email assegnazione automezzo inviata a ${fullAssignment.volunteer_email}`);
+                
+                if (emailResult.success) {
+                    console.log(`✅ Email assegnazione automezzo inviata a ${fullAssignment.volunteer_email}`);
+                } else {
+                    console.warn(`⚠️ Email assegnazione automezzo non inviata: ${emailResult.message}`);
+                }
             }
         } catch (emailError) {
             console.error('Errore invio email assegnazione:', emailError);
@@ -552,13 +557,18 @@ async function handleAssignments(segments, event, user) {
                     note_rientro: fullReturn.note_rientro
                 };
 
-                await sendVehicleReturnNotification(
+                const emailResult = await sendVehicleReturnNotification(
                     fullReturn.volunteer_email,
                     volunteerName,
                     vehicleData,
                     returnData
                 );
-                console.log(`✅ Email rientro automezzo inviata a ${fullReturn.volunteer_email}`);
+                
+                if (emailResult.success) {
+                    console.log(`✅ Email rientro automezzo inviata a ${fullReturn.volunteer_email}`);
+                } else {
+                    console.warn(`⚠️ Email rientro automezzo non inviata: ${emailResult.message}`);
+                }
             }
         } catch (emailError) {
             console.error('Errore invio email rientro:', emailError);

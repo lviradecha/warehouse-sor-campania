@@ -96,7 +96,6 @@ exports.handler = async (event) => {
             const data_uscita = data.data_uscita;
             const data_rientro_prevista = data.data_rientro_prevista || null;
             const note_uscita = data.note_uscita || null;
-            const inviaEmail = data.invia_email === 'true' || data.invia_email === true;
             const prenotazione_materiale_id = data.prenotazione_materiale_id || null; // <-- NUOVO CAMPO
 
             if (!volunteer_id || !evento || !data_uscita || materials.length === 0) {
@@ -203,7 +202,7 @@ exports.handler = async (event) => {
             }
 
             // Invia UNA SOLA email con tutti i materiali
-            if (inviaEmail && createdAssignments.length > 0) {
+            if (createdAssignments.length > 0) {
                 try {
                     // Carica dettagli volontario
                     const volunteerDetails = await queryOne(
@@ -243,8 +242,6 @@ exports.handler = async (event) => {
                     console.error('❌ Errore invio email assegnazione:', emailError.message);
                     // Non blocchiamo l'assegnazione se l'email fallisce
                 }
-            } else if (!inviaEmail) {
-                console.log('ℹ️ Email non inviata: non richiesta dall\'utente');
             }
 
             // Ritorna tutte le assegnazioni create o singola per retrocompatibilità

@@ -4,7 +4,7 @@
 // ===================================
 
 const { query, queryOne, exists, logActivity } = require('./utils/db');
-const { authenticate, requireOperator, successResponse, errorResponse, parsePath } = require('./utils/auth');
+const { authenticate, requireOperator, requireAdmin, successResponse, errorResponse, parsePath } = require('./utils/auth');
 
 exports.handler = async (event) => {
     // Gestione CORS
@@ -143,8 +143,9 @@ exports.handler = async (event) => {
             return successResponse({ materials, stats });
         }
 
-        // POST - Crea nuovo materiale
+        // POST - Crea nuovo materiale (solo admin)
         if (event.httpMethod === 'POST') {
+            requireAdmin(user); // Solo admin può creare materiali
             const data = JSON.parse(event.body);
 
             // Validazione dati obbligatori
@@ -211,8 +212,9 @@ exports.handler = async (event) => {
             return successResponse(material, 201);
         }
 
-        // PUT - Aggiorna materiale
+        // PUT - Aggiorna materiale (solo admin)
         if (event.httpMethod === 'PUT' && materialId) {
+            requireAdmin(user); // Solo admin può modificare materiali
             const data = JSON.parse(event.body);
 
             // Verifica esistenza materiale
@@ -338,8 +340,10 @@ exports.handler = async (event) => {
             return successResponse(material);
         }
 
-        // DELETE - Elimina materiale (solo se non ha assegnazioni)
+        // DELETE - Elimina materiale (solo admin, solo se non ha assegnazioni)
         if (event.httpMethod === 'DELETE' && materialId) {
+            requireAdmin(user); // Solo admin può eliminare materiali
+            
             // Verifica se ha assegnazioni attive
             const hasAssignments = await exists('assignments', 'material_id', materialId);
             

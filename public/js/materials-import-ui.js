@@ -1,6 +1,7 @@
 // ===================================
 // MATERIALS IMPORT UI COMPONENT
 // Componente per import CSV materiali
+// CON PREVIEW RAGGRUPPATA PER CATEGORIA
 // ===================================
 
 const MaterialsImportUI = {
@@ -8,19 +9,19 @@ const MaterialsImportUI = {
     
     // Categorie hardcoded dal database (backup se API non risponde)
     categoriesBackup: [
-        { id: 1, nome: 'Telecomunicazioni', icona: '📡' },
-        { id: 2, nome: 'Idrogeologico', icona: '💧' },
-        { id: 3, nome: 'Elettrico', icona: '⚡' },
-        { id: 4, nome: 'Sanitario', icona: '🏥' },
-        { id: 5, nome: 'Logistica', icona: '📦' },
-        { id: 6, nome: 'Antincendio', icona: '🔥' },
-        { id: 7, nome: 'Rescue', icona: '🚁' },
-        { id: 8, nome: 'Campo Base', icona: '⛺' },
-        { id: 9, nome: 'Cucina', icona: '🍳' },
-        { id: 10, nome: 'Vestiario', icona: '👕' },
-        { id: 11, nome: 'Movimentazione', icona: '🚜' },
-        { id: 12, nome: 'Illuminazione', icona: '💡' },
-        { id: 13, nome: 'Altro', icona: '📋' }
+        { id: 1, nome: 'Telecomunicazioni', icona: '📡', colore: '#2196F3' },
+        { id: 2, nome: 'Idrogeologico', icona: '💧', colore: '#03A9F4' },
+        { id: 3, nome: 'Elettrico', icona: '⚡', colore: '#FFC107' },
+        { id: 4, nome: 'Sanitario', icona: '🏥', colore: '#4CAF50' },
+        { id: 5, nome: 'Logistica', icona: '📦', colore: '#FF9800' },
+        { id: 6, nome: 'Antincendio', icona: '🔥', colore: '#F44336' },
+        { id: 7, nome: 'Rescue', icona: '🚁', colore: '#9C27B0' },
+        { id: 8, nome: 'Campo Base', icona: '⛺', colore: '#795548' },
+        { id: 9, nome: 'Cucina', icona: '🍳', colore: '#FF5722' },
+        { id: 10, nome: 'Vestiario', icona: '👕', colore: '#607D8B' },
+        { id: 11, nome: 'Movimentazione', icona: '🚜', colore: '#FF6F00' },
+        { id: 12, nome: 'Illuminazione', icona: '💡', colore: '#E65100' },
+        { id: 13, nome: 'Altro', icona: '📋', colore: '#9E9E9E' }
     ],
     
     async showImportModal() {
@@ -87,8 +88,8 @@ const MaterialsImportUI = {
             </div>
             
             <div id="previewSection" style="display: none; margin-top: 20px;">
-                <h4>📊 Anteprima Dati (prime 5 righe)</h4>
-                <div id="previewTable" style="overflow-x: auto;"></div>
+                <h4>📊 Anteprima Dati Raggruppati per Categoria</h4>
+                <div id="previewGrouped" style="margin-top: 15px;"></div>
                 <p id="previewStats" style="margin-top: 10px; font-weight: bold;"></p>
             </div>
             
@@ -139,6 +140,7 @@ const MaterialsImportUI = {
                     <td style="text-align: center; font-size: 24px;">${c.icona}</td>
                     <td><strong>${c.nome}</strong></td>
                     <td><code>${c.nome}</code></td>
+                    <td><span style="background: ${c.colore}; color: white; padding: 4px 12px; border-radius: 4px; font-size: 12px;">${c.colore}</span></td>
                 </tr>
             `).join('');
         
@@ -149,35 +151,23 @@ const MaterialsImportUI = {
                 <strong>💡 Importante:</strong> Nel CSV, usa esattamente il nome della categoria come mostrato nella colonna "Valore CSV".
             </div>
             
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th style="width: 60px; text-align: center;">Icona</th>
-                        <th>Nome Categoria</th>
-                        <th>Valore CSV</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${categoriesTable}
-                </tbody>
-            </table>
-            
-            <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 8px; border: 1px solid #ffc107;">
-                <strong>📝 Esempio uso nel CSV:</strong>
-                <pre style="margin: 10px 0 0 0; background: white; padding: 10px; border-radius: 4px;">TEL001,Radio VHF,Radio portatile,<strong style="color: #d32f2f;">Telecomunicazioni</strong>,5,disponibile,...</pre>
+            <div style="overflow-x: auto;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Icona</th>
+                            <th>Nome Categoria</th>
+                            <th>Valore CSV</th>
+                            <th>Colore</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${categoriesTable}
+                    </tbody>
+                </table>
             </div>
             
-            <div class="d-flex gap-2 mt-3">
-                <button class="btn btn-secondary" onclick="MaterialsImportUI.showImportModal()">
-                    ← Torna a Import
-                </button>
-                <button class="btn btn-primary" onclick="MaterialsImportUI.downloadTemplate()">
-                    📄 Scarica Template
-                </button>
-                <button class="btn btn-secondary" onclick="UI.closeModal()">
-                    Chiudi
-                </button>
-            </div>
+            <button class="btn btn-secondary mt-2" onclick="UI.closeModal()">Chiudi</button>
         `;
         
         UI.showModal(modalContent);
@@ -269,7 +259,7 @@ const MaterialsImportUI = {
             return;
         }
         
-        this.showPreview();
+        this.showPreviewGrouped();
         document.getElementById('importBtn').disabled = false;
     },
     
@@ -278,9 +268,7 @@ const MaterialsImportUI = {
         let current = '';
         let inQuotes = false;
         
-        for (let i = 0; i < line.length; i++) {
-            const char = line[i];
-            
+        for (let char of line) {
             if (char === '"') {
                 inQuotes = !inQuotes;
             } else if (char === ',' && !inQuotes) {
@@ -295,38 +283,127 @@ const MaterialsImportUI = {
         return result;
     },
     
-    showPreview() {
+    // NUOVO: Preview raggruppata per categoria
+    showPreviewGrouped() {
         const previewSection = document.getElementById('previewSection');
-        const previewTable = document.getElementById('previewTable');
+        const previewGrouped = document.getElementById('previewGrouped');
         const previewStats = document.getElementById('previewStats');
         
         previewSection.style.display = 'block';
         
-        // Mostra prime 5 righe
-        const preview = this.parsedData.slice(0, 5);
-        const headers = Object.keys(preview[0]);
+        // Raggruppa per categoria
+        const groups = this.groupByCategory(this.parsedData);
         
-        let html = '<table class="table table-sm"><thead><tr>';
-        headers.forEach(h => {
-            html += `<th>${h}</th>`;
+        // Conta statistiche
+        let totalItems = 0;
+        let totalQuantity = 0;
+        
+        // Render gruppi
+        let html = '';
+        
+        groups.forEach(group => {
+            const categoryInfo = this.getCategoryInfo(group.categoria);
+            const itemCount = group.items.length;
+            const groupQuantity = group.items.reduce((sum, item) => sum + (parseInt(item.quantita) || 1), 0);
+            
+            totalItems += itemCount;
+            totalQuantity += groupQuantity;
+            
+            html += `
+                <div class="card mb-2" style="border-left: 4px solid ${categoryInfo.colore};">
+                    <div style="
+                        padding: 10px 15px; 
+                        background: linear-gradient(135deg, ${categoryInfo.colore}15 0%, ${categoryInfo.colore}05 100%);
+                        border-bottom: 1px solid ${categoryInfo.colore}30;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    ">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 20px;">${categoryInfo.icona}</span>
+                            <div>
+                                <strong style="color: ${categoryInfo.colore}; font-size: 1.1em;">
+                                    ${categoryInfo.nome}
+                                </strong>
+                                <div style="font-size: 0.85em; color: #666;">
+                                    ${itemCount} articoli | Quantità totale: ${groupQuantity}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="padding: 10px;">
+                        <table class="table table-sm" style="font-size: 0.9em; margin: 0;">
+                            <thead>
+                                <tr style="background: ${categoryInfo.colore}10;">
+                                    <th>Codice</th>
+                                    <th>Nome</th>
+                                    <th>Qtà</th>
+                                    <th>Stato</th>
+                                    <th>Posizione</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${group.items.map(item => `
+                                    <tr>
+                                        <td><code style="font-size: 0.85em;">${item.codice_barre}</code></td>
+                                        <td><strong>${item.nome}</strong></td>
+                                        <td style="text-align: center;"><strong>${item.quantita || 1}</strong></td>
+                                        <td><span class="badge badge-${item.stato || 'disponibile'}">${item.stato || 'disponibile'}</span></td>
+                                        <td>${item.posizione_magazzino || '-'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
         });
-        html += '</tr></thead><tbody>';
         
-        preview.forEach(row => {
-            html += '<tr>';
-            headers.forEach(h => {
-                html += `<td>${row[h] || '-'}</td>`;
-            });
-            html += '</tr>';
-        });
-        
-        html += '</tbody></table>';
-        previewTable.innerHTML = html;
+        previewGrouped.innerHTML = html;
         
         previewStats.innerHTML = `
-            ✅ Totale righe da importare: <strong>${this.parsedData.length}</strong>
-            ${this.parsedData.length > 5 ? ` (mostrate prime 5)` : ''}
+            ✅ Totale: <strong>${totalItems} articoli</strong> | 
+            Quantità totale: <strong>${totalQuantity}</strong> | 
+            Categorie: <strong>${groups.length}</strong>
         `;
+    },
+    
+    // NUOVO: Raggruppa materiali per categoria
+    groupByCategory(data) {
+        const groups = new Map();
+        
+        data.forEach(item => {
+            const categoria = item.categoria || 'Altro';
+            
+            if (!groups.has(categoria)) {
+                groups.set(categoria, {
+                    categoria: categoria,
+                    items: []
+                });
+            }
+            
+            groups.get(categoria).items.push(item);
+        });
+        
+        // Ordina categorie alfabeticamente (Altro va alla fine)
+        return Array.from(groups.values()).sort((a, b) => {
+            if (a.categoria === 'Altro') return 1;
+            if (b.categoria === 'Altro') return -1;
+            return a.categoria.localeCompare(b.categoria);
+        });
+    },
+    
+    // NUOVO: Ottieni info categoria (icona, colore)
+    getCategoryInfo(categoryName) {
+        const category = this.categoriesBackup.find(
+            c => c.nome.toLowerCase() === categoryName.toLowerCase()
+        );
+        
+        return category || {
+            nome: categoryName,
+            icona: '📦',
+            colore: '#9E9E9E'
+        };
     },
     
     async executeImport() {
@@ -380,61 +457,102 @@ const MaterialsImportUI = {
         let html = `
             <h3>📊 Risultati Import</h3>
             
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0;">
-                <div class="stat-card" style="background: #e8f5e9; padding: 15px; border-radius: 8px;">
-                    <div style="font-size: 32px; font-weight: bold; color: #2e7d32;">${stats.imported}</div>
-                    <div style="color: #666;">✅ Creati</div>
-                </div>
-                <div class="stat-card" style="background: #e3f2fd; padding: 15px; border-radius: 8px;">
-                    <div style="font-size: 32px; font-weight: bold; color: #1565c0;">${stats.updated}</div>
-                    <div style="color: #666;">🔄 Aggiornati</div>
-                </div>
-                <div class="stat-card" style="background: #fff3e0; padding: 15px; border-radius: 8px;">
-                    <div style="font-size: 32px; font-weight: bold; color: #ef6c00;">${stats.skipped}</div>
-                    <div style="color: #666;">⏭️ Saltati</div>
-                </div>
-                <div class="stat-card" style="background: #ffebee; padding: 15px; border-radius: 8px;">
-                    <div style="font-size: 32px; font-weight: bold; color: #c62828;">${stats.errors}</div>
-                    <div style="color: #666;">❌ Errori</div>
+            <div class="card mb-3" style="background: #e8f5e9; border-left: 4px solid #4CAF50;">
+                <div class="card-body">
+                    <h4 style="margin: 0; color: #2e7d32;">✅ Import Completato</h4>
+                    <div style="margin-top: 15px; font-size: 1.1em;">
+                        <div style="margin: 5px 0;">
+                            <strong>Totale righe:</strong> ${stats.total}
+                        </div>
+                        <div style="margin: 5px 0; color: #2e7d32;">
+                            <strong>✅ Creati:</strong> ${stats.imported}
+                        </div>
+                        <div style="margin: 5px 0; color: #1976D2;">
+                            <strong>🔄 Aggiornati:</strong> ${stats.updated}
+                        </div>
+                        ${stats.skipped > 0 ? `
+                        <div style="margin: 5px 0; color: #F57C00;">
+                            <strong>⏭️ Saltati:</strong> ${stats.skipped}
+                        </div>
+                        ` : ''}
+                        ${stats.errors > 0 ? `
+                        <div style="margin: 5px 0; color: #d32f2f;">
+                            <strong>❌ Errori:</strong> ${stats.errors}
+                        </div>
+                        ` : ''}
+                    </div>
                 </div>
             </div>
         `;
         
-        // Mostra errori se presenti
-        if (result.errors.length > 0) {
+        // Mostra dettagli errori se presenti
+        if (result.errors && result.errors.length > 0) {
             html += `
-                <div class="alert alert-danger" style="margin-top: 20px; max-height: 300px; overflow-y: auto;">
-                    <h4>❌ Errori (${result.errors.length})</h4>
-                    <ul>
+                <div class="card mb-3" style="background: #ffebee; border-left: 4px solid #f44336;">
+                    <div class="card-body">
+                        <h4 style="margin: 0 0 10px 0; color: #c62828;">❌ Errori (${result.errors.length})</h4>
+                        <div style="max-height: 200px; overflow-y: auto;">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Riga</th>
+                                        <th>Codice</th>
+                                        <th>Errore</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${result.errors.map(err => `
+                                        <tr>
+                                            <td>${err.row}</td>
+                                            <td><code>${err.data.codice_barre || '-'}</code></td>
+                                            <td style="color: #c62828;">${err.error}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             `;
-            result.errors.forEach(err => {
-                html += `<li><strong>Riga ${err.row}:</strong> ${err.error}</li>`;
-            });
-            html += `</ul></div>`;
         }
         
-        // Mostra saltati se presenti
-        if (result.skipped.length > 0 && result.skipped.length <= 10) {
+        // Mostra materiali saltati se presenti
+        if (result.skipped && result.skipped.length > 0) {
             html += `
-                <div class="alert alert-warning" style="margin-top: 20px;">
-                    <h4>⏭️ Saltati (${result.skipped.length})</h4>
-                    <ul>
+                <div class="card mb-3" style="background: #fff3e0; border-left: 4px solid #ff9800;">
+                    <div class="card-body">
+                        <h4 style="margin: 0 0 10px 0; color: #e65100;">⏭️ Materiali Saltati (${result.skipped.length})</h4>
+                        <div style="max-height: 200px; overflow-y: auto;">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Riga</th>
+                                        <th>Codice</th>
+                                        <th>Motivo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${result.skipped.map(skip => `
+                                        <tr>
+                                            <td>${skip.row}</td>
+                                            <td><code>${skip.data.codice_barre || '-'}</code></td>
+                                            <td style="color: #e65100;">${skip.reason}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             `;
-            result.skipped.forEach(skip => {
-                html += `<li><strong>Riga ${skip.row}:</strong> ${skip.reason}</li>`;
-            });
-            html += `</ul></div>`;
         }
         
         html += `
             <div class="d-flex gap-2 mt-3">
-                <button class="btn btn-primary" onclick="UI.closeModal()">Chiudi</button>
+                <button class="btn btn-secondary" onclick="UI.closeModal()">Chiudi</button>
             </div>
         `;
         
         UI.showModal(html);
-        
-        const successMsg = `Import completato: ${stats.imported} creati, ${stats.updated} aggiornati`;
-        UI.showToast(successMsg, stats.errors > 0 ? 'warning' : 'success');
     }
 };

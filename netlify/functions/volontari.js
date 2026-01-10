@@ -4,7 +4,7 @@
 // ===================================
 
 const { query, queryOne, exists, logActivity } = require('./utils/db');
-const { authenticate, requireOperator, successResponse, errorResponse, parsePath } = require('./utils/auth');
+const { authenticate, requireOperator, requireAdmin, successResponse, errorResponse, parsePath } = require('./utils/auth');
 
 exports.handler = async (event) => {
     if (event.httpMethod === 'OPTIONS') {
@@ -91,8 +91,9 @@ exports.handler = async (event) => {
             return successResponse(volunteers);
         }
 
-        // POST - Crea nuovo volontario
+        // POST - Crea nuovo volontario (solo admin)
         if (event.httpMethod === 'POST') {
+            requireAdmin(user); // Solo admin può creare volontari
             const data = JSON.parse(event.body);
 
             if (!data.nome || !data.cognome) {
@@ -134,8 +135,9 @@ exports.handler = async (event) => {
             return successResponse(volunteer, 201);
         }
 
-        // PUT - Aggiorna volontario
+        // PUT - Aggiorna volontario (solo admin)
         if (event.httpMethod === 'PUT' && volunteerId) {
+            requireAdmin(user); // Solo admin può modificare volontari
             const data = JSON.parse(event.body);
 
             const existing = await queryOne(
@@ -189,8 +191,10 @@ exports.handler = async (event) => {
             return successResponse(volunteer);
         }
 
-        // DELETE - Elimina volontario
+        // DELETE - Elimina volontario (solo admin)
         if (event.httpMethod === 'DELETE' && volunteerId) {
+            requireAdmin(user); // Solo admin può eliminare volontari
+            
             // Verifica se ha assegnazioni attive
             const hasActiveAssignments = await queryOne(
                 `SELECT COUNT(*) as count FROM assignments 

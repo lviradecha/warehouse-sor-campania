@@ -1,6 +1,7 @@
 // ===================================
 // VOLUNTEERS PAGE
 // Gestione volontari CRI
+// ORDINATI PER COGNOME, NOME
 // ===================================
 
 const VolunteersPage = {
@@ -34,7 +35,7 @@ const VolunteersPage = {
                     <div class="form-row">
                         <div class="form-group">
                             <input type="text" id="searchVolunteers" 
-                                   placeholder="Cerca per nome, cognome, CF, email..." 
+                                   placeholder="Cerca per cognome, nome, CF, email..." 
                                    class="form-control">
                         </div>
                         <div class="form-group">
@@ -59,6 +60,23 @@ const VolunteersPage = {
         
         await this.loadVolunteers();
         this.setupEventListeners();
+        
+        // Nascondi pulsanti admin per operatori
+        this.applyRoleBasedUI();
+    },
+    
+    applyRoleBasedUI() {
+        const isAdmin = AuthManager.isAdmin();
+        
+        if (!isAdmin) {
+            // Nascondi pulsante "Nuovo Volontario"
+            const btnNuovo = document.querySelector('button[onclick="VolunteersPage.showAddModal()"]');
+            if (btnNuovo) btnNuovo.style.display = 'none';
+            
+            // Nascondi pulsante "Importa CSV"
+            const btnImport = document.querySelector('button[onclick="VolunteersPage.showImportModal()"]');
+            if (btnImport) btnImport.style.display = 'none';
+        }
     },
     
     setupEventListeners() {
@@ -108,8 +126,8 @@ const VolunteersPage = {
             <table class="table">
                 <thead>
                     <tr>
-                        <th>Nome</th>
                         <th>Cognome</th>
+                        <th>Nome</th>
                         <th>Codice Fiscale</th>
                         <th>Comitato</th>
                         <th>Telefono</th>
@@ -120,8 +138,8 @@ const VolunteersPage = {
                 <tbody>
                     ${this.volunteers.map(v => `
                         <tr>
+                            <td><strong>${v.cognome}</strong></td>
                             <td>${v.nome}</td>
-                            <td>${v.cognome}</td>
                             <td><code>${v.codice_fiscale || '-'}</code></td>
                             <td>${v.gruppo || '-'}</td>
                             <td>${v.telefono || '-'}</td>
@@ -168,7 +186,7 @@ const VolunteersPage = {
     },
     
     // ===================================
-    // EXPORT CSV
+    // EXPORT CSV - COGNOME, NOME
     // ===================================
     exportCSV() {
         if (this.volunteers.length === 0) {
@@ -176,13 +194,13 @@ const VolunteersPage = {
             return;
         }
         
-        // Headers CSV
-        const headers = ['Nome', 'Cognome', 'Codice Fiscale', 'Comitato', 'Telefono', 'Email', 'Attivo'];
+        // Headers CSV - COGNOME PRIMA DI NOME
+        const headers = ['Cognome', 'Nome', 'Codice Fiscale', 'Comitato', 'Telefono', 'Email', 'Attivo'];
         
-        // Converti dati in righe CSV
+        // Converti dati in righe CSV - COGNOME PRIMA DI NOME
         const rows = this.volunteers.map(v => [
-            v.nome || '',
             v.cognome || '',
+            v.nome || '',
             v.codice_fiscale || '',
             v.gruppo || '',
             v.telefono || '',
@@ -214,7 +232,7 @@ const VolunteersPage = {
     },
     
     // ===================================
-    // IMPORT CSV
+    // IMPORT CSV - COGNOME, NOME
     // ===================================
     showImportModal() {
         const modalContent = `
@@ -223,7 +241,9 @@ const VolunteersPage = {
             <div class="alert alert-info">
                 <strong>ℹ️ Formato File CSV:</strong><br>
                 Il file CSV deve contenere le seguenti colonne nell'ordine:<br>
-                <code>Nome, Cognome, Codice Fiscale, Comitato, Telefono, Email</code>
+                <code>Cognome, Nome, Codice Fiscale, Comitato, Telefono, Email</code>
+                <br><br>
+                <strong>Nota:</strong> Ordine alfabetico per COGNOME
                 <br><br>
                 <button class="btn btn-sm btn-secondary" onclick="VolunteersPage.downloadTemplate()">
                     📥 Scarica Template CSV
@@ -259,10 +279,12 @@ const VolunteersPage = {
     },
     
     downloadTemplate() {
+        // Template con COGNOME, NOME
         const template = [
-            ['Nome', 'Cognome', 'Codice Fiscale', 'Comitato', 'Telefono', 'Email'],
-            ['Mario', 'Rossi', 'RSSMRA85M01H501Z', 'Napoli 1', '3331234567', 'mario.rossi@example.com'],
-            ['Laura', 'Bianchi', 'BNCHLR90A41F839X', 'Salerno 1', '3337654321', 'laura.bianchi@example.com']
+            ['Cognome', 'Nome', 'Codice Fiscale', 'Comitato', 'Telefono', 'Email'],
+            ['Bianchi', 'Laura', 'BNCHLR90A41F839X', 'Napoli 1', '3337654321', 'laura.bianchi@example.com'],
+            ['Rossi', 'Mario', 'RSSMRA85M01H501Z', 'Salerno 1', '3331234567', 'mario.rossi@example.com'],
+            ['Verdi', 'Giuseppe', 'VRDGPP88R15F205K', 'Caserta 1', '3339876543', 'giuseppe.verdi@example.com']
         ];
         
         const csvContent = template.map(row => 
@@ -281,7 +303,7 @@ const VolunteersPage = {
         link.click();
         document.body.removeChild(link);
         
-        UI.showToast('Template scaricato', 'success');
+        UI.showToast('Template scaricato (ordinato per Cognome)', 'success');
     },
     
     async previewCSV(file) {
@@ -346,7 +368,7 @@ const VolunteersPage = {
             document.getElementById('csvPreview').style.display = 'block';
             document.getElementById('csvPreviewTable').innerHTML = previewHTML;
             document.getElementById('csvSummary').textContent = 
-                `Trovati ${dataRows.length} volontari da importare`;
+                `Trovati ${dataRows.length} volontari da importare (ordinati per Cognome)`;
             document.getElementById('btnImportCSV').disabled = false;
             
         } catch (error) {
@@ -374,9 +396,10 @@ const VolunteersPage = {
                 // Salta righe vuote
                 if (!row[0] && !row[1]) continue;
                 
+                // MAPPING: COGNOME, NOME (row[0] = cognome, row[1] = nome)
                 const volunteerData = {
-                    nome: row[0]?.trim() || '',
-                    cognome: row[1]?.trim() || '',
+                    cognome: row[0]?.trim() || '',
+                    nome: row[1]?.trim() || '',
                     codice_fiscale: row[2]?.trim() || '',
                     gruppo: row[3]?.trim() || '',
                     telefono: row[4]?.trim() || '',
@@ -387,13 +410,13 @@ const VolunteersPage = {
                 // Validazione base
                 if (!volunteerData.nome || !volunteerData.cognome) {
                     errorCount++;
-                    errors.push(`Riga ${i + 2}: Nome o Cognome mancante`);
+                    errors.push(`Riga ${i + 2}: Cognome o Nome mancante`);
                     continue;
                 }
                 
                 if (!volunteerData.codice_fiscale || volunteerData.codice_fiscale.length !== 16) {
                     errorCount++;
-                    errors.push(`Riga ${i + 2}: Codice Fiscale non valido`);
+                    errors.push(`Riga ${i + 2}: Codice Fiscale non valido (deve essere 16 caratteri)`);
                     continue;
                 }
                 
@@ -438,12 +461,12 @@ const VolunteersPage = {
             <form id="addVolunteerForm">
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Nome *</label>
-                        <input type="text" name="nome" required class="form-control">
+                        <label>Cognome *</label>
+                        <input type="text" name="cognome" required class="form-control" placeholder="Inserisci cognome">
                     </div>
                     <div class="form-group">
-                        <label>Cognome *</label>
-                        <input type="text" name="cognome" required class="form-control">
+                        <label>Nome *</label>
+                        <input type="text" name="nome" required class="form-control" placeholder="Inserisci nome">
                     </div>
                 </div>
                 <div class="form-row">
@@ -520,7 +543,7 @@ const VolunteersPage = {
                 
                 <div class="mb-3">
                     <strong>Nome Completo:</strong><br>
-                    <h4 style="color: #d32f2f; margin: 5px 0;">${volunteer.nome} ${volunteer.cognome}</h4>
+                    <h4 style="color: #d32f2f; margin: 5px 0;">${volunteer.cognome} ${volunteer.nome}</h4>
                 </div>
                 
                 ${volunteer.codice_fiscale ? `
@@ -609,12 +632,12 @@ const VolunteersPage = {
                     <input type="hidden" name="id" value="${volunteer.id}">
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Nome *</label>
-                            <input type="text" name="nome" value="${volunteer.nome}" required class="form-control">
-                        </div>
-                        <div class="form-group">
                             <label>Cognome *</label>
                             <input type="text" name="cognome" value="${volunteer.cognome}" required class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Nome *</label>
+                            <input type="text" name="nome" value="${volunteer.nome}" required class="form-control">
                         </div>
                     </div>
                     <div class="form-row">

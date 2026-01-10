@@ -1,6 +1,7 @@
 // ===================================
 // MAIN APPLICATION
 // Gestione navigazione e inizializzazione
+// CON FIX ACTIVE TAB
 // ===================================
 
 const App = {
@@ -70,14 +71,23 @@ const App = {
         });
     },
 
-    // Aggiorna tab attivo nella navbar
+    // Aggiorna tab attivo nella navbar - VERSIONE MIGLIORATA
     updateActiveTab(pageName) {
+        console.log('🔄 Aggiornamento tab attivo:', pageName);
+        
+        // Rimuovi active da tutti i link
         document.querySelectorAll('.nav-link').forEach(link => {
             link.classList.remove('active');
-            if (link.dataset.page === pageName) {
-                link.classList.add('active');
-            }
         });
+        
+        // Aggiungi active al link corretto
+        const targetLink = document.querySelector(`.nav-link[data-page="${pageName}"]`);
+        if (targetLink) {
+            targetLink.classList.add('active');
+            console.log('✅ Tab attivato:', pageName);
+        } else {
+            console.warn('⚠️ Link non trovato per pagina:', pageName);
+        }
     },
 
     // Setup navigazione
@@ -91,22 +101,30 @@ const App = {
                 
                 // Se il link è esterno (non inizia con #), lascialo funzionare normalmente
                 if (href && !href.startsWith('#')) {
-                    return; // Permette automezzi.html di aprirsi
+                    console.log('🔗 Link esterno:', href);
+                    return; // Permette automezzi.html e calendario-prenotazioni.html di aprirsi
                 }
                 
                 // Se è link interno (#) ma non ha data-page, ignora (non dovrebbe succedere)
                 if (!page) {
-                    console.warn('Link con href="#" ma senza data-page:', link);
+                    console.warn('⚠️ Link con href="#" ma senza data-page:', link);
                     return;
                 }
                 
                 // Link interno con data-page: gestisci con SPA routing
                 e.preventDefault();
                 
-                // Aggiorna hash URL (triggerà hashchange)
+                console.log('📄 Navigazione a:', page);
+                
+                // Aggiorna immediatamente il tab attivo (prima di cambiare hash)
+                this.updateActiveTab(page);
+                
+                // Aggiorna hash URL (triggerà anche hashchange, ma updateActiveTab è idempotente)
                 window.location.hash = page;
             });
         });
+        
+        console.log('✅ Navigazione configurata per', navLinks.length, 'link');
     },
 
     // Setup UI basato sul ruolo
@@ -127,6 +145,7 @@ const App = {
         this.currentPage = pageName;
         const content = document.getElementById('pageContent');
         
+        console.log('📂 Caricamento pagina:', pageName);
         UI.showLoading();
         
         try {
@@ -159,8 +178,9 @@ const App = {
                 default:
                     content.innerHTML = '<div class="card"><p>Pagina non trovata</p></div>';
             }
+            console.log('✅ Pagina caricata:', pageName);
         } catch (error) {
-            console.error('Errore caricamento pagina:', error);
+            console.error('❌ Errore caricamento pagina:', error);
             content.innerHTML = `
                 <div class="card">
                     <div class="error-message">
@@ -193,23 +213,20 @@ const App = {
                             <p>Materiali Totali</p>
                         </div>
                     </div>
-                    
                     <div class="stat-card">
-                        <div class="stat-icon green">✔</div>
+                        <div class="stat-icon green">✅</div>
                         <div class="stat-details">
                             <h3>${data.materials.disponibili || 0}</h3>
                             <p>Disponibili</p>
                         </div>
                     </div>
-                    
                     <div class="stat-card">
-                        <div class="stat-icon yellow">📤</div>
+                        <div class="stat-icon yellow">🔑</div>
                         <div class="stat-details">
                             <h3>${data.materials.assegnati || 0}</h3>
                             <p>Assegnati</p>
                         </div>
                     </div>
-                    
                     <div class="stat-card">
                         <div class="stat-icon blue">🔧</div>
                         <div class="stat-details">
@@ -395,6 +412,7 @@ const App = {
 
 // Inizializza app al caricamento della pagina
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 Inizializzazione applicazione...');
     App.init();
 });
 

@@ -49,7 +49,7 @@ exports.handler = async (event) => {
         console.log('📡 Body:', event.body);
         
         const user = authenticate(event);
-        requireAdmin(user); // Solo admin può gestire utenti
+        // Non requireAdmin globale - controlli specifici per ogni operazione
 
         const path = parsePath(event.path, 'utenti');
         const segments = path.split('/').filter(s => s);
@@ -61,8 +61,10 @@ exports.handler = async (event) => {
         console.log('🔍 UserId:', userId);
         console.log('🔍 Segments[1]:', segments[1]);
 
-        // GET - Lista utenti o singolo utente
+        // GET - Lista utenti o singolo utente (solo admin)
         if (event.httpMethod === 'GET') {
+            requireAdmin(user); // Solo admin può vedere utenti
+            
             if (userId && !segments[1]) {
                 const targetUser = await queryOne(
                     `SELECT id, username, role, nome, cognome, email, attivo, email_sent, email_sent_at, created_at, last_login 
@@ -102,8 +104,10 @@ exports.handler = async (event) => {
             return successResponse(users);
         }
 
-        // POST - Crea nuovo utente
+        // POST - Crea nuovo utente (solo admin)
         if (event.httpMethod === 'POST' && !userId) {
+            requireAdmin(user); // Solo admin può creare utenti
+            
             const data = JSON.parse(event.body);
 
             // Password non più richiesta - viene generata automaticamente
@@ -179,8 +183,10 @@ exports.handler = async (event) => {
             return successResponse(newUser, 201);
         }
 
-        // PUT - Aggiorna utente
+        // PUT - Aggiorna utente (solo admin)
         if (event.httpMethod === 'PUT' && userId && !segments[1]) {
+            requireAdmin(user); // Solo admin può modificare utenti
+            
             const data = JSON.parse(event.body);
 
             // Non può modificare se stesso (per sicurezza)
@@ -227,8 +233,16 @@ exports.handler = async (event) => {
             return successResponse(updatedUser);
         }
 
-        // PATCH - Cambia password
+        // PATCH - Cambia password (può cambiare la propria o admin può cambiare qualunque)
         if (event.httpMethod === 'PATCH' && userId && segments[1] === 'password') {
+            // Controllo permessi: può cambiare la propria password o essere admin
+            const isChangingOwnPassword = parseInt(userId) === user.id;
+            const isAdmin = user.role === 'admin';
+            
+            if (!isChangingOwnPassword && !isAdmin) {
+                return errorResponse('Puoi cambiare solo la tua password', 403);
+            }
+            
             const { newPassword } = JSON.parse(event.body);
 
             if (!newPassword || newPassword.length < 8) {
@@ -254,8 +268,10 @@ exports.handler = async (event) => {
             return successResponse({ message: 'Password aggiornata con successo' });
         }
 
-        // POST - Reset password (genera nuova password e invia email)
+        // POST - Reset password (genera nuova password e invia email) (solo admin)
         if (event.httpMethod === 'POST' && userId && segments[1] === 'reset-password') {
+            requireAdmin(user); // Solo admin può resettare password altrui
+            
             console.log('🔄 Reset password richiesto per utente:', userId);
             
             // Non può resettare se stesso
@@ -331,8 +347,10 @@ exports.handler = async (event) => {
             });
         }
 
-        // DELETE - Disattiva utente (soft delete - conserva i log)
+        // DELETE - Disattiva utente (soft delete - conserva i log) (solo admin)
         if (event.httpMethod === 'DELETE' && userId && !segments[1]) {
+            requireAdmin(user); // Solo admin può eliminare utenti
+            
             console.log('🗑️ Richiesta disattivazione utente:', userId);
             
             // Non può eliminare se stesso

@@ -1,6 +1,7 @@
 // ===================================
 // ASSIGNMENTS PAGE
 // Gestione assegnazioni materiali
+// CON PULSANTI DETTAGLI ED ELIMINA
 // ===================================
 
 const AssignmentsPage = {
@@ -50,6 +51,9 @@ const AssignmentsPage = {
             return;
         }
         
+        // Controlla ruolo utente
+        const isAdmin = AuthManager.isAdmin();
+        
         container.innerHTML = `
             <table class="table">
                 <thead>
@@ -63,7 +67,7 @@ const AssignmentsPage = {
                         <th>Data Rientro</th>
                         <th>Stato</th>
                         <th>Email</th>
-                        <th>Azioni</th>
+                        <th style="width: 200px;">Azioni</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -87,24 +91,166 @@ const AssignmentsPage = {
                             <td><strong>${a.evento}</strong></td>
                             <td>${a.material_nome || '-'}</td>
                             <td style="text-align: center;"><strong>${a.quantita || 1}</strong></td>
-                            <td>${a.volunteer_nome || ''} ${a.volunteer_cognome || ''}</td>
+                            <td>${a.volunteer_cognome || ''} ${a.volunteer_nome || ''}</td>
                             <td>${UI.formatDateTime(a.data_uscita)}</td>
                             <td ${rientroClass}>${a.data_rientro_prevista ? UI.formatDateTime(a.data_rientro_prevista) : '-'}</td>
                             <td>${a.data_rientro ? UI.formatDateTime(a.data_rientro) : '-'}</td>
                             <td><span class="badge badge-${a.stato}">${a.stato}</span></td>
                             <td>${emailStatus}</td>
                             <td>
-                                ${a.stato === 'in_corso' ? `
-                                    <button class="btn btn-sm btn-success" onclick="AssignmentsPage.showReturnModal(${a.id})">
-                                        🔙 Rientro
+                                <div class="action-buttons">
+                                    <button class="btn btn-sm btn-secondary btn-icon" 
+                                            onclick="AssignmentsPage.showDetailModal(${a.id})"
+                                            title="Dettagli">
+                                        👁️
                                     </button>
-                                ` : ''}
+                                    ${a.stato === 'in_corso' ? `
+                                    <button class="btn btn-sm btn-success btn-icon" 
+                                            onclick="AssignmentsPage.showReturnModal(${a.id})"
+                                            title="Registra Rientro">
+                                        🔙
+                                    </button>
+                                    ` : ''}
+                                    ${isAdmin ? `
+                                    <button class="btn btn-sm btn-danger btn-icon" 
+                                            onclick="AssignmentsPage.deleteAssignment(${a.id})"
+                                            title="Elimina">
+                                        🗑️
+                                    </button>
+                                    ` : ''}
+                                </div>
                             </td>
                         </tr>
                     `}).join('')}
                 </tbody>
             </table>
         `;
+    },
+    
+    // NUOVO: Modal dettagli assegnazione
+    async showDetailModal(id) {
+        try {
+            UI.showLoading();
+            const assignment = await API.assignments.getById(id);
+            
+            const modalContent = `
+                <h3>📋 Dettagli Assegnazione</h3>
+                
+                <div class="detail-grid">
+                    <div class="detail-row">
+                        <strong>Evento:</strong>
+                        <span>${assignment.evento}</span>
+                    </div>
+                    
+                    <div class="detail-row">
+                        <strong>Materiale:</strong>
+                        <span>${assignment.material_nome}<br><code>${assignment.codice_barre}</code></span>
+                    </div>
+                    
+                    <div class="detail-row">
+                        <strong>Quantità:</strong>
+                        <span><strong style="font-size: 1.2em;">${assignment.quantita || 1}</strong></span>
+                    </div>
+                    
+                    <div class="detail-row">
+                        <strong>Volontario:</strong>
+                        <span>${assignment.volunteer_cognome} ${assignment.volunteer_nome}</span>
+                    </div>
+                    
+                    <div class="detail-row">
+                        <strong>Data/Ora Uscita:</strong>
+                        <span>${UI.formatDateTime(assignment.data_uscita)}</span>
+                    </div>
+                    
+                    ${assignment.data_rientro_prevista ? `
+                    <div class="detail-row">
+                        <strong>Rientro Previsto:</strong>
+                        <span>${UI.formatDateTime(assignment.data_rientro_prevista)}</span>
+                    </div>
+                    ` : ''}
+                    
+                    ${assignment.data_rientro ? `
+                    <div class="detail-row">
+                        <strong>Data Rientro:</strong>
+                        <span>${UI.formatDateTime(assignment.data_rientro)}</span>
+                    </div>
+                    ` : ''}
+                    
+                    <div class="detail-row">
+                        <strong>Stato:</strong>
+                        <span><span class="badge badge-${assignment.stato}">${assignment.stato}</span></span>
+                    </div>
+                    
+                    <div class="detail-row">
+                        <strong>Email Inviata:</strong>
+                        <span>${assignment.email_inviata ? '✅ Si' : '❌ No'}
+                        ${assignment.email_inviata_at ? `<br><small>Inviata: ${UI.formatDateTime(assignment.email_inviata_at)}</small>` : ''}</span>
+                    </div>
+                    
+                    ${assignment.note_uscita ? `
+                    <div class="detail-row">
+                        <strong>Note Uscita:</strong>
+                        <span>${assignment.note_uscita}</span>
+                    </div>
+                    ` : ''}
+                    
+                    ${assignment.note_rientro ? `
+                    <div class="detail-row">
+                        <strong>Note Rientro:</strong>
+                        <span>${assignment.note_rientro}</span>
+                    </div>
+                    ` : ''}
+                    
+                    ${assignment.prenotazione_evento ? `
+                    <div class="detail-row">
+                        <strong>Collegata a Prenotazione:</strong>
+                        <span>${assignment.prenotazione_evento}<br>
+                        <small>Richiedente: ${assignment.prenotazione_richiedente || '-'}</small></span>
+                    </div>
+                    ` : ''}
+                    
+                    <div class="detail-row">
+                        <strong>Creata il:</strong>
+                        <span>${UI.formatDateTime(assignment.created_at)}</span>
+                    </div>
+                </div>
+                
+                <div class="d-flex gap-2 mt-3">
+                    ${assignment.stato === 'in_corso' ? `
+                    <button class="btn btn-success" onclick="AssignmentsPage.showReturnModal(${assignment.id})">
+                        🔙 Registra Rientro
+                    </button>
+                    ` : ''}
+                    <button class="btn btn-secondary" onclick="UI.closeModal()">Chiudi</button>
+                </div>
+            `;
+            
+            UI.showModal(modalContent);
+        } catch (error) {
+            UI.showToast('Errore caricamento dettagli', 'error');
+            console.error(error);
+        } finally {
+            UI.hideLoading();
+        }
+    },
+    
+    // NUOVO: Elimina assegnazione
+    async deleteAssignment(id) {
+        if (!confirm('Sei sicuro di voler eliminare questa assegnazione?\n\nATTENZIONE: Questa operazione non può essere annullata e le quantità dei materiali verranno aggiornate.')) {
+            return;
+        }
+        
+        try {
+            UI.showLoading();
+            await API.assignments.delete(id);
+            UI.showToast('Assegnazione eliminata con successo', 'success');
+            await this.loadAssignments();
+        } catch (error) {
+            UI.showToast(error.message || 'Errore nell\'eliminazione', 'error');
+            console.error(error);
+        } finally {
+            UI.hideLoading();
+        }
     },
     
     async showAddModal() {
@@ -130,7 +276,7 @@ const AssignmentsPage = {
                         <select name="volunteer_id" required class="form-control">
                             <option value="">Seleziona volontario...</option>
                             ${volunteers.map(v => `
-                                <option value="${v.id}">${v.nome} ${v.cognome} - ${v.gruppo || ''}</option>
+                                <option value="${v.id}">${v.cognome} ${v.nome} - ${v.gruppo || ''}</option>
                             `).join('')}
                         </select>
                     </div>
@@ -153,7 +299,6 @@ const AssignmentsPage = {
                     <div class="form-group">
                         <label>Data/Ora Rientro Prevista</label>
                         <input type="datetime-local" name="data_rientro_prevista" class="form-control">
-                        <small class="text-muted">Opzionale - quando è previsto il rientro del materiale</small>
                     </div>
                     
                     <div class="form-group">
@@ -162,17 +307,14 @@ const AssignmentsPage = {
                     </div>
                     
                     <div class="form-group">
-                        <label class="checkbox-label">
+                        <label style="display: flex; align-items: center; gap: 10px;">
                             <input type="checkbox" name="invia_email" value="true" checked>
-                            📧 Invia email di notifica al volontario
+                            <span>Invia email di notifica al volontario</span>
                         </label>
-                        <small class="text-muted d-block mt-1">
-                            Il volontario riceverà un'email con i dettagli dell'assegnazione
-                        </small>
                     </div>
                     
                     <div class="d-flex gap-2 mt-3">
-                        <button type="submit" class="btn btn-primary">Salva Assegnazione</button>
+                        <button type="submit" class="btn btn-primary">Crea Assegnazione</button>
                         <button type="button" class="btn btn-secondary" onclick="UI.closeModal()">Annulla</button>
                     </div>
                 </form>
@@ -180,21 +322,24 @@ const AssignmentsPage = {
             
             UI.showModal(modalContent);
             
-            // Aggiungi la prima riga materiale
-            this.addMaterialRow();
+            // Aggiungi prima riga materiale
+            await this.addMaterialRow();
             
+            // Setup form submit
             document.getElementById('addAssignmentForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 await this.handleSubmitAssignment(e);
             });
+            
         } catch (error) {
-            UI.showToast(error.message, 'error');
+            UI.showToast('Errore caricamento form', 'error');
+            console.error(error);
         }
     },
     
     async addMaterialRow() {
         try {
-            const materials = await API.materials.getAll({ stato: 'disponibile' });
+            const materials = await API.materials.getAll({});
             const container = document.getElementById('materialsContainer');
             const rowIndex = this.materialRows.length;
             
@@ -393,8 +538,8 @@ const AssignmentsPage = {
         }
         
         const headers = [
-            'Evento', 'Materiale', 'Codice Barre', 'Quantità', 'Volontario Nome', 
-            'Volontario Cognome', 'Comitato', 'Data Uscita', 'Rientro Previsto', 'Data Rientro', 
+            'Evento', 'Materiale', 'Codice Barre', 'Quantità', 'Volontario Cognome',
+            'Volontario Nome', 'Comitato', 'Data Uscita', 'Rientro Previsto', 'Data Rientro', 
             'Stato', 'Email Inviata', 'Note Uscita', 'Note Rientro'
         ];
         
@@ -403,8 +548,8 @@ const AssignmentsPage = {
             a.material_nome || '',
             a.codice_barre || '',
             a.quantita || 1,
-            a.volunteer_nome || '',
             a.volunteer_cognome || '',
+            a.volunteer_nome || '',
             a.volunteer_gruppo || '',
             a.data_uscita || '',
             a.data_rientro_prevista || '',

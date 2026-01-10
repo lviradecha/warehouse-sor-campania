@@ -177,6 +177,50 @@
         .login-footer p:first-child {
             color: #9e9e9e;
         }
+        
+        /* Stili per modale cambio password */
+        #changePasswordModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        
+        .modal-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        
+        .modal-icon {
+            font-size: 50px;
+            margin-bottom: 15px;
+        }
+        
+        .modal-title {
+            color: #d32f2f;
+            margin-bottom: 10px;
+            font-size: 22px;
+        }
+        
+        .modal-description {
+            color: #757575;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -227,6 +271,53 @@
         </div>
     </div>
 
+    <!-- Modale Cambio Password Obbligatorio -->
+    <div id="changePasswordModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-icon">🔐</div>
+                <h2 class="modal-title">Cambio Password Obbligatorio</h2>
+                <p class="modal-description">
+                    Questo è il tuo primo accesso. Per motivi di sicurezza, devi cambiare la password prima di continuare.
+                </p>
+            </div>
+
+            <div id="changePasswordError" class="error-message"></div>
+
+            <form id="changePasswordForm">
+                <div class="form-group">
+                    <label for="newPassword">🔑 Nuova Password (minimo 8 caratteri)</label>
+                    <input 
+                        type="password" 
+                        id="newPassword" 
+                        required 
+                        minlength="8"
+                        placeholder="Inserisci nuova password"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmPassword">🔑 Conferma Password</label>
+                    <input 
+                        type="password" 
+                        id="confirmPassword" 
+                        required 
+                        minlength="8"
+                        placeholder="Conferma nuova password"
+                    >
+                </div>
+
+                <button type="submit" class="btn-login" id="btnChangePassword">
+                    CAMBIA PASSWORD E CONTINUA
+                </button>
+            </form>
+
+            <p style="text-align: center; margin-top: 20px; font-size: 12px; color: #9e9e9e;">
+                ⚠️ Non potrai accedere al sistema finché non cambi la password
+            </p>
+        </div>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🔐 Login page loaded');
@@ -247,7 +338,7 @@
             // Focus su username
             usernameInput.focus();
             
-            // Gestione form
+            // Gestione form login
             form.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
@@ -260,7 +351,7 @@
                     return;
                 }
                 
-                console.log('🔑 Tentativo login:', username);
+                console.log('🔒 Tentativo login:', username);
                 
                 // Disabilita form
                 btnLogin.disabled = true;
@@ -268,9 +359,6 @@
                 errorMessage.style.display = 'none';
                 
                 try {
-                    // Chiamata al backend
-                    console.log('📡 Chiamata a: /.netlify/functions/login');
-                    
                     const response = await fetch('/.netlify/functions/login', {
                         method: 'POST',
                         headers: {
@@ -279,37 +367,27 @@
                         body: JSON.stringify({ username, password })
                     });
                     
-                    console.log('📡 Response status:', response.status);
-                    console.log('📡 Response OK?', response.ok);
-                    
-                    // Leggi la risposta come testo prima
                     const responseText = await response.text();
-                    console.log('📦 Risposta raw:', responseText);
-                    
-                    // Prova a parsare come JSON
                     let data;
                     try {
                         data = JSON.parse(responseText);
-                        console.log('📦 Risposta JSON:', data);
                     } catch (parseError) {
-                        console.error('❌ Errore parsing JSON:', parseError);
-                        console.error('❌ Testo ricevuto:', responseText);
-                        throw new Error('Errore nella risposta del server. Verifica che le API functions siano configurate correttamente.');
+                        throw new Error('Errore nella risposta del server');
                     }
                     
                     if (response.ok && data.user) {
                         console.log('✅ Login valido!');
+                        console.log('🔍 First login:', data.user.first_login);
                         
-                        // Salva token (IMPORTANTE per le API calls)
+                        // Salva token
                         if (data.token) {
                             localStorage.setItem('warehouse_auth_token', data.token);
-                            console.log('🔑 Token salvato');
                         }
                         
-                        // Salva dati utente in localStorage
+                        // Salva dati utente
                         localStorage.setItem('warehouse_user_data', JSON.stringify(data.user));
                         
-                        // Salva sessione in sessionStorage
+                        // Salva sessione
                         sessionStorage.setItem('isLoggedIn', 'true');
                         sessionStorage.setItem('username', data.user.username);
                         sessionStorage.setItem('userId', data.user.id);
@@ -318,31 +396,26 @@
                         sessionStorage.setItem('ruolo', data.user.role);
                         sessionStorage.setItem('loginTime', new Date().toISOString());
                         
-                        console.log('💾 Session salvata');
-                        
-                        // Redirect a index
-                        window.location.replace('index.html');
+                        // ✅ CONTROLLO FIRST_LOGIN
+                        if (data.user.first_login === true) {
+                            console.log('🔐 Primo accesso - mostra modale cambio password');
+                            showChangePasswordModal(data.user.id);
+                        } else {
+                            console.log('✅ Accesso normale - redirect a index');
+                            window.location.replace('index.html');
+                        }
                     } else {
-                        console.log('❌ Login fallito:', data.error);
-                        
-                        // Mostra errore
                         errorMessage.textContent = '❌ ' + (data.error || 'Errore durante il login');
                         errorMessage.style.display = 'block';
-                        
-                        // Riabilita form
                         btnLogin.disabled = false;
                         btnLogin.textContent = 'ACCEDI AL SISTEMA';
-                        
-                        // Focus su password
                         passwordInput.focus();
                         passwordInput.select();
                     }
                 } catch (error) {
                     console.error('❌ Errore connessione:', error);
-                    
                     errorMessage.textContent = '❌ ' + error.message;
                     errorMessage.style.display = 'block';
-                    
                     btnLogin.disabled = false;
                     btnLogin.textContent = 'ACCEDI AL SISTEMA';
                 }
@@ -354,6 +427,88 @@
                     form.dispatchEvent(new Event('submit'));
                 }
             });
+            
+            // =============================================
+            // MODALE CAMBIO PASSWORD OBBLIGATORIO
+            // =============================================
+            
+            function showChangePasswordModal(userId) {
+                const modal = document.getElementById('changePasswordModal');
+                const changePasswordForm = document.getElementById('changePasswordForm');
+                const changePasswordError = document.getElementById('changePasswordError');
+                const btnChangePassword = document.getElementById('btnChangePassword');
+                const newPasswordInput = document.getElementById('newPassword');
+                const confirmPasswordInput = document.getElementById('confirmPassword');
+                
+                // Mostra modale (NON può essere chiuso)
+                modal.style.display = 'flex';
+                newPasswordInput.focus();
+                
+                // Gestione form cambio password
+                changePasswordForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    
+                    const newPassword = newPasswordInput.value;
+                    const confirmPassword = confirmPasswordInput.value;
+                    
+                    // Validazione
+                    if (newPassword.length < 8) {
+                        changePasswordError.textContent = '❌ La password deve essere di almeno 8 caratteri';
+                        changePasswordError.style.display = 'block';
+                        return;
+                    }
+                    
+                    if (newPassword !== confirmPassword) {
+                        changePasswordError.textContent = '❌ Le password non corrispondono';
+                        changePasswordError.style.display = 'block';
+                        confirmPasswordInput.focus();
+                        return;
+                    }
+                    
+                    // Disabilita form
+                    btnChangePassword.disabled = true;
+                    btnChangePassword.textContent = '⏳ Cambio password in corso...';
+                    changePasswordError.style.display = 'none';
+                    
+                    try {
+                        const token = localStorage.getItem('warehouse_auth_token');
+                        
+                        const response = await fetch(`/.netlify/functions/utenti/${userId}/password`, {
+                            method: 'PATCH',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ newPassword })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (response.ok) {
+                            console.log('✅ Password cambiata con successo');
+                            
+                            // Aggiorna localStorage per rimuovere first_login
+                            const userData = JSON.parse(localStorage.getItem('warehouse_user_data'));
+                            userData.first_login = false;
+                            localStorage.setItem('warehouse_user_data', JSON.stringify(userData));
+                            
+                            // Redirect a index
+                            window.location.replace('index.html');
+                        } else {
+                            changePasswordError.textContent = '❌ ' + (data.error || 'Errore durante il cambio password');
+                            changePasswordError.style.display = 'block';
+                            btnChangePassword.disabled = false;
+                            btnChangePassword.textContent = 'CAMBIA PASSWORD E CONTINUA';
+                        }
+                    } catch (error) {
+                        console.error('❌ Errore cambio password:', error);
+                        changePasswordError.textContent = '❌ Errore di connessione';
+                        changePasswordError.style.display = 'block';
+                        btnChangePassword.disabled = false;
+                        btnChangePassword.textContent = 'CAMBIA PASSWORD E CONTINUA';
+                    }
+                });
+            }
         });
     </script>
 </body>

@@ -177,6 +177,11 @@ exports.handler = async (event) => {
                 ? parseFloat(data.costo) 
                 : null;
 
+            // Gestione stato: se non specificato o vuoto, usa 'disponibile'
+            const statoValue = (data.stato && String(data.stato).trim() !== '') 
+                ? data.stato 
+                : 'disponibile';
+
             // Inserimento materiale
             const material = await queryOne(
                 `INSERT INTO materials (
@@ -191,7 +196,7 @@ exports.handler = async (event) => {
                     categoriaIdValue,
                     quantitaValue,
                     0, // quantita_assegnata iniziale = 0
-                    data.stato || 'disponibile',
+                    statoValue,
                     dataAcquistoValue,
                     data.fornitore || null,
                     costoValue,
@@ -253,6 +258,11 @@ exports.handler = async (event) => {
                 ? parseFloat(data.costo) 
                 : null;
 
+            // Gestione stato: se non specificato o vuoto, mantieni quello esistente
+            const statoValue = (data.stato && String(data.stato).trim() !== '') 
+                ? data.stato 
+                : null;
+
             // Aggiornamento
             const material = await queryOne(
                 `UPDATE materials SET
@@ -261,13 +271,14 @@ exports.handler = async (event) => {
                     descrizione = COALESCE($3, descrizione),
                     categoria_id = COALESCE($4, categoria_id),
                     quantita = COALESCE($5, quantita),
-                    data_acquisto = COALESCE($6, data_acquisto),
-                    fornitore = COALESCE($7, fornitore),
-                    costo = COALESCE($8, costo),
-                    posizione_magazzino = COALESCE($9, posizione_magazzino),
-                    note = COALESCE($10, note),
+                    stato = COALESCE($6, stato),
+                    data_acquisto = COALESCE($7, data_acquisto),
+                    fornitore = COALESCE($8, fornitore),
+                    costo = COALESCE($9, costo),
+                    posizione_magazzino = COALESCE($10, posizione_magazzino),
+                    note = COALESCE($11, note),
                     updated_at = CURRENT_TIMESTAMP
-                WHERE id = $11
+                WHERE id = $12
                 RETURNING *`,
                 [
                     data.codice_barre,
@@ -275,6 +286,7 @@ exports.handler = async (event) => {
                     data.descrizione,
                     categoriaIdValue,
                     quantitaValue,
+                    statoValue,
                     dataAcquistoValue,
                     data.fornitore,
                     costoValue,

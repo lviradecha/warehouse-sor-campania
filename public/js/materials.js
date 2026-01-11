@@ -172,19 +172,40 @@ const MaterialsPage = {
         const groups = this.groupByCategory();
         
         container.innerHTML = groups.map(group => this.renderCategoryGroup(group)).join('');
+        
+        // EVENT DELEGATION: Aggiungi listener per i click sulle category-header
+        const categoryHeaders = container.querySelectorAll('.category-header');
+        categoryHeaders.forEach(header => {
+            header.addEventListener('click', (e) => {
+                const categoryId = e.currentTarget.getAttribute('data-category-id');
+                this.toggleCategory(categoryId);
+            });
+        });
     },
 
-    // NUOVO: Render singolo gruppo categoria
+    // NUOVO: Render singolo gruppo categoria - CON SIMBOLI ROBUSTI
     renderCategoryGroup(group) {
-        const isCollapsed = this.collapsedCategories.has(group.id);
+        // IMPORTANTE: Converti group.id a stringa per matching coerente con il Set
+        const id = String(group.id);
+        const isCollapsed = this.collapsedCategories.has(id);
         const totalQty = group.materials.reduce((sum, m) => sum + (m.quantita || 0), 0);
         const totalImpegnati = group.materials.reduce((sum, m) => sum + (m.quantita_assegnata || 0), 0);
         const totalDisponibili = totalQty - totalImpegnati;
         
+        // USA CARATTERI UNICODE DIRETTI (più compatibili in template strings)
+        const expandIcon = isCollapsed ? '▶' : '▼';
+        
+        console.log(`🎨 Rendering categoria ${group.nome} (ID: ${group.id} → "${id}"):`, {
+            isCollapsed,
+            expandIcon,
+            materialsCount: group.materials.length,
+            inSet: this.collapsedCategories.has(id)
+        });
+        
         return `
             <div class="card mb-3" style="border-left: 4px solid ${group.colore};">
                 <div class="category-header" 
-                     onclick="MaterialsPage.toggleCategory('${group.id}')"
+                     data-category-id="${id}"
                      style="
                         cursor: pointer; 
                         padding: 15px 20px; 
@@ -198,105 +219,132 @@ const MaterialsPage = {
                     <div style="display: flex; align-items: center; gap: 15px;">
                         <span style="font-size: 28px;">${group.icona}</span>
                         <div>
-                            <h3 style="margin: 0; color: ${group.colore}; font-size: 1.3em;">
-                                ${group.nome} 
-                                <span style="color: #666; font-size: 0.8em; font-weight: normal;">
-                                    (${group.materials.length})
-                                </span>
-                            </h3>
-                            <div style="font-size: 0.9em; color: #666; margin-top: 5px;">
-                                <strong>Totale:</strong> ${totalQty} | 
-                                <strong style="color: #4CAF50;">Disponibili:</strong> ${totalDisponibili} | 
-                                <strong style="color: #FF9800;">Impegnati:</strong> ${totalImpegnati}
-                            </div>
+                            <h4 style="margin: 0; color: ${group.colore}; font-weight: 600;">
+                                ${group.nome}
+                            </h4>
+                            <small style="color: #666;">
+                                ${group.materials.length} materiali • 
+                                Tot: ${totalQty} • 
+                                Disp: <strong style="color: ${totalDisponibili > 0 ? '#28a745' : '#dc3545'}">${totalDisponibili}</strong> • 
+                                Imp: ${totalImpegnati}
+                            </small>
                         </div>
                     </div>
-                    <div style="font-size: 24px; color: ${group.colore};">
-                        ${isCollapsed ? '▶' : '▼'}
-                    </div>
+                    <span style="font-size: 24px; transition: transform 0.2s;">
+                        ${expandIcon}
+                    </span>
                 </div>
                 
-                <div id="category-${group.id}" style="display: ${isCollapsed ? 'none' : 'block'};">
-                    <div style="overflow-x: auto;">
-                        <table class="table" style="margin: 0;">
-                            <thead>
-                                <tr style="background: ${group.colore}10;">
-                                    <th>Codice Barre</th>
-                                    <th>Nome</th>
-                                    <th>Stato</th>
-                                    <th style="text-align: center;">Disponibili</th>
-                                    <th style="text-align: center;">Impegnati</th>
-                                    <th>Posizione</th>
-                                    <th>Azioni</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${group.materials.map(m => this.renderRow(m)).join('')}
-                            </tbody>
-                        </table>
-                    </div>
+                <div id="category-${id}" style="display: ${isCollapsed ? 'none' : 'block'};">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th width="120">Codice Barre</th>
+                                <th>Nome</th>
+                                <th width="100">Qtà Tot</th>
+                                <th width="100">Disponibili</th>
+                                <th width="100">Impegnati</th>
+                                <th width="120">Stato</th>
+                                <th width="150">Posizione</th>
+                                <th width="200">Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${group.materials.map(m => this.renderMaterialRow(m)).join('')}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         `;
     },
 
-    // NUOVO: Toggle collapse categoria
     toggleCategory(categoryId) {
-        if (this.collapsedCategories.has(categoryId)) {
-            this.collapsedCategories.delete(categoryId);
+        // IMPORTANTE: Converti categoryId nel tipo corretto (potrebbe essere stringa o numero)
+        // Usiamo toString() per essere sicuri che sia sempre una stringa nel Set
+        const id = String(categoryId);
+        
+        console.log('🔄 toggleCategory chiamato per:', categoryId, '(tipo:', typeof categoryId, '→ converti a:', id, ')');
+        console.log('📊 Stato PRIMA:', {
+            collapsed: Array.from(this.collapsedCategories),
+            isCollapsed: this.collapsedCategories.has(id)
+        });
+        
+        if (this.collapsedCategories.has(id)) {
+            this.collapsedCategories.delete(id);
+            console.log('✅ Categoria espansa:', id);
         } else {
-            this.collapsedCategories.add(categoryId);
+            this.collapsedCategories.add(id);
+            console.log('➖ Categoria collassata:', id);
         }
+        
+        console.log('📊 Stato DOPO:', {
+            collapsed: Array.from(this.collapsedCategories),
+            isCollapsed: this.collapsedCategories.has(id)
+        });
+        
+        console.log('🔄 Chiamo renderGroupedTable()...');
         this.renderGroupedTable();
+        console.log('✅ renderGroupedTable() completato');
     },
 
-    // NUOVO: Espandi tutte le categorie
     expandAllCategories() {
         this.collapsedCategories.clear();
         this.renderGroupedTable();
     },
 
-    // NUOVO: Chiudi tutte le categorie
     collapseAllCategories() {
         const groups = this.groupByCategory();
-        groups.forEach(group => this.collapsedCategories.add(group.id));
+        groups.forEach(group => {
+            // IMPORTANTE: Converti a stringa per coerenza
+            this.collapsedCategories.add(String(group.id));
+        });
         this.renderGroupedTable();
     },
 
-    renderRow(material) {
-        // Controlla ruolo utente una volta sola
+    renderMaterialRow(material) {
         const isAdmin = AuthManager.isAdmin();
-        
-        // Calcola quantità disponibili e impegnate
         const quantitaTotale = material.quantita || 0;
         const quantitaImpegnata = material.quantita_assegnata || 0;
         const quantitaDisponibile = quantitaTotale - quantitaImpegnata;
         
-        // Classe CSS per evidenziare disponibili = 0
-        const disponibiliClass = quantitaDisponibile === 0 ? 'text-danger' : 'text-success';
+        const statoClass = {
+            'disponibile': 'badge-success',
+            'assegnato': 'badge-warning',
+            'in_manutenzione': 'badge-info',
+            'fuori_servizio': 'badge-danger',
+            'dismesso': 'badge-secondary'
+        }[material.stato] || 'badge-secondary';
+        
+        const statoText = {
+            'disponibile': 'Disponibile',
+            'assegnato': 'Assegnato',
+            'in_manutenzione': 'In Manutenzione',
+            'fuori_servizio': 'Fuori Servizio',
+            'dismesso': 'Dismesso'
+        }[material.stato] || material.stato;
         
         return `
             <tr>
                 <td><code>${material.codice_barre}</code></td>
-                <td><strong>${material.nome}</strong></td>
-                <td><span class="badge badge-${material.stato}">${material.stato}</span></td>
-                <td style="text-align: center;">
-                    <strong class="${disponibiliClass}" style="font-size: 1.1em;">
+                <td>
+                    <strong>${material.nome}</strong>
+                    ${material.descrizione ? `<br><small class="text-muted">${material.descrizione}</small>` : ''}
+                </td>
+                <td class="text-center">${quantitaTotale}</td>
+                <td class="text-center">
+                    <strong style="color: ${quantitaDisponibile > 0 ? '#28a745' : '#dc3545'}">
                         ${quantitaDisponibile}
                     </strong>
                 </td>
-                <td style="text-align: center;">
-                    <strong class="text-warning" style="font-size: 1.1em;">
-                        ${quantitaImpegnata}
-                    </strong>
-                </td>
+                <td class="text-center">${quantitaImpegnata}</td>
+                <td><span class="badge ${statoClass}">${statoText}</span></td>
                 <td>${material.posizione_magazzino || '-'}</td>
                 <td>
-                    <div class="action-buttons">
-                        <button class="btn btn-sm btn-secondary btn-icon" 
+                    <div class="btn-group-vertical">
+                        <button class="btn btn-sm btn-info btn-icon" 
                                 onclick="MaterialsPage.showDetailModal(${material.id})"
                                 title="Dettagli">
-                            👁️
+                            ℹ️
                         </button>
                         ${isAdmin ? `
                         <button class="btn btn-sm btn-primary btn-icon" 
@@ -367,7 +415,7 @@ const MaterialsPage = {
                     <div class="form-group">
                         <label>Categoria</label>
                         <select name="categoria_id" class="form-control" id="categoriaSelect">
-                            <option value="">Seleziona categoria...</option>
+                            <option value="">Caricamento...</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -425,14 +473,31 @@ const MaterialsPage = {
         
         UI.showModal(modalContent);
         
-        // Carica categorie nel select
-        await this.loadCategoriesIntoSelect('categoriaSelect');
+        // Carica categorie con retry e logging
+        console.log('🔍 Inizio caricamento categorie per modal...');
+        setTimeout(async () => {
+            try {
+                await this.loadCategoriesIntoSelect('categoriaSelect');
+                console.log('✅ Categorie caricate con successo');
+            } catch (error) {
+                console.error('❌ Errore caricamento categorie:', error);
+                const select = document.getElementById('categoriaSelect');
+                if (select) {
+                    select.innerHTML = '<option value="">Errore caricamento categorie</option>';
+                }
+            }
+        }, 100);
         
         // Gestisci submit
-        document.getElementById('addMaterialForm').onsubmit = async (e) => {
-            e.preventDefault();
-            await this.saveMaterial(new FormData(e.target));
-        };
+        setTimeout(() => {
+            const form = document.getElementById('addMaterialForm');
+            if (form) {
+                form.onsubmit = async (e) => {
+                    e.preventDefault();
+                    await this.saveMaterial(new FormData(e.target));
+                };
+            }
+        }, 100);
     },
 
     async showEditModal(id) {
@@ -464,7 +529,7 @@ const MaterialsPage = {
                         <div class="form-group">
                             <label>Categoria</label>
                             <select name="categoria_id" class="form-control" id="categoriaSelectEdit">
-                                <option value="">Seleziona categoria...</option>
+                                <option value="">Caricamento...</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -522,14 +587,31 @@ const MaterialsPage = {
             
             UI.showModal(modalContent);
             
-            // Carica categorie e seleziona quella corrente
-            await this.loadCategoriesIntoSelect('categoriaSelectEdit', material.categoria_id);
+            // Carica categorie con retry e logging
+            console.log('🔍 Inizio caricamento categorie per modal edit...');
+            setTimeout(async () => {
+                try {
+                    await this.loadCategoriesIntoSelect('categoriaSelectEdit', material.categoria_id);
+                    console.log('✅ Categorie caricate con successo');
+                } catch (error) {
+                    console.error('❌ Errore caricamento categorie:', error);
+                    const select = document.getElementById('categoriaSelectEdit');
+                    if (select) {
+                        select.innerHTML = '<option value="">Errore caricamento categorie</option>';
+                    }
+                }
+            }, 100);
             
             // Gestisci submit
-            document.getElementById('editMaterialForm').onsubmit = async (e) => {
-                e.preventDefault();
-                await this.saveMaterial(new FormData(e.target), material.id);
-            };
+            setTimeout(() => {
+                const form = document.getElementById('editMaterialForm');
+                if (form) {
+                    form.onsubmit = async (e) => {
+                        e.preventDefault();
+                        await this.saveMaterial(new FormData(e.target), material.id);
+                    };
+                }
+            }, 100);
         } catch (error) {
             UI.showToast('Errore nel caricamento del materiale', 'error');
             console.error(error);
@@ -567,32 +649,29 @@ const MaterialsPage = {
                     
                     <div class="detail-row">
                         <strong>Categoria:</strong>
-                        <span>
-                            ${material.categoria_nome 
-                                ? `<span class="badge-categoria" style="background-color: ${material.categoria_colore}">${material.categoria_icona} ${material.categoria_nome}</span>`
-                                : '<span style="color: #999;">-</span>'
-                            }
-                        </span>
-                    </div>
-                    
-                    <div class="detail-row">
-                        <strong>Stato:</strong>
-                        <span><span class="badge badge-${material.stato}">${material.stato}</span></span>
+                        <span>${material.categoria_nome ? `${material.categoria_icona} ${material.categoria_nome}` : 'Nessuna'}</span>
                     </div>
                     
                     <div class="detail-row">
                         <strong>Quantità Totale:</strong>
-                        <span>${quantitaTotale}</span>
+                        <span><strong>${quantitaTotale}</strong></span>
                     </div>
                     
                     <div class="detail-row">
-                        <strong>Quantità Disponibile:</strong>
-                        <span class="text-success" style="font-weight: bold;">${quantitaDisponibile}</span>
+                        <strong>Disponibili:</strong>
+                        <span style="color: ${quantitaDisponibile > 0 ? '#28a745' : '#dc3545'}">
+                            <strong>${quantitaDisponibile}</strong>
+                        </span>
                     </div>
                     
                     <div class="detail-row">
-                        <strong>Quantità Impegnata:</strong>
-                        <span class="text-warning" style="font-weight: bold;">${quantitaImpegnata}</span>
+                        <strong>Impegnati:</strong>
+                        <span><strong>${quantitaImpegnata}</strong></span>
+                    </div>
+                    
+                    <div class="detail-row">
+                        <strong>Stato:</strong>
+                        <span>${material.stato}</span>
                     </div>
                     
                     ${material.posizione_magazzino ? `
@@ -629,11 +708,6 @@ const MaterialsPage = {
                         <span>${material.note}</span>
                     </div>
                     ` : ''}
-                    
-                    <div class="detail-row">
-                        <strong>Creato:</strong>
-                        <span>${new Date(material.created_at).toLocaleString('it-IT')}</span>
-                    </div>
                 </div>
                 
                 <div class="d-flex gap-2 mt-3">
@@ -708,16 +782,26 @@ const MaterialsPage = {
     },
 
     async loadCategoriesIntoSelect(selectId, selectedId = null) {
+        console.log(`📋 loadCategoriesIntoSelect chiamata per: ${selectId}`);
+        
         try {
-            const categories = await API.categories.getAll();
+            console.log('🌐 Chiamata API.materialCategories.getAll()...');
+            const categories = await API.materialCategories.getAll();
+            console.log(`✅ Ricevute ${categories.length} categorie:`, categories);
+            
             const select = document.getElementById(selectId);
             
-            if (!select) return;
+            if (!select) {
+                console.error(`❌ Select con id '${selectId}' non trovato nel DOM`);
+                return;
+            }
             
-            // Mantieni l'opzione "Seleziona categoria..."
-            const firstOption = select.querySelector('option[value=""]');
-            select.innerHTML = firstOption ? firstOption.outerHTML : '<option value="">Seleziona categoria...</option>';
+            console.log(`✅ Select trovato: ${selectId}`);
             
+            // Pulisci e inizializza il select
+            select.innerHTML = '<option value="">Seleziona categoria...</option>';
+            
+            // Aggiungi le categorie
             categories.forEach(cat => {
                 const option = document.createElement('option');
                 option.value = cat.id;
@@ -727,8 +811,17 @@ const MaterialsPage = {
                 }
                 select.appendChild(option);
             });
+            
+            console.log(`✅ Select popolato con ${categories.length} categorie`);
+            
         } catch (error) {
-            console.error('Errore caricamento categorie:', error);
+            console.error('❌ Errore caricamento categorie:', error);
+            const select = document.getElementById(selectId);
+            if (select) {
+                select.innerHTML = '<option value="">Errore: ' + error.message + '</option>';
+            }
+            UI.showToast('Errore nel caricamento delle categorie: ' + error.message, 'error');
+            throw error;
         }
     },
 

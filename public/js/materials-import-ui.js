@@ -37,6 +37,7 @@ const MaterialsImportUI = {
                 <ul style="margin: 10px 0 0 20px;">
                     <li><strong>codice_barre</strong> (obbligatorio, univoco)</li>
                     <li><strong>nome</strong> (obbligatorio)</li>
+                    <li>seriale (numero di serie, opzionale)</li>
                     <li>descrizione</li>
                     <li>categoria (nome della categoria esistente)</li>
                     <li>quantita (numero, default: 1)</li>
@@ -175,23 +176,23 @@ const MaterialsImportUI = {
     
     downloadTemplate() {
         // Header CSV
-        let csv = 'codice_barre,nome,descrizione,categoria,quantita,stato,data_acquisto,fornitore,costo,posizione_magazzino,note\n';
+        let csv = 'codice_barre,seriale,nome,descrizione,categoria,quantita,stato,data_acquisto,fornitore,costo,posizione_magazzino,note\n';
         
         // Aggiungi esempi per ogni categoria
         const examples = [
-            ['TEL001', 'Radio Portatile VHF', 'Radio portatile VHF/UHF programmabile', 'Telecomunicazioni', '10', 'disponibile', '2024-01-15', 'RadioComm SRL', '180.00', 'Armadietto A1', 'Frequenze programmate'],
-            ['IDR001', 'Motopompa Acqua', 'Motopompa Honda per drenaggio acque', 'Idrogeologico', '4', 'disponibile', '2024-02-05', 'PumpItalia', '850.00', 'Deposito C', 'Controllo trimestrale'],
-            ['ELE001', 'Generatore 5kW', 'Generatore elettrico benzina 5kW Honda', 'Elettrico', '3', 'disponibile', '2024-01-12', 'PowerGen', '1200.00', 'Deposito Mezzi', 'Tagliando 100h'],
-            ['SAN001', 'Barella Pieghevole', 'Barella pieghevole Spencer in alluminio', 'Sanitario', '5', 'disponibile', '2024-01-15', 'MedSupply', '450.00', 'Ambulanza 1', 'Controllo annuale'],
-            ['LOG001', 'Tenda Campo Base 6x6', 'Tenda gonfiabile per campo base 36mq', 'Logistica', '2', 'disponibile', '2023-10-15', 'TentPro', '3500.00', 'Deposito Strutture', 'Include compressore'],
-            ['ANT001', 'Estintore 6kg', 'Estintore polvere ABC 6kg con supporto', 'Antincendio', '30', 'disponibile', '2024-01-20', 'FireSafety', '45.00', 'Vari', 'Revisione annuale'],
-            ['RES001', 'Corda Soccorso 50m', 'Corda statica 11mm certificata EN per SAF', 'Rescue', '8', 'disponibile', '2024-01-15', 'RopeRescue', '180.00', 'Magazzino SAF', 'Controllo annuale'],
-            ['CAM001', 'Tenda Pneumatica 4x4', 'Tenda gonfiabile rapida 16mq', 'Campo Base', '4', 'disponibile', '2023-11-20', 'TentSystems', '2800.00', 'Deposito Tende', 'Include pompa'],
-            ['CUC001', 'Cucina da Campo', 'Cucina mobile GPL 4 fuochi', 'Cucina', '3', 'disponibile', '2024-01-08', 'CampKitchen', '850.00', 'Deposito Cucine', 'Certificata CE'],
-            ['VES001', 'Gilet Alta Visibilità', 'Gilet catarifrangente con logo CRI', 'Vestiario', '100', 'disponibile', '2024-01-05', 'UniformCRI', '12.00', 'Magazzino Abbigliamento', ''],
-            ['MOV001', 'Transpallet Manuale', 'Transpallet manuale 2500kg', 'Movimentazione', '4', 'disponibile', '2024-01-10', 'LiftEquip', '280.00', 'Deposito Logistica', 'Revisione annuale'],
-            ['ILL001', 'Torre Faro', 'Torre faro telescopica 4x1000W', 'Illuminazione', '2', 'disponibile', '2023-12-15', 'LightSystems', '3500.00', 'Deposito Mezzi', 'Generatore integrato'],
-            ['ALT001', 'Bandiera CRI', 'Bandiera Croce Rossa Italiana 150x100cm', 'Altro', '20', 'disponibile', '2024-01-05', 'FlagSupply', '18.00', 'Magazzino Varie', '']
+            ['TEL001', 'SN123456', 'Radio Portatile VHF', 'Radio portatile VHF/UHF programmabile', 'Telecomunicazioni', '10', 'disponibile', '2024-01-15', 'RadioComm SRL', '180.00', 'Armadietto A1', 'Frequenze programmate'],
+            ['IDR001', '', 'Motopompa Acqua', 'Motopompa Honda per drenaggio acque', 'Idrogeologico', '4', 'disponibile', '2024-02-05', 'PumpItalia', '850.00', 'Deposito C', 'Controllo trimestrale'],
+            ['ELE001', 'GEN5KW789', 'Generatore 5kW', 'Generatore elettrico benzina 5kW Honda', 'Elettrico', '3', 'disponibile', '2024-01-12', 'PowerGen', '1200.00', 'Deposito Mezzi', 'Tagliando 100h'],
+            ['SAN001', 'BAR123XYZ', 'Barella Pieghevole', 'Barella pieghevole Spencer in alluminio', 'Sanitario', '5', 'disponibile', '2024-01-15', 'MedSupply', '450.00', 'Ambulanza 1', 'Controllo annuale'],
+            ['LOG001', '', 'Tenda Campo Base 6x6', 'Tenda gonfiabile per campo base 36mq', 'Logistica', '2', 'disponibile', '2023-10-15', 'TentPro', '3500.00', 'Deposito Strutture', 'Include compressore'],
+            ['ANT001', '', 'Estintore 6kg', 'Estintore polvere ABC 6kg con supporto', 'Antincendio', '30', 'disponibile', '2024-01-20', 'FireSafety', '45.00', 'Vari', 'Revisione annuale'],
+            ['RES001', 'CR11MM456', 'Corda Soccorso 50m', 'Corda statica 11mm certificata EN per SAF', 'Rescue', '8', 'disponibile', '2024-01-15', 'RopeRescue', '180.00', 'Magazzino SAF', 'Controllo annuale'],
+            ['CAM001', '', 'Tenda Pneumatica 4x4', 'Tenda gonfiabile rapida 16mq', 'Campo Base', '4', 'disponibile', '2023-11-20', 'TentSystems', '2800.00', 'Deposito Tende', 'Include pompa'],
+            ['CUC001', '', 'Cucina da Campo', 'Cucina mobile GPL 4 fuochi', 'Cucina', '3', 'disponibile', '2024-01-08', 'CampKitchen', '850.00', 'Deposito Cucine', 'Certificata CE'],
+            ['VES001', '', 'Gilet Alta Visibilità', 'Gilet catarifrangente con logo CRI', 'Vestiario', '100', 'disponibile', '2024-01-05', 'UniformCRI', '12.00', 'Magazzino Abbigliamento', ''],
+            ['MOV001', 'TP2500KG', 'Transpallet Manuale', 'Transpallet manuale 2500kg', 'Movimentazione', '4', 'disponibile', '2024-01-10', 'LiftEquip', '280.00', 'Deposito Logistica', 'Revisione annuale'],
+            ['ILL001', 'TF4X1000', 'Torre Faro', 'Torre faro telescopica 4x1000W', 'Illuminazione', '2', 'disponibile', '2023-12-15', 'LightSystems', '3500.00', 'Deposito Mezzi', 'Generatore integrato'],
+            ['ALT001', '', 'Bandiera CRI', 'Bandiera Croce Rossa Italiana 150x100cm', 'Altro', '20', 'disponibile', '2024-01-05', 'FlagSupply', '18.00', 'Magazzino Varie', '']
         ];
         
         examples.forEach(row => {
@@ -336,6 +337,7 @@ const MaterialsImportUI = {
                             <thead>
                                 <tr style="background: ${categoryInfo.colore}10;">
                                     <th>Codice</th>
+                                    <th>Seriale</th>
                                     <th>Nome</th>
                                     <th>Qtà</th>
                                     <th>Stato</th>
@@ -346,6 +348,7 @@ const MaterialsImportUI = {
                                 ${group.items.map(item => `
                                     <tr>
                                         <td><code style="font-size: 0.85em;">${item.codice_barre}</code></td>
+                                        <td>${item.seriale ? `<code style="font-size: 0.8em;">${item.seriale}</code>` : '<span style="color: #999;">-</span>'}</td>
                                         <td><strong>${item.nome}</strong></td>
                                         <td style="text-align: center;"><strong>${item.quantita || 1}</strong></td>
                                         <td><span class="badge badge-${item.stato || 'disponibile'}">${item.stato || 'disponibile'}</span></td>

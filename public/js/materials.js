@@ -241,12 +241,13 @@ const MaterialsPage = {
                             <tr>
                                 <th width="120">Codice Barre</th>
                                 <th>Nome</th>
-                                <th width="100">Qtà Tot</th>
-                                <th width="100">Disponibili</th>
-                                <th width="100">Impegnati</th>
-                                <th width="120">Stato</th>
-                                <th width="150">Posizione</th>
-                                <th width="200">Azioni</th>
+                                <th width="120">Seriale</th>
+                                <th width="80">Qtà Tot</th>
+                                <th width="80">Disp.</th>
+                                <th width="80">Imp.</th>
+                                <th width="100">Stato</th>
+                                <th width="130">Posizione</th>
+                                <th width="180">Azioni</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -329,6 +330,9 @@ const MaterialsPage = {
                 <td>
                     <strong>${material.nome}</strong>
                     ${material.descrizione ? `<br><small class="text-muted">${material.descrizione}</small>` : ''}
+                </td>
+                <td>
+                    ${material.seriale ? `<code style="font-size: 11px;">${material.seriale}</code>` : '<span class="text-muted">-</span>'}
                 </td>
                 <td class="text-center">${quantitaTotale}</td>
                 <td class="text-center">
@@ -447,16 +451,21 @@ const MaterialsPage = {
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Data Acquisto</label>
-                        <input type="date" name="data_acquisto" class="form-control">
+                        <label>Numero Seriale</label>
+                        <input type="text" name="seriale" class="form-control" placeholder="es. SN123456789">
+                        <small class="text-muted">Opzionale - per tracciare singoli oggetti</small>
                     </div>
                     <div class="form-group">
-                        <label>Fornitore</label>
-                        <input type="text" name="fornitore" class="form-control">
+                        <label>Data Acquisto</label>
+                        <input type="date" name="data_acquisto" class="form-control">
                     </div>
                 </div>
                 
                 <div class="form-row">
+                    <div class="form-group">
+                        <label>Fornitore</label>
+                        <input type="text" name="fornitore" class="form-control">
+                    </div>
                     <div class="form-group">
                         <label>Costo (€)</label>
                         <input type="number" name="costo" step="0.01" min="0" class="form-control">
@@ -590,16 +599,21 @@ const MaterialsPage = {
                     
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Data Acquisto</label>
-                            <input type="date" name="data_acquisto" value="${material.data_acquisto || ''}" class="form-control">
+                            <label>Numero Seriale</label>
+                            <input type="text" name="seriale" value="${material.seriale || ''}" class="form-control" placeholder="es. SN123456789">
+                            <small class="text-muted">Opzionale - per tracciare singoli oggetti</small>
                         </div>
                         <div class="form-group">
-                            <label>Fornitore</label>
-                            <input type="text" name="fornitore" value="${material.fornitore || ''}" class="form-control">
+                            <label>Data Acquisto</label>
+                            <input type="date" name="data_acquisto" value="${material.data_acquisto || ''}" class="form-control">
                         </div>
                     </div>
                     
                     <div class="form-row">
+                        <div class="form-group">
+                            <label>Fornitore</label>
+                            <input type="text" name="fornitore" value="${material.fornitore || ''}" class="form-control">
+                        </div>
                         <div class="form-group">
                             <label>Costo (€)</label>
                             <input type="number" name="costo" value="${material.costo || ''}" step="0.01" min="0" class="form-control">
@@ -667,6 +681,13 @@ const MaterialsPage = {
                         <strong>Codice a Barre:</strong>
                         <span><code>${material.codice_barre}</code></span>
                     </div>
+                    
+                    ${material.seriale ? `
+                    <div class="detail-row">
+                        <strong>Numero Seriale:</strong>
+                        <span><code>${material.seriale}</code></span>
+                    </div>
+                    ` : ''}
                     
                     <div class="detail-row">
                         <strong>Nome:</strong>
@@ -892,6 +913,7 @@ const MaterialsPage = {
             const headers = [
                 'categoria',
                 'codice_barre',
+                'seriale',
                 'nome',
                 'descrizione',
                 'quantita',
@@ -929,6 +951,7 @@ const MaterialsPage = {
                 const row = [
                     categoria,
                     m.codice_barre || '',
+                    m.seriale || '',
                     `"${(m.nome || '').replace(/"/g, '""')}"`,
                     `"${(m.descrizione || '').replace(/"/g, '""')}"`,
                     quantitaTotale,

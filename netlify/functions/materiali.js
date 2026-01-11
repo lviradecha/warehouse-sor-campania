@@ -230,8 +230,8 @@ exports.handler = async (event) => {
             const material = await queryOne(
                 `INSERT INTO materials (
                     codice_barre, nome, descrizione, categoria_id, quantita, quantita_assegnata,
-                    stato, data_acquisto, fornitore, costo, posizione_magazzino, note
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                    stato, data_acquisto, fornitore, costo, posizione_magazzino, seriale, note
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
                 RETURNING *`,
                 [
                     codiceBarre,  // Usa il codice generato automaticamente o quello fornito
@@ -245,6 +245,7 @@ exports.handler = async (event) => {
                     data.fornitore || null,
                     costoValue,
                     data.posizione_magazzino || null,
+                    data.seriale || null,
                     data.note || null
                 ]
             );
@@ -320,9 +321,10 @@ exports.handler = async (event) => {
                     fornitore = COALESCE($8, fornitore),
                     costo = COALESCE($9, costo),
                     posizione_magazzino = COALESCE($10, posizione_magazzino),
-                    note = COALESCE($11, note),
+                    seriale = COALESCE($11, seriale),
+                    note = COALESCE($12, note),
                     updated_at = CURRENT_TIMESTAMP
-                WHERE id = $12
+                WHERE id = $13
                 RETURNING *`,
                 [
                     data.codice_barre,
@@ -335,6 +337,7 @@ exports.handler = async (event) => {
                     data.fornitore,
                     costoValue,
                     data.posizione_magazzino,
+                    data.seriale,
                     data.note,
                     materialId
                 ]

@@ -397,8 +397,12 @@ const MaterialsPage = {
             <form id="addMaterialForm">
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Codice a Barre *</label>
-                        <input type="text" name="codice_barre" required class="form-control">
+                        <label>Codice a Barre</label>
+                        <input type="text" 
+                               name="codice_barre" 
+                               class="form-control"
+                               placeholder="Auto-generato (es. TLC001, CB0001, EL0002...)">
+                        <small class="text-muted">Se lasciato vuoto, verrà generato automaticamente</small>
                     </div>
                     <div class="form-group">
                         <label>Nome *</label>
@@ -479,6 +483,35 @@ const MaterialsPage = {
             try {
                 await this.loadCategoriesIntoSelect('categoriaSelect');
                 console.log('✅ Categorie caricate con successo');
+                
+                // Aggiungi listener per anteprima codice a barre
+                const categoriaSelect = document.getElementById('categoriaSelect');
+                const codiceBarreInput = document.querySelector('input[name="codice_barre"]');
+                
+                if (categoriaSelect && codiceBarreInput) {
+                    categoriaSelect.addEventListener('change', async (e) => {
+                        // Solo se il campo codice è vuoto
+                        if (codiceBarreInput.value.trim() === '') {
+                            const categoriaId = e.target.value;
+                            if (categoriaId) {
+                                try {
+                                    // Chiama API per ottenere prossimo codice
+                                    const response = await fetch(`/api/materiali/preview-barcode?categoria_id=${categoriaId}`, {
+                                        headers: AuthManager.getAuthHeaders()
+                                    });
+                                    if (response.ok) {
+                                        const data = await response.json();
+                                        codiceBarreInput.placeholder = `Sarà generato: ${data.nextCode}`;
+                                    }
+                                } catch (err) {
+                                    console.log('Preview codice non disponibile');
+                                }
+                            } else {
+                                codiceBarreInput.placeholder = 'Sarà generato: NC001 (senza categoria)';
+                            }
+                        }
+                    });
+                }
             } catch (error) {
                 console.error('❌ Errore caricamento categorie:', error);
                 const select = document.getElementById('categoriaSelect');
@@ -739,6 +772,9 @@ const MaterialsPage = {
                     data[key] = value;
                 }
             });
+            
+            console.log('💾 Dati da salvare:', data);
+            console.log('📊 Stato selezionato:', data.stato);
             
             if (id) {
                 await API.materials.update(id, data);

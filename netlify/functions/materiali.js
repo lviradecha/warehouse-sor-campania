@@ -149,12 +149,56 @@ exports.handler = async (event) => {
             const data = JSON.parse(event.body);
 
             // Validazione dati obbligatori
-            if (!data.codice_barre || !data.nome) {
-                return errorResponse('Codice a barre e nome sono obbligatori');
+            if (!data.nome) {
+                return errorResponse('Nome è obbligatorio');
+            }
+
+            // AUTO-GENERAZIONE CODICE A BARRE se non fornito
+            let codiceBarre = data.codice_barre;
+            
+            if (!codiceBarre || String(codiceBarre).trim() === '') {
+                // Ottieni sigla della categoria (o 'NC' se senza categoria)
+                let sigla = 'NC'; // Default: No Category
+                
+                if (data.categoria_id) {
+                    const categoria = await queryOne(
+                        `SELECT sigla FROM material_categories WHERE id = $1`,
+                        [data.categoria_id]
+                    );
+                    if (categoria && categoria.sigla) {
+                        sigla = categoria.sigla;
+                    }
+                }
+                
+                // Trova il progressivo più alto per questa sigla
+                const lastCode = await queryOne(
+                    `SELECT codice_barre 
+                     FROM materials 
+                     WHERE codice_barre LIKE $1
+                     ORDER BY codice_barre DESC 
+                     LIMIT 1`,
+                    [`${sigla}%`]
+                );
+                
+                let nextNumber = 1;
+                if (lastCode && lastCode.codice_barre) {
+                    // Estrai il numero dalla fine del codice (es. CB001 → 001)
+                    const match = lastCode.codice_barre.match(/(\d+)$/);
+                    if (match) {
+                        nextNumber = parseInt(match[1]) + 1;
+                    }
+                }
+                
+                // Genera il nuovo codice con padding variabile
+                // TLC = 3 cifre, tutti gli altri = 4 cifre
+                const padding = (sigla === 'TLC') ? 3 : 4;
+                codiceBarre = `${sigla}${String(nextNumber).padStart(padding, '0')}`;
+                
+                console.log(`🔢 Codice a barre auto-generato: ${codiceBarre}`);
             }
 
             // Verifica unicità codice a barre
-            const codeExists = await exists('materials', 'codice_barre', data.codice_barre);
+            const codeExists = await exists('materials', 'codice_barre', codiceBarre);
             if (codeExists) {
                 return errorResponse('Codice a barre già esistente');
             }
@@ -190,7 +234,7 @@ exports.handler = async (event) => {
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
                 RETURNING *`,
                 [
-                    data.codice_barre,
+                    codiceBarre,  // Usa il codice generato automaticamente o quello fornito
                     data.nome,
                     data.descrizione || null,
                     categoriaIdValue,

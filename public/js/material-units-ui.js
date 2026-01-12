@@ -16,11 +16,32 @@ const MaterialUnitsUI = {
             
             // Debug: vedi cosa restituisce l'API
             console.log('🔍 Risposta API units:', unitsResponse);
+            console.log('🔍 Tipo:', typeof unitsResponse);
+            console.log('🔍 È array?', Array.isArray(unitsResponse));
+            console.log('🔍 Keys:', Object.keys(unitsResponse || {}));
             
-            // L'API potrebbe restituire un oggetto o un array
-            const units = Array.isArray(unitsResponse) ? unitsResponse : (unitsResponse.data || unitsResponse || []);
+            // Prova diversi modi per estrarre l'array
+            let units = [];
             
-            console.log('✅ Array units processato:', units);
+            if (Array.isArray(unitsResponse)) {
+                units = unitsResponse;
+            } else if (unitsResponse && Array.isArray(unitsResponse.data)) {
+                units = unitsResponse.data;
+            } else if (unitsResponse && Array.isArray(unitsResponse.units)) {
+                units = unitsResponse.units;
+            } else if (unitsResponse && typeof unitsResponse === 'object') {
+                // Cerca la prima proprietà che è un array
+                for (let key in unitsResponse) {
+                    if (Array.isArray(unitsResponse[key])) {
+                        units = unitsResponse[key];
+                        console.log(`✅ Array trovato nella chiave: ${key}`);
+                        break;
+                    }
+                }
+            }
+            
+            console.log('✅ Array units finale:', units);
+            console.log('✅ Numero unità:', units.length);
             
             const modalContent = `
                 <div class="units-modal">
@@ -201,8 +222,23 @@ const MaterialUnitsUI = {
             const material = await API.materials.getById(materialId);
             const unitsResponse = await API.materials.getUnits(materialId);
             
-            // L'API potrebbe restituire un oggetto o un array
-            const units = Array.isArray(unitsResponse) ? unitsResponse : (unitsResponse.data || unitsResponse || []);
+            // Estrai array con stessa logica robusta
+            let units = [];
+            if (Array.isArray(unitsResponse)) {
+                units = unitsResponse;
+            } else if (unitsResponse && Array.isArray(unitsResponse.data)) {
+                units = unitsResponse.data;
+            } else if (unitsResponse && Array.isArray(unitsResponse.units)) {
+                units = unitsResponse.units;
+            } else if (unitsResponse && typeof unitsResponse === 'object') {
+                for (let key in unitsResponse) {
+                    if (Array.isArray(unitsResponse[key])) {
+                        units = unitsResponse[key];
+                        break;
+                    }
+                }
+            }
+            
             const unit = units.find(u => u.id === unitId);
             
             if (!unit) {

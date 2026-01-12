@@ -1,6 +1,6 @@
 // ===================================
-// MATERIAL UNITS UI
-// Gestione interfaccia unità individuali
+// MATERIAL UNITS UI - LAYOUT COMPATTO
+// Visualizzazione card verticale senza scroll
 // ===================================
 
 const MaterialUnitsUI = {
@@ -14,15 +14,8 @@ const MaterialUnitsUI = {
             const material = await API.materials.getById(materialId);
             const unitsResponse = await API.materials.getUnits(materialId);
             
-            // Debug: vedi cosa restituisce l'API
-            console.log('🔍 Risposta API units:', unitsResponse);
-            console.log('🔍 Tipo:', typeof unitsResponse);
-            console.log('🔍 È array?', Array.isArray(unitsResponse));
-            console.log('🔍 Keys:', Object.keys(unitsResponse || {}));
-            
-            // Prova diversi modi per estrarre l'array
+            // Estrai array
             let units = [];
-            
             if (Array.isArray(unitsResponse)) {
                 units = unitsResponse;
             } else if (unitsResponse && Array.isArray(unitsResponse.data)) {
@@ -30,18 +23,13 @@ const MaterialUnitsUI = {
             } else if (unitsResponse && Array.isArray(unitsResponse.units)) {
                 units = unitsResponse.units;
             } else if (unitsResponse && typeof unitsResponse === 'object') {
-                // Cerca la prima proprietà che è un array
                 for (let key in unitsResponse) {
                     if (Array.isArray(unitsResponse[key])) {
                         units = unitsResponse[key];
-                        console.log(`✅ Array trovato nella chiave: ${key}`);
                         break;
                     }
                 }
             }
-            
-            console.log('✅ Array units finale:', units);
-            console.log('✅ Numero unità:', units.length);
             
             const modalContent = `
                 <div class="units-modal">
@@ -60,53 +48,79 @@ const MaterialUnitsUI = {
                             </button>
                         </div>
                     ` : `
-                        <div class="table-responsive">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Seriale</th>
-                                        <th>Selettiva</th>
-                                        <th>Stato</th>
-                                        <th>Assegnato a</th>
-                                        <th>Note</th>
-                                        <th style="width: 100px;">Azioni</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${units.map(u => `
-                                        <tr>
-                                            <td><strong>${u.numero_unita || '-'}</strong></td>
-                                            <td><code>${u.seriale || '-'}</code></td>
-                                            <td>${u.selettiva || '-'}</td>
-                                            <td>
-                                                <span class="badge badge-${u.stato === 'disponibile' ? 'success' : u.stato === 'assegnato' ? 'warning' : 'secondary'}">
-                                                    ${u.stato === 'disponibile' ? '✅' : u.stato === 'assegnato' ? '📤' : '⚠️'} 
-                                                    ${u.stato}
-                                                </span>
-                                            </td>
-                                            <td>${u.assegnato_a || '-'}</td>
-                                            <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">
-                                                ${u.note ? `<small>${u.note}</small>` : '-'}
-                                            </td>
-                                            <td>
-                                                <div class="action-buttons">
-                                                    <button class="btn btn-sm btn-secondary btn-icon" 
-                                                            onclick="MaterialUnitsUI.showEditUnitForm(${materialId}, ${u.id})"
-                                                            title="Modifica">
-                                                        ✏️
-                                                    </button>
-                                                    <button class="btn btn-sm btn-danger btn-icon" 
-                                                            onclick="MaterialUnitsUI.deleteUnit(${materialId}, ${u.id})"
-                                                            title="Elimina">
-                                                        🗑️
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
+                        <!-- Layout CARD verticale compatto -->
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                            ${units.map(u => `
+                                <div class="card" style="
+                                    padding: 15px;
+                                    border-left: 4px solid ${u.stato === 'disponibile' ? '#28a745' : u.stato === 'assegnato' ? '#ffc107' : '#6c757d'};
+                                    background: ${u.stato === 'disponibile' ? '#f0fff4' : u.stato === 'assegnato' ? '#fff8e1' : '#f5f5f5'};
+                                ">
+                                    <!-- Header con numero e stato -->
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                        <h4 style="margin: 0; font-size: 18px;">
+                                            #${u.numero_unita || '-'}
+                                        </h4>
+                                        <span class="badge badge-${u.stato === 'disponibile' ? 'success' : u.stato === 'assegnato' ? 'warning' : 'secondary'}" style="font-size: 11px;">
+                                            ${u.stato === 'disponibile' ? '✅' : u.stato === 'assegnato' ? '📤' : '⚠️'} 
+                                            ${u.stato.toUpperCase()}
+                                        </span>
+                                    </div>
+                                    
+                                    <!-- Info principali -->
+                                    <div style="margin-bottom: 12px;">
+                                        <div style="margin-bottom: 6px;">
+                                            <strong style="color: #666; font-size: 12px;">SERIALE:</strong><br>
+                                            <code style="background: white; padding: 4px 8px; border-radius: 4px; font-size: 13px; display: inline-block; margin-top: 2px;">
+                                                ${u.seriale || '-'}
+                                            </code>
+                                        </div>
+                                        
+                                        ${u.selettiva ? `
+                                        <div style="margin-bottom: 6px;">
+                                            <strong style="color: #666; font-size: 12px;">SELETTIVA:</strong><br>
+                                            <code style="background: white; padding: 4px 8px; border-radius: 4px; font-size: 13px; display: inline-block; margin-top: 2px;">
+                                                ${u.selettiva}
+                                            </code>
+                                        </div>
+                                        ` : ''}
+                                        
+                                        ${u.assegnato_a ? `
+                                        <div style="margin-bottom: 6px;">
+                                            <strong style="color: #666; font-size: 12px;">ASSEGNATO A:</strong><br>
+                                            <span style="color: #333; font-size: 13px; margin-top: 2px; display: inline-block;">
+                                                👤 ${u.assegnato_a}
+                                            </span>
+                                        </div>
+                                        ` : ''}
+                                        
+                                        ${u.note ? `
+                                        <div style="margin-bottom: 6px;">
+                                            <strong style="color: #666; font-size: 12px;">NOTE:</strong><br>
+                                            <small style="color: #666; font-size: 12px; display: block; margin-top: 2px; line-height: 1.4;">
+                                                ${u.note}
+                                            </small>
+                                        </div>
+                                        ` : ''}
+                                    </div>
+                                    
+                                    <!-- Azioni -->
+                                    <div style="display: flex; gap: 8px; padding-top: 10px; border-top: 1px solid #dee2e6;">
+                                        <button class="btn btn-sm btn-secondary" 
+                                                onclick="MaterialUnitsUI.showEditUnitForm(${materialId}, ${u.id})"
+                                                style="flex: 1; font-size: 12px; padding: 6px 10px;"
+                                                title="Modifica">
+                                            ✏️ Modifica
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" 
+                                                onclick="MaterialUnitsUI.deleteUnit(${materialId}, ${u.id})"
+                                                style="flex: 1; font-size: 12px; padding: 6px 10px;"
+                                                title="Elimina">
+                                            🗑️ Elimina
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
                         </div>
                         
                         <div class="mt-3">
@@ -202,8 +216,6 @@ const MaterialUnitsUI = {
                 });
                 
                 UI.showToast('Unità aggiunta con successo', 'success');
-                
-                // Ricarica modal unità
                 await this.showUnitsModal(materialId);
                 
             } catch (error) {
@@ -222,7 +234,7 @@ const MaterialUnitsUI = {
             const material = await API.materials.getById(materialId);
             const unitsResponse = await API.materials.getUnits(materialId);
             
-            // Estrai array con stessa logica robusta
+            // Estrai array
             let units = [];
             if (Array.isArray(unitsResponse)) {
                 units = unitsResponse;
@@ -314,8 +326,6 @@ const MaterialUnitsUI = {
                     });
                     
                     UI.showToast('Unità aggiornata con successo', 'success');
-                    
-                    // Ricarica modal unità
                     await this.showUnitsModal(materialId);
                     
                 } catch (error) {
@@ -345,8 +355,6 @@ const MaterialUnitsUI = {
             await API.materials.deleteUnit(materialId, unitId);
             
             UI.showToast('Unità eliminata con successo', 'success');
-            
-            // Ricarica modal unità
             await this.showUnitsModal(materialId);
             
         } catch (error) {

@@ -79,6 +79,55 @@ exports.handler = async (event) => {
                 return successResponse(maintenances);
             }
 
+            // ================================================================
+            // GESTIONE UNITÀ INDIVIDUALI - CONTROLLO PRIORITARIO
+            // ================================================================
+            
+            // GET /materiali/:id/units - Lista unità individuali
+            if (materialId && segments[1] === 'units' && !segments[2]) {
+                console.log('🔍 GET /materiali/:id/units - materialId:', materialId);
+                const units = await query(
+                    `SELECT 
+                        mu.*,
+                        CASE 
+                            WHEN EXISTS (
+                                SELECT 1 FROM assignments a 
+                                WHERE a.material_unit_id = mu.id 
+                                AND a.stato = 'in_corso'
+                            ) THEN (
+                                SELECT v.cognome || ' ' || v.nome
+                                FROM assignments a
+                                JOIN volunteers v ON a.volunteer_id = v.id
+                                WHERE a.material_unit_id = mu.id 
+                                AND a.stato = 'in_corso'
+                                LIMIT 1
+                            )
+                            ELSE NULL
+                        END as assegnato_a
+                    FROM material_units mu
+                    WHERE mu.material_id = $1
+                    ORDER BY mu.numero_unita`,
+                    [materialId]
+                );
+                
+                console.log(`✅ Trovate ${units.length} unità per materialId ${materialId}`);
+                return successResponse(units);
+            }
+            
+            // GET /materiali/:id/units/available - Solo unità disponibili
+            if (materialId && segments[1] === 'units' && segments[2] === 'available') {
+                const units = await query(
+                    `SELECT * 
+                    FROM material_units
+                    WHERE material_id = $1 
+                    AND stato = 'disponibile'
+                    ORDER BY numero_unita`,
+                    [materialId]
+                );
+                
+                return successResponse(units);
+            }
+
             // GET lista materiali con filtri
             const params = event.queryStringParameters || {};
             const filters = [];

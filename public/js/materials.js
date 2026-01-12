@@ -183,7 +183,7 @@ const MaterialsPage = {
         });
     },
 
-    // NUOVO: Render singolo gruppo categoria - CON SIMBOLI ROBUSTI
+    // NUOVO: Render singolo gruppo categoria - COMPATTO QUANDO CHIUSO
     renderCategoryGroup(group) {
         // IMPORTANTE: Converti group.id a stringa per matching coerente con il Set
         const id = String(group.id);
@@ -215,14 +215,41 @@ const MaterialsPage = {
                         justify-content: space-between;
                         align-items: center;
                         user-select: none;
+                        max-width: 100%;
+                        overflow: hidden;
+                        box-sizing: border-box;
                      ">
-                    <div style="display: flex; align-items: center; gap: 15px;">
-                        <span style="font-size: 28px;">${group.icona}</span>
-                        <div>
-                            <h4 style="margin: 0; color: ${group.colore}; font-weight: 600;">
+                    <div style="
+                        display: flex; 
+                        align-items: center; 
+                        gap: 15px;
+                        flex: 1;
+                        min-width: 0;
+                        overflow: hidden;
+                    ">
+                        <span style="font-size: 28px; flex-shrink: 0;">${group.icona}</span>
+                        <div style="
+                            flex: 1;
+                            min-width: 0;
+                            overflow: hidden;
+                        ">
+                            <h4 style="
+                                margin: 0; 
+                                color: ${group.colore}; 
+                                font-weight: 600;
+                                white-space: nowrap;
+                                overflow: hidden;
+                                text-overflow: ellipsis;
+                            ">
                                 ${group.nome}
                             </h4>
-                            <small style="color: #666;">
+                            <small style="
+                                color: #666;
+                                display: block;
+                                white-space: nowrap;
+                                overflow: hidden;
+                                text-overflow: ellipsis;
+                            ">
                                 ${group.materials.length} materiali • 
                                 Tot: ${totalQty} • 
                                 Disp: <strong style="color: ${totalDisponibili > 0 ? '#28a745' : '#dc3545'}">${totalDisponibili}</strong> • 
@@ -230,30 +257,37 @@ const MaterialsPage = {
                             </small>
                         </div>
                     </div>
-                    <span style="font-size: 24px; transition: transform 0.2s;">
+                    <span style="
+                        font-size: 24px; 
+                        transition: transform 0.2s;
+                        flex-shrink: 0;
+                        margin-left: 10px;
+                    ">
                         ${expandIcon}
                     </span>
                 </div>
                 
                 <div id="category-${id}" style="display: ${isCollapsed ? 'none' : 'block'};">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th width="120">Codice Barre</th>
-                                <th>Nome</th>
-                                <th width="120">Seriale</th>
-                                <th width="80">Qtà Tot</th>
-                                <th width="80">Disp.</th>
-                                <th width="80">Imp.</th>
-                                <th width="100">Stato</th>
-                                <th width="130">Posizione</th>
-                                <th width="180">Azioni</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${group.materials.map(m => this.renderMaterialRow(m)).join('')}
-                        </tbody>
-                    </table>
+                    <div style="overflow-x: auto;">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th width="120">Codice Barre</th>
+                                    <th>Nome</th>
+                                    <th width="120">Seriale</th>
+                                    <th width="80">Qtà Tot</th>
+                                    <th width="80">Disp.</th>
+                                    <th width="80">Imp.</th>
+                                    <th width="100">Stato</th>
+                                    <th width="130">Posizione</th>
+                                    <th width="180">Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${group.materials.map(m => this.renderMaterialRow(m)).join('')}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         `;

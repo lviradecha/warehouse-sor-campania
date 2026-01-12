@@ -348,7 +348,7 @@ const AssignmentsPage = {
             rowDiv.style.cssText = 'display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-start;';
             rowDiv.dataset.rowIndex = rowIndex;
             
-            // Crea HTML con select vuoto (lo popoleremo dopo con optgroup)
+            // Crea HTML con select vuoto (lo popoleremo dopo)
             rowDiv.innerHTML = `
                 <div style="flex: 2;">
                     <select name="materials[${rowIndex}][material_id]" required class="form-control material-select" data-row="${rowIndex}">
@@ -366,6 +366,7 @@ const AssignmentsPage = {
                            placeholder="Qtà">
                     <small class="text-muted quantita-help" data-row="${rowIndex}"></small>
                 </div>
+                <input type="hidden" name="materials[${rowIndex}][unit_id]" class="unit-id-input" data-row="${rowIndex}">
                 ${rowIndex > 0 ? `
                     <button type="button" class="btn btn-sm btn-danger" onclick="AssignmentsPage.removeMaterialRow(${rowIndex})" title="Rimuovi materiale">
                         ✖
@@ -393,50 +394,138 @@ const AssignmentsPage = {
             const categorieOrdinate = Object.keys(materialiPerCategoria).sort();
             
             // Crea optgroup per ogni categoria
-            categorieOrdinate.forEach(categoria => {
+            for (const categoria of categorieOrdinate) {
                 const optgroup = document.createElement('optgroup');
                 optgroup.label = categoria;
                 
                 // Ordina i materiali dentro la categoria per nome
-                materialiPerCategoria[categoria]
-                    .sort((a, b) => a.nome.localeCompare(b.nome))
-                    .forEach(m => {
-                        const disponibili = (m.quantita || 0) - (m.quantita_assegnata || 0);
-                        const option = document.createElement('option');
-                        option.value = m.id;
-                        option.textContent = `${m.nome} (${m.codice_barre}) - Disponibili: ${disponibili}`;
-                        option.setAttribute('data-disponibili', disponibili);
-                        option.setAttribute('data-nome', m.nome);
-                        option.setAttribute('data-codice', m.codice_barre);
-                        optgroup.appendChild(option);
-                    });
+                const materialsInCategoria = materialiPerCategoria[categoria].sort((a, b) => a.nome.localeCompare(b.nome));
                 
-                selectElement.appendChild(optgroup);
-            });
+                for (const m of materialsInCategoria) {
+                    // NUOVA LOGICA: Se track_serials = true, mostra le unità individuali
+                    if (m.track_serials) {
+                        try {
+                            // Carica le unità disponibili per questo materiale
+                            const unitsResponse = await API.materials.getUnits(m.id);
+                            
+                            // Estrai array unità
+                            let units = [];
+                            if (Array.isArray(unitsResponse)) {
+                                units = unitsResponse;
+                            } else if (unitsResponse && Array.isArray(unitsResponse.data)) {
+                                units = unitsResponse.data;
+                            } else if (unitsResponse && Array.isArray(unitsResponse.units)) {
+                                units = unitsResponse.units;
+                            } else if (unitsResponse && typeof unitsResponse === 'object') {
+                                for (let key in unitsResponse) {
+                                    if (Array.isArray(unitsResponse[key])) {
+                                        units = unitsResponse[key];
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            // Filtra solo unità disponibili
+                            const unitsDisponibili = units.filter(u => u.stato === 'disponibile');
+                            
+                            // Crea un'option per ogni unità disponibile
+                            unitsDisponibili.forEach(unit => {
+                                const option = document.createElement('option');
+                                option.value = m.id;
+                                option.setAttribute('data-unit-id', unit.id);
+                                option.setAttribute('data-disponibili', 1); // Ogni unità è 1
+                                option.setAttribute('data-nome', m.nome);
+                                option.setAttribute('data-codice', m.codice_barre);
+                                option.setAttribute('data-track-serials', 'true');
+                                
+                                // Testo dell'option con info unità
+                                let text = `${m.nome}`;
+                                if (unit.numero_unita) text += ` #${unit.numero_unita}`;
+                                if (unit.seriale) text += ` (${unit.seriale})`;
+                                if (unit.selettiva) text += ` - ${unit.selettiva}`;
+                                text += ` - Disponibile`;
+                                
+                                option.textContent = text;
+                                optgroup.appendChild(option);
+                            });
+                            
+                        } catch (error) {
+                            console.error(`Errore caricamento unità per materiale ${m.id}:`, error);
+                            // Fallback: mostra il materiale master se non riesci a caricare unità
+                            const disponibili = (m.quantita || 0) - (m.quantita_assegnata || 0);
+                            if (disponibili > 0) {
+                                const option = document.createElement('option');
+                                option.value = m.id;
+                                option.textContent = `${m.nome} (${m.codice_barre}) - Disponibili: ${disponibili}`;
+                                option.setAttribute('data-disponibili', disponibili);
+                                option.setAttribute('data-nome', m.nome);
+                                option.setAttribute('data-codice', m.codice_barre);
+                                optgroup.appendChild(option);
+                            }
+                        }
+                    } else {
+                        // LOGICA ORIGINALE: Materiale NON serializzato, mostra quantità
+                        const disponibili = (m.quantita || 0) - (m.quantita_assegnata || 0);
+                        if (disponibili > 0) {
+                            const option = document.createElement('option');
+                            option.value = m.id;
+                            option.textContent = `${m.nome} (${m.codice_barre}) - Disponibili: ${disponibili}`;
+                            option.setAttribute('data-disponibili', disponibili);
+                            option.setAttribute('data-nome', m.nome);
+                            option.setAttribute('data-codice', m.codice_barre);
+                            optgroup.appendChild(option);
+                        }
+                    }
+                }
+                
+                // Aggiungi optgroup solo se ha opzioni
+                if (optgroup.children.length > 0) {
+                    selectElement.appendChild(optgroup);
+                }
+            }
             
             // Aggiungi event listener per validazione quantità
             const select = rowDiv.querySelector('.material-select');
             const quantitaInput = rowDiv.querySelector('.quantita-input');
             const quantitaHelp = rowDiv.querySelector('.quantita-help');
+            const unitIdInput = rowDiv.querySelector('.unit-id-input');
             
             select.addEventListener('change', function() {
                 const selectedOption = this.options[this.selectedIndex];
                 const disponibili = parseInt(selectedOption.getAttribute('data-disponibili')) || 0;
+                const unitId = selectedOption.getAttribute('data-unit-id');
+                const trackSerials = selectedOption.getAttribute('data-track-serials');
                 
-                quantitaInput.max = disponibili;
-                quantitaInput.value = Math.min(1, disponibili);
-                
-                if (disponibili > 0) {
-                    quantitaHelp.textContent = `Max: ${disponibili}`;
+                // Se è un'unità serializzata, salva l'ID unità e blocca quantità a 1
+                if (trackSerials && unitId) {
+                    unitIdInput.value = unitId;
+                    quantitaInput.value = 1;
+                    quantitaInput.max = 1;
+                    quantitaInput.readOnly = true;
+                    quantitaInput.style.backgroundColor = '#f5f5f5';
+                    quantitaHelp.textContent = 'Unità singola';
                     quantitaHelp.style.color = '#28a745';
                 } else {
-                    quantitaHelp.textContent = 'Non disponibile';
-                    quantitaHelp.style.color = '#dc3545';
+                    // Materiale normale con quantità
+                    unitIdInput.value = '';
+                    quantitaInput.readOnly = false;
+                    quantitaInput.style.backgroundColor = '';
+                    quantitaInput.max = disponibili;
+                    quantitaInput.value = Math.min(1, disponibili);
+                    
+                    if (disponibili > 0) {
+                        quantitaHelp.textContent = `Max: ${disponibili}`;
+                        quantitaHelp.style.color = '#28a745';
+                    } else {
+                        quantitaHelp.textContent = 'Non disponibile';
+                        quantitaHelp.style.color = '#dc3545';
+                    }
                 }
             });
             
         } catch (error) {
             UI.showToast('Errore caricamento materiali', 'error');
+            console.error(error);
         }
     },
     
@@ -468,6 +557,7 @@ const AssignmentsPage = {
         while (formData.get(`materials[${rowIndex}][material_id]`)) {
             const materialId = formData.get(`materials[${rowIndex}][material_id]`);
             const quantita = parseInt(formData.get(`materials[${rowIndex}][quantita]`));
+            const unitId = formData.get(`materials[${rowIndex}][unit_id]`); // NUOVO!
             
             if (materialId && quantita > 0) {
                 // Valida quantità disponibile
@@ -480,10 +570,17 @@ const AssignmentsPage = {
                     return;
                 }
                 
-                materials.push({
+                const materialData = {
                     material_id: materialId,
                     quantita: quantita
-                });
+                };
+                
+                // NUOVO: Aggiungi unit_id se presente (materiale serializzato)
+                if (unitId) {
+                    materialData.material_unit_id = parseInt(unitId);
+                }
+                
+                materials.push(materialData);
             }
             rowIndex++;
         }
@@ -499,7 +596,7 @@ const AssignmentsPage = {
             // Crea UN'UNICA assegnazione con TUTTI i materiali (per email consolidata)
             const result = await API.assignments.create({
                 ...commonData,
-                materials: materials // Invia array di materiali
+                materials: materials // Invia array di materiali con unit_id se presente
             });
             
             UI.closeModal();

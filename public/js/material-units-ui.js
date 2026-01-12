@@ -12,7 +12,15 @@ const MaterialUnitsUI = {
             
             // Carica materiale e unità
             const material = await API.materials.getById(materialId);
-            const units = await API.materials.getUnits(materialId);
+            const unitsResponse = await API.materials.getUnits(materialId);
+            
+            // Debug: vedi cosa restituisce l'API
+            console.log('🔍 Risposta API units:', unitsResponse);
+            
+            // L'API potrebbe restituire un oggetto o un array
+            const units = Array.isArray(unitsResponse) ? unitsResponse : (unitsResponse.data || unitsResponse || []);
+            
+            console.log('✅ Array units processato:', units);
             
             const modalContent = `
                 <div class="units-modal">
@@ -191,7 +199,10 @@ const MaterialUnitsUI = {
             UI.showLoading();
             
             const material = await API.materials.getById(materialId);
-            const units = await API.materials.getUnits(materialId);
+            const unitsResponse = await API.materials.getUnits(materialId);
+            
+            // L'API potrebbe restituire un oggetto o un array
+            const units = Array.isArray(unitsResponse) ? unitsResponse : (unitsResponse.data || unitsResponse || []);
             const unit = units.find(u => u.id === unitId);
             
             if (!unit) {

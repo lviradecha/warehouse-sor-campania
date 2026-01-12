@@ -345,6 +345,13 @@ const MaterialsPage = {
                 <td>${material.posizione_magazzino || '-'}</td>
                 <td>
                     <div class="btn-group-vertical">
+                        ${material.track_serials ? `
+                        <button class="btn btn-sm btn-warning btn-icon" 
+                                onclick="MaterialUnitsUI.showUnitsModal(${material.id})"
+                                title="Visualizza Unità">
+                            📦
+                        </button>
+                        ` : ''}
                         <button class="btn btn-sm btn-info btn-icon" 
                                 onclick="MaterialsPage.showDetailModal(${material.id})"
                                 title="Dettagli">
@@ -430,6 +437,21 @@ const MaterialsPage = {
                         <label>Quantità *</label>
                         <input type="number" name="quantita" value="1" min="0" required class="form-control">
                     </div>
+                </div>
+                
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" 
+                               name="track_serials" 
+                               value="true">
+                        <span>
+                            Traccia unità individuali con seriali
+                            <small class="text-muted d-block">
+                                Attiva per radio, veicoli, attrezzatura elettronica che richiedono tracciamento individuale.
+                                Lascia disattivato per materiali intercambiabili (panche, moschettoni, anelli, ecc.).
+                            </small>
+                        </span>
+                    </label>
                 </div>
                 
                 <div class="form-row">
@@ -578,6 +600,22 @@ const MaterialsPage = {
                             <label>Quantità *</label>
                             <input type="number" name="quantita" value="${material.quantita}" min="0" required class="form-control">
                         </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 10px;">
+                            <input type="checkbox" 
+                                   name="track_serials" 
+                                   value="true"
+                                   ${material.track_serials ? 'checked' : ''}>
+                            <span>
+                                Traccia unità individuali con seriali
+                                <small class="text-muted d-block">
+                                    Attiva per radio, veicoli, attrezzatura elettronica che richiedono tracciamento individuale.
+                                    Lascia disattivato per materiali intercambiabili (panche, moschettoni, anelli, ecc.).
+                                </small>
+                            </span>
+                        </label>
                     </div>
                     
                     <div class="form-row">

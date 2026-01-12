@@ -1,0 +1,48 @@
+/* ===============================================
+   STILI PER RAGGRUPPAMENTO MATERIALI
+   Per dropdown assegnazioni con optgroup
+   =============================================== */
+
+/* Stile per le intestazioni delle categorie (optgroup) */
+select optgroup {
+    font-weight: bold;
+    color: #E30613; /* Rosso CRI */
+    font-style: normal;
+    background-color: #fff5f5;
+    padding: 8px 0 4px 0;
+    border-top: 1px solid #ffebeb;
+}
+
+/* Stile per le opzioni all'interno dei gruppi */
+select optgroup option {
+    padding-left: 15px;
+    color: #333;
+    font-weight: normal;
+    background-color: #ffffff;
+}
+
+/* Hover sulle opzioni */
+select option:hover,
+select option:focus {
+    background-color: #f8f9fa;
+}
+
+/* Migliora la leggibilità del select */
+.material-select {
+    line-height: 1.5;
+    padding: 8px;
+}
+
+/* Separatore visivo tra le categorie */
+select optgroup + optgroup {
+    margin-top: 4px;
+}
+
+/* Stile alternativo con bordo più evidente (opzionale) */
+.material-select-bordered optgroup {
+    background-color: #f8f9fa;
+    border-top: 2px solid #E30613;
+    border-bottom: 1px solid #ddd;
+    padding: 6px 0;
+    margin: 2px 0;
+}

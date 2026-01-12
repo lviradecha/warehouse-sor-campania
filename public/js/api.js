@@ -63,7 +63,35 @@ const API = {
             body: JSON.stringify({ stato, note })
         }),
 
-        generateBarcode: (id) => API.request(`/materiali/${id}/barcode`)
+
+        generateBarcode: (id) => API.request(`/materiali/${id}/barcode`),
+
+        // ===================================
+        // MATERIAL UNITS (Unità Individuali)
+        // ===================================
+        
+        // Lista tutte le unità di un materiale
+        getUnits: (materialId) => API.request(`/materiali/${materialId}/units`),
+        
+        // Lista solo unità disponibili
+        getAvailableUnits: (materialId) => API.request(`/materiali/${materialId}/units/available`),
+        
+        // Aggiungi nuova unità
+        addUnit: (materialId, data) => API.request(`/materiali/${materialId}/units`, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        }),
+        
+        // Aggiorna unità
+        updateUnit: (materialId, unitId, data) => API.request(`/materiali/${materialId}/units/${unitId}`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        }),
+        
+        // Elimina unità
+        deleteUnit: (materialId, unitId) => API.request(`/materiali/${materialId}/units/${unitId}`, {
+            method: 'DELETE'
+        })
     },
 
     // ===================================

@@ -348,18 +348,11 @@ const AssignmentsPage = {
             rowDiv.style.cssText = 'display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-start;';
             rowDiv.dataset.rowIndex = rowIndex;
             
+            // Crea HTML con select vuoto (lo popoleremo dopo con optgroup)
             rowDiv.innerHTML = `
                 <div style="flex: 2;">
                     <select name="materials[${rowIndex}][material_id]" required class="form-control material-select" data-row="${rowIndex}">
                         <option value="">Seleziona materiale...</option>
-                        ${materials.materials.map(m => {
-                            const disponibili = (m.quantita || 0) - (m.quantita_assegnata || 0);
-                            return `
-                                <option value="${m.id}" data-disponibili="${disponibili}" data-nome="${m.nome}">
-                                    ${m.nome} (${m.codice_barre}) - Disponibili: ${disponibili}
-                                </option>
-                            `;
-                        }).join('')}
                     </select>
                 </div>
                 <div style="flex: 1;">
@@ -382,6 +375,44 @@ const AssignmentsPage = {
             
             container.appendChild(rowDiv);
             this.materialRows.push(rowDiv);
+            
+            // Popola il select RAGGRUPPATO PER CATEGORIA
+            const selectElement = rowDiv.querySelector('.material-select');
+            
+            // Raggruppa materiali per categoria
+            const materialiPerCategoria = {};
+            materials.materials.forEach(m => {
+                const categoria = m.categoria_nome || 'Altro';
+                if (!materialiPerCategoria[categoria]) {
+                    materialiPerCategoria[categoria] = [];
+                }
+                materialiPerCategoria[categoria].push(m);
+            });
+            
+            // Ordina le categorie alfabeticamente
+            const categorieOrdinate = Object.keys(materialiPerCategoria).sort();
+            
+            // Crea optgroup per ogni categoria
+            categorieOrdinate.forEach(categoria => {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = categoria;
+                
+                // Ordina i materiali dentro la categoria per nome
+                materialiPerCategoria[categoria]
+                    .sort((a, b) => a.nome.localeCompare(b.nome))
+                    .forEach(m => {
+                        const disponibili = (m.quantita || 0) - (m.quantita_assegnata || 0);
+                        const option = document.createElement('option');
+                        option.value = m.id;
+                        option.textContent = `${m.nome} (${m.codice_barre}) - Disponibili: ${disponibili}`;
+                        option.setAttribute('data-disponibili', disponibili);
+                        option.setAttribute('data-nome', m.nome);
+                        option.setAttribute('data-codice', m.codice_barre);
+                        optgroup.appendChild(option);
+                    });
+                
+                selectElement.appendChild(optgroup);
+            });
             
             // Aggiungi event listener per validazione quantità
             const select = rowDiv.querySelector('.material-select');

@@ -424,6 +424,224 @@ exports.handler = async (event) => {
             return successResponse({ message: 'Materiale eliminato con successo' });
         }
 
+
+        // ================================================================
+        // GESTIONE UNITÀ INDIVIDUALI (Material Units)
+        // ================================================================
+        
+        // GET /materiali/:id/units - Lista unità individuali
+        if (event.httpMethod === 'GET' && materialId && segments[1] === 'units' && !segments[2]) {
+            const units = await query(
+                `SELECT 
+                    mu.*,
+                    CASE 
+                        WHEN EXISTS (
+                            SELECT 1 FROM assignments a 
+                            WHERE a.material_unit_id = mu.id 
+                            AND a.stato = 'in_corso'
+                        ) THEN (
+                            SELECT v.cognome || ' ' || v.nome
+                            FROM assignments a
+                            JOIN volunteers v ON a.volunteer_id = v.id
+                            WHERE a.material_unit_id = mu.id 
+                            AND a.stato = 'in_corso'
+                            LIMIT 1
+                        )
+                        ELSE NULL
+                    END as assegnato_a
+                FROM material_units mu
+                WHERE mu.material_id = $1
+                ORDER BY mu.numero_unita`,
+                [materialId]
+            );
+            
+            return successResponse(units);
+        }
+        
+        // GET /materiali/:id/units/available - Solo unità disponibili
+        if (event.httpMethod === 'GET' && materialId && segments[1] === 'units' && segments[2] === 'available') {
+            const units = await query(
+                `SELECT * 
+                FROM material_units
+                WHERE material_id = $1 
+                AND stato = 'disponibile'
+                ORDER BY numero_unita`,
+                [materialId]
+            );
+            
+            return successResponse(units);
+        }
+        
+        // POST /materiali/:id/units - Crea nuova unità
+        if (event.httpMethod === 'POST' && materialId && segments[1] === 'units') {
+            requireAdmin(user); // Solo admin può aggiungere unità
+            
+            const data = JSON.parse(event.body);
+            
+            // Validazione
+            if (!data.seriale && !data.numero_unita) {
+                return errorResponse('Seriale o numero unità è obbligatorio');
+            }
+            
+            // Auto-genera numero unità se non fornito
+            if (!data.numero_unita) {
+                const maxUnit = await queryOne(
+                    `SELECT COALESCE(MAX(numero_unita), 0) as max_num 
+                     FROM material_units 
+                     WHERE material_id = $1`,
+                    [materialId]
+                );
+                data.numero_unita = (maxUnit?.max_num || 0) + 1;
+            }
+            
+            // Inserisci unità
+            const unit = await queryOne(
+                `INSERT INTO material_units (
+                    material_id, numero_unita, seriale, selettiva, note, stato
+                ) VALUES ($1, $2, $3, $4, $5, $6)
+                RETURNING *`,
+                [
+                    materialId,
+                    data.numero_unita,
+                    data.seriale || null,
+                    data.selettiva || null,
+                    data.note || null,
+                    data.stato || 'disponibile'
+                ]
+            );
+            
+            // Aggiorna quantità totale del materiale master
+            await query(
+                `UPDATE materials 
+                 SET quantita = (SELECT COUNT(*) FROM material_units WHERE material_id = $1)
+                 WHERE id = $1`,
+                [materialId]
+            );
+            
+            // Log attività
+            await logActivity(
+                user.id,
+                'CREATE',
+                'material_units',
+                unit.id,
+                `Unità aggiunta: ${data.seriale || 'Unità #' + data.numero_unita}`
+            );
+            
+            return successResponse(unit);
+        }
+        
+        // PUT /materiali/:id/units/:unitId - Modifica unità
+        if (event.httpMethod === 'PUT' && materialId && segments[1] === 'units' && segments[2]) {
+            requireAdmin(user);
+            
+            const unitId = segments[2];
+            const data = JSON.parse(event.body);
+            
+            // Verifica che l'unità appartenga al materiale
+            const unit = await queryOne(
+                `SELECT * FROM material_units WHERE id = $1 AND material_id = $2`,
+                [unitId, materialId]
+            );
+            
+            if (!unit) {
+                return errorResponse('Unità non trovata', 404);
+            }
+            
+            // Costruisci query dinamica
+            const updates = [];
+            const values = [];
+            let paramCount = 0;
+            
+            if (data.seriale !== undefined) {
+                paramCount++;
+                updates.push(`seriale = $${paramCount}`);
+                values.push(data.seriale);
+            }
+            if (data.selettiva !== undefined) {
+                paramCount++;
+                updates.push(`selettiva = $${paramCount}`);
+                values.push(data.selettiva);
+            }
+            if (data.note !== undefined) {
+                paramCount++;
+                updates.push(`note = $${paramCount}`);
+                values.push(data.note);
+            }
+            if (data.stato !== undefined) {
+                paramCount++;
+                updates.push(`stato = $${paramCount}`);
+                values.push(data.stato);
+            }
+            
+            if (updates.length === 0) {
+                return errorResponse('Nessun campo da aggiornare');
+            }
+            
+            paramCount++;
+            updates.push(`updated_at = NOW()`);
+            values.push(unitId);
+            
+            const updatedUnit = await queryOne(
+                `UPDATE material_units 
+                 SET ${updates.join(', ')}
+                 WHERE id = $${paramCount}
+                 RETURNING *`,
+                values
+            );
+            
+            // Log attività
+            await logActivity(
+                user.id,
+                'UPDATE',
+                'material_units',
+                unitId,
+                `Unità modificata: ${updatedUnit.seriale || 'Unità #' + updatedUnit.numero_unita}`
+            );
+            
+            return successResponse(updatedUnit);
+        }
+        
+        // DELETE /materiali/:id/units/:unitId - Elimina unità
+        if (event.httpMethod === 'DELETE' && materialId && segments[1] === 'units' && segments[2]) {
+            requireAdmin(user);
+            
+            const unitId = segments[2];
+            
+            // Verifica se ha assegnazioni attive
+            const hasActiveAssignment = await exists(
+                'assignments',
+                'material_unit_id',
+                unitId,
+                `stato = 'in_corso'`
+            );
+            
+            if (hasActiveAssignment) {
+                return errorResponse('Impossibile eliminare: unità ha assegnazioni attive');
+            }
+            
+            // Elimina unità
+            await query(`DELETE FROM material_units WHERE id = $1`, [unitId]);
+            
+            // Aggiorna quantità totale del materiale master
+            await query(
+                `UPDATE materials 
+                 SET quantita = (SELECT COUNT(*) FROM material_units WHERE material_id = $1)
+                 WHERE id = $1`,
+                [materialId]
+            );
+            
+            // Log attività
+            await logActivity(
+                user.id,
+                'DELETE',
+                'material_units',
+                unitId,
+                'Unità eliminata'
+            );
+            
+            return successResponse({ message: 'Unità eliminata con successo' });
+        }
+
         return errorResponse('Richiesta non valida', 400);
 
     } catch (error) {
